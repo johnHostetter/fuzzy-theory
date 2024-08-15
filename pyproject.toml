@@ -28,6 +28,7 @@ include = [
     "LICENSE",
 ]
 exclude = [
+    "examples/**",
     "tests/**",
     "*.pyc",
     "*.pyo",
