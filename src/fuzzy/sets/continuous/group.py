@@ -41,7 +41,6 @@ class GroupedFuzzySets(torch.nn.Module):
             modules_list = []
         self.modules_list = torch.nn.ModuleList(modules_list)
         self.expandable = expandable
-        self.pruning = False
         self.epsilon = 1.5  # epsilon-completeness
         # keep track of minimums and maximums if for fuzzy set width calculation
         self.minimums: torch.Tensor = torch.empty(0, 0)
@@ -247,8 +246,12 @@ class GroupedFuzzySets(torch.nn.Module):
                     self.minimums = minimums
                     self.maximums = maximums
                 else:
-                    self.minimums = torch.min(minimums, self.minimums).detach()
-                    self.maximums = torch.max(maximums, self.maximums).detach()
+                    self.minimums = torch.min(
+                        minimums, self.minimums
+                    ).detach()
+                    self.maximums = torch.max(
+                        maximums, self.maximums
+                    ).detach()
 
                 # find where the new centers should be added, if any
                 # LogGaussian was used, then use following to check for real membership degrees:
@@ -258,8 +261,8 @@ class GroupedFuzzySets(torch.nn.Module):
                 #     ):
                 #         with torch.no_grad():
                 #             assert (
-                #                            module_responses.exp() * module_masks
-                #                    ).max().item() <= 1.0, "Membership degrees are not in the range [0, 1]."
+                #                    module_responses.exp() * module_masks
+                #             ).max().item() <= 1.0, "Memberships are not in the range [0, 1]."
 
                 exemplars: List[torch.Tensor] = []
 
@@ -295,7 +298,9 @@ class GroupedFuzzySets(torch.nn.Module):
                 new_centers = torch.where(
                     self.calculate_module_responses(exemplars)
                     .degrees.exp()
-                    .max(dim=-1)  # TODO: assuming LogGaussian was used (exp)
+                    .max(
+                        dim=-1
+                    )  # TODO: assume LogGaussian is used (exp)  # pylint: disable=fixme
                     .values
                     < self.epsilon,
                     exemplars,
@@ -303,7 +308,7 @@ class GroupedFuzzySets(torch.nn.Module):
                 )
 
                 if not new_centers.isnan().all():  # add new centers
-                    # TODO: this find_centers_and_widths call is problematic
+                    # TODO: find_centers_and_widths call is problematic  # pylint: disable=fixme
                     new_widths: torch.Tensor = find_widths(
                         data_point=new_centers.nan_to_num(0.0).mean(dim=0),
                         minimums=self.minimums,
@@ -337,14 +342,20 @@ class GroupedFuzzySets(torch.nn.Module):
                         new_widths.transpose(0, 1).max(dim=-1, keepdim=True).values
                     )
 
-                    # TODO: this code does not work for torch.jit.script
+                    # TODO: this code does not work for torch.jit.script  # pylint: disable=fixme
                     # the following assumes only the first module is to be expanded
                     module = self.modules_list[0]
-                    module._centers.append(module.make_parameter(parameter=new_centers))
-                    module._widths.append(module.make_parameter(parameter=new_widths))
-                    module._mask.append(module.make_mask(widths=new_widths))
+                    module._centers.append(  # pylint: disable=protected-access
+                        module.make_parameter(parameter=new_centers)
+                    )
+                    module._widths.append(  # pylint: disable=protected-access
+                        module.make_parameter(parameter=new_widths)
+                    )
+                    module._mask.append(  # pylint: disable=protected-access
+                        module.make_mask(widths=new_widths)
+                    )
 
-                    # TODO: this code does not work for torch.jit.script
+                    # TODO: this code does not work for torch.jit.script  # pylint: disable=fixme
                     # the following assumes an entire new module is to be added
                     # module_type = type(self.modules_list[0])  # cannot call type
                     # if issubclass(module_type, ContinuousFuzzySet):
@@ -425,7 +436,7 @@ class GroupedFuzzySets(torch.nn.Module):
         collapsing the rest of the modules into a single module. This is done to reduce the
         number of torch.nn.Modules in the list for computational efficiency.
         """
-        if self.pruning and len(self.modules_list) > 5:
+        if len(self.modules_list) > 5:
             centers, widths = [], []
             for module in self.modules_list[1:]:
                 if module.centers.shape[-1] > 1:
@@ -458,7 +469,7 @@ class GroupedFuzzySets(torch.nn.Module):
             module_masks,
         ) = self.calculate_module_responses(observations)
 
-        # TODO: this code does not work for torch.jit.script
+        # TODO: this code does not work for torch.jit.script  # pylint: disable=fixme
         # self.expand(observations, module_responses, module_masks)
 
         return Membership(

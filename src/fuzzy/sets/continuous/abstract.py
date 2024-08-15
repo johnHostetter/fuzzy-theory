@@ -14,7 +14,9 @@ import sympy
 import torch
 import torchquad
 import numpy as np
-import scienceplots
+
+# import scienceplots is used via plt.style.context(["science", "no-latex", "high-contrast"])
+import scienceplots  # noqa # pylint: disable=unused-import
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from torchquad.utils.set_up_backend import set_up_backend
@@ -46,7 +48,6 @@ class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
         widths: np.ndarray,
         device: torch.device,
         use_sparse_tensor=False,
-        labels: List[str] = None,
     ):
         super().__init__()
         self.device = device
@@ -94,7 +95,6 @@ class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
         #     ]
         # )
         self._mask = [self.make_mask(widths)]
-        self.labels = labels  # TODO: possibly remove this attribute
 
     def to(self, *args, **kwargs):
         """
@@ -204,7 +204,7 @@ class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
         Returns:
             The hash of the fuzzy set.
         """
-        return hash((type(self), self.get_centers(), self.get_widths(), self.labels))
+        return hash((type(self), self.get_centers(), self.get_widths()))
 
     def get_centers(self) -> torch.Tensor:
         """
@@ -272,7 +272,6 @@ class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
         state_dict["centers"] = self.get_centers()  # concatenate the centers
         state_dict["widths"] = self.get_widths()  # concatenate the widths
         state_dict["mask"] = self.get_mask()  # currently not used
-        state_dict["labels"] = self.labels
         state_dict["class_name"] = self.__class__.__name__
         if ".pt" not in path.name and ".pth" not in path.name:
             raise ValueError(
@@ -325,12 +324,10 @@ class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
         state_dict: MutableMapping = torch.load(path)
         centers = state_dict.pop("centers")
         widths = state_dict.pop("widths")
-        labels = state_dict.pop("labels")
         class_name = state_dict.pop("class_name")
         return cls.get_subclass(class_name)(
             centers=centers.cpu().detach().numpy(),
             widths=widths.cpu().detach().numpy(),
-            labels=labels,
             device=device,
         )
 
@@ -362,7 +359,7 @@ class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
                 method_of_extension([self._widths[0], widths])
             )
 
-    def area_helper(self, fuzzy_sets) -> List[List[float]]:
+    def _area_helper(self, fuzzy_sets) -> List[List[float]]:
         """
         Splits the fuzzy set (if representing a fuzzy variable) into individual fuzzy sets (the
         fuzzy variable's possible fuzzy terms), and does so recursively until the base case is
@@ -429,7 +426,7 @@ class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
             torch.Tensor
         """
         return torch.tensor(
-            self.area_helper(self), device=self.device, dtype=torch.float32
+            self._area_helper(self), device=self.device, dtype=torch.float32
         )
 
     def split_by_variables(self) -> Union[list, List[Type["ContinuousFuzzySet"]]]:

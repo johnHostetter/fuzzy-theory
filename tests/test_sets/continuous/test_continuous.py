@@ -73,7 +73,6 @@ class TestContinuousFuzzySet(unittest.TestCase):
                 )
             # except the saved state dict includes additional information not captured by
             # the original state dict, such as the class name and the labels
-            assert "labels" in saved_state_dict.keys()
             assert "class_name" in saved_state_dict.keys() and saved_state_dict[
                 "class_name"
             ] in (subclass.__name__ for subclass in ContinuousFuzzySet.__subclasses__())
@@ -95,7 +94,6 @@ class TestContinuousFuzzySet(unittest.TestCase):
                 assert torch.allclose(
                     membership_func.sigmas, loaded_membership_func.sigmas
                 )
-            assert membership_func.labels == loaded_membership_func.labels
             # check some functionality that it is still working
             assert torch.allclose(membership_func.area(), loaded_membership_func.area())
             assert torch.allclose(

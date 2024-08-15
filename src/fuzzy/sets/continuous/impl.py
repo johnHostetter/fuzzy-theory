@@ -2,7 +2,7 @@
 Implements various membership functions by inheriting from ContinuousFuzzySet.
 """
 
-from typing import List, Union
+from typing import Union
 
 import sympy
 import torch
@@ -23,10 +23,9 @@ class LogGaussian(ContinuousFuzzySet):
         centers=None,
         widths=None,
         width_multiplier: float = 1.0,  # in fuzzy logic, convention is usually 1.0, but can be 2.0
-        labels: List[str] = None,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        super().__init__(centers=centers, widths=widths, labels=labels, device=device)
+        super().__init__(centers=centers, widths=widths, device=device)
         self.width_multiplier = width_multiplier
         assert int(self.width_multiplier) in [1, 2]
 
@@ -220,10 +219,9 @@ class Lorentzian(ContinuousFuzzySet):
         self,
         centers=None,
         widths=None,
-        labels: List[str] = None,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        super().__init__(centers=centers, widths=widths, labels=labels, device=device)
+        super().__init__(centers=centers, widths=widths, device=device)
 
     @property
     @torch.jit.ignore
@@ -371,10 +369,9 @@ class Triangular(ContinuousFuzzySet):
         self,
         centers=None,
         widths=None,
-        labels: List[str] = None,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        super().__init__(centers=centers, widths=widths, labels=labels, device=device)
+        super().__init__(centers=centers, widths=widths, device=device)
 
     @staticmethod
     def internal_calculate_membership(

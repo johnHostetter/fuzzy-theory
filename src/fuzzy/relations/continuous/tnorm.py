@@ -28,7 +28,7 @@ class TNorm(Enum):
     DIF = "dif"
 
 
-class AlgebraicProduct(torch.nn.Module):  # TODO: remove this class
+class AlgebraicProduct(torch.nn.Module):
     """
     Implementation of the Algebraic Product t-norm (Fuzzy AND).
     """
