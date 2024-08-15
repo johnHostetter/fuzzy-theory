@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fuzzy-theory"
+version = "0.0.1"
+authors = [
+  { name="John Wesley Hostetter", email="jhostetter16@gmail.com" },
+]
+description = "The fuzzy-theory library provides a PyTorch interface to fuzzy set theory and fuzzy logic operations."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/johnHostetter/fuzzy-theory"
+Issues = "https://github.com/johnHostetter/fuzzy-theory/issues"
+
+[tool.hatch.build]
+include = [
+    "src/fuzzy/**",
+    "README.md",
+    "LICENSE",
+]
+exclude = [
+    "tests/**",
+    "*.pyc",
+    "*.pyo",
+    ".git/**",
+    "build/**",
+    "dist/**",
+    ".venv/**",
+]
+# Ignore VCS
+ignore = ["*.git", "*.hg", ".git/**", ".hg/**"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fuzzy"]
