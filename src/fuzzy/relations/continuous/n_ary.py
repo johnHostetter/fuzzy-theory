@@ -4,7 +4,7 @@ are used to combine multiple membership values into a single value. The n-ary re
 differing types) can then be combined into a compound relation.
 """
 
-from typing import Tuple, List
+from typing import Union, Tuple, List
 
 import torch
 import numpy as np
@@ -21,7 +21,13 @@ class NAryRelation(torch.nn.Module):
     truth value.
     """
 
-    def __init__(self, *indices: Tuple[int, int], device: torch.device, **kwargs):
+    # TODO: add support for indices to be List[Tuple[int, int]] for multiple compound indices
+    def __init__(
+        self,
+        *indices: Union[Tuple[int, int], List[Tuple[int, int]]],
+        device: torch.device,
+        **kwargs,
+    ):
         """
         Apply an n-ary relation to the indices (i.e., relation's matrix) on the provided device.
 
@@ -30,17 +36,33 @@ class NAryRelation(torch.nn.Module):
             device: The device to use for the relation.
         """
         super().__init__(**kwargs)
-        self.indices = indices
-        data = np.ones(len(indices))  # a '1' indicates a relation exists
-        row, col = zip(*indices)
+        self.device: torch.device = device
+        # self.indices = indices
 
-        self._coo_matrix: sps.sparse._coo.matrix = sps.coo_matrix(
-            (data, (row, col)), dtype=np.int8
-        )
-        self._original_shape: Tuple[int, int] = self._coo_matrix.shape
+        if isinstance(indices[0], list):
+            # this scenario is for when we have multiple compound indices that use the same relation
+            # this is useful for computational efficiency (i.e., not having to use a for loop)
+            self._coo_matrix: List[sps._coo.coo_matrix] = []
+            self._original_shape: List[Tuple[int, int]] = []
+            for relation_indices in indices:
+                coo_matrix = self.convert_indices_to_matrix(relation_indices)
+                self._original_shape.append(coo_matrix.shape)
+                self._coo_matrix.append(coo_matrix)
+            # now convert to a list of matrices
+            max_var = max(t[0] for t in self._original_shape)
+            max_term = max(t[1] for t in self._original_shape)
+            self.make_np_matrix(max_var, max_term)
+        else:
+            # this is the normal scenario where we have a single relation but multiple indices
+            self._coo_matrix: sps._coo.coo_matrix = self.convert_indices_to_matrix(
+                indices
+            )
+            self._original_shape = self._coo_matrix.shape
+            self.matrix: np.ndarray = self._coo_matrix.toarray()[:, :, None]
+
         # this mask is used to zero out the values that are not part of the relation
         self.mask: torch.Tensor = torch.tensor(
-            self._coo_matrix.toarray(), dtype=torch.float32, device=device
+            self.matrix, dtype=torch.float32, device=device
         )
         # matrix size can increase (in-place) for more potential rows (vars) and columns (terms)
         # self._coo_matrix.resize(
@@ -48,6 +70,30 @@ class NAryRelation(torch.nn.Module):
         # )
         # we can create a graph from the adjacency matrix
         # g = igraph.Graph.Adjacency(self._coo_matrix)
+
+    def make_np_matrix(self, max_var: int, max_term: int):
+        matrices = []
+        for coo_matrix in self._coo_matrix:
+            # first resize
+            coo_matrix.resize(max_var, max_term)
+            matrices.append(coo_matrix.toarray())
+        # make a new axis and stack long that axis
+        self.matrix: np.ndarray = np.stack(matrices, axis=-1)
+
+    @staticmethod
+    def convert_indices_to_matrix(indices) -> sps._coo.coo_matrix:
+        """
+        Convert the given indices to a COO matrix.
+
+        Args:
+            indices: The indices where a '1' will be placed at each index.
+
+        Returns:
+            The COO matrix with a '1' at each index.
+        """
+        data = np.ones(len(indices))  # a '1' indicates a relation exists
+        row, col = zip(*indices)
+        return sps.coo_matrix((data, (row, col)), dtype=np.int8)
 
     def resize(self, *shape):
         """
@@ -57,11 +103,17 @@ class NAryRelation(torch.nn.Module):
             shape: The new shape of the matrix.
         """
         # resize the COO matrix in-place
-        self._coo_matrix.resize(*shape)
+        if isinstance(self._coo_matrix, list):
+            for coo_matrix in self._coo_matrix:
+                coo_matrix.resize(*shape)
+            self.make_np_matrix(shape[0], shape[1])
+        else:
+            self._coo_matrix.resize(*shape)
+            # TODO: update the matrix to reflect the new shape
+            self.matrix = self._coo_matrix.toarray()[:, :, None]
+
         # update the mask to reflect the new shape
-        self.mask = torch.tensor(
-            self._coo_matrix.toarray(), dtype=torch.float32, device=self.mask.device
-        )
+        self.mask = torch.tensor(self.matrix, dtype=torch.float32, device=self.device)
 
     def apply_mask(self, membership: Membership) -> torch.Tensor:
         """
@@ -74,13 +126,13 @@ class NAryRelation(torch.nn.Module):
             The masked membership values (zero may or may not be a valid degree of truth).
         """
         membership_shape: torch.Size = membership.mask.shape
-        if self._coo_matrix.shape != membership_shape:
+        if self.matrix.shape != membership_shape:
             if len(membership_shape) > 2:
                 # this is for the case where masks have been stacked due to compound relations
                 membership_shape = membership_shape[-2:]  # get the last two dimensions
             self.resize(*membership_shape)
         # select the membership values that are not zeroed out (i.e., involved in the relation)
-        after_mask = membership.degrees * self.mask
+        after_mask = membership.degrees.unsqueeze(dim=-1) * self.mask
         return after_mask.sum(dim=1, keepdim=True)  # drop the zeroed out values
 
     def forward(self, membership: Membership) -> torch.Tensor:

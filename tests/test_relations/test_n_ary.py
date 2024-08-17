@@ -108,9 +108,9 @@ class TestNAryRelation(unittest.TestCase):
         after_mask = n_ary.apply_mask(membership=membership)
         expected_after_mask = torch.tensor(
             [
-                [[7.4245834e-01, 2.5514542e-04]],
-                [[8.4526926e-01, 9.6005607e-01]],
-                [[9.9679035e-01, 5.7408627e-04]],
+                [[[7.4245834e-01], [2.5514542e-04]]],
+                [[[8.4526926e-01], [9.6005607e-01]]],
+                [[[9.9679035e-01], [5.7408627e-04]]],
             ],
             device=AVAILABLE_DEVICE,
         )
@@ -119,7 +119,7 @@ class TestNAryRelation(unittest.TestCase):
         # test the forward pass
         min_membership: Membership = n_ary.forward(membership)
         expected_min_values = torch.tensor(
-            [[[2.5514542e-04]], [[8.4526926e-01]], [[5.7408627e-04]]],
+            [[[[2.5514542e-04]]], [[[8.4526926e-01]]], [[[5.7408627e-04]]]],
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
@@ -141,9 +141,9 @@ class TestNAryRelation(unittest.TestCase):
         after_mask = n_ary.apply_mask(membership=membership)
         expected_after_mask = torch.tensor(
             [
-                [[7.4245834e-01, 2.5514542e-04]],
-                [[8.4526926e-01, 9.6005607e-01]],
-                [[9.9679035e-01, 5.7408627e-04]],
+                [[[7.4245834e-01], [2.5514542e-04]]],
+                [[[8.4526926e-01], [9.6005607e-01]]],
+                [[[9.9679035e-01], [5.7408627e-04]]],
             ],
             device=AVAILABLE_DEVICE,
         )
@@ -153,9 +153,9 @@ class TestNAryRelation(unittest.TestCase):
         prod_membership: Membership = n_ary.forward(membership)
         expected_prod_values = torch.tensor(
             [
-                [[7.4245834e-01 * 2.5514542e-04]],
-                [[8.4526926e-01 * 9.6005607e-01]],
-                [[9.9679035e-01 * 5.7408627e-04]],
+                [[[7.4245834e-01 * 2.5514542e-04]]],
+                [[[8.4526926e-01 * 9.6005607e-01]]],
+                [[[9.9679035e-01 * 5.7408627e-04]]],
             ],
             device=AVAILABLE_DEVICE,
         )
@@ -200,10 +200,23 @@ class TestNAryRelation(unittest.TestCase):
         min_membership: Membership = n_ary_next_min(compound_values)
         expected_min_values = torch.tensor(
             [
-                [[7.4245834e-01 * 2.5514542e-04]],
-                [[8.4526926e-01 * 9.6005607e-01]],
-                [[9.9679035e-01 * 5.7408627e-04]],
+                [[[7.4245834e-01 * 2.5514542e-04]]],
+                [[[8.4526926e-01 * 9.6005607e-01]]],
+                [[[9.9679035e-01 * 5.7408627e-04]]],
             ],
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
+
+    def test_multiple_indices_passed_as_list(self):
+        n_ary = Minimum(
+            [(0, 1), (1, 0)],
+            [(1, 1), (2, 1)],
+            [(2, 1), (2, 0)],
+            [(0, 1), (2, 0)],
+            [(1, 1), (0, 1)],
+            device=AVAILABLE_DEVICE,
+        )
+        n_ary(self.gaussian_mf(torch.tensor(self.data, device=AVAILABLE_DEVICE)))
+        self.assertEqual(n_ary._coo_matrix.shape, (2, 2))
+        self.assertEqual(n_ary._original_shape, (2, 2))

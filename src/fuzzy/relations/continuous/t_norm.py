@@ -30,7 +30,7 @@ class Minimum(NAryRelation):
         return Membership(
             elements=membership.elements,
             degrees=self.apply_mask(membership=membership)
-            .min(dim=-1, keepdim=True)
+            .min(dim=-2, keepdim=True)
             .values,
             mask=self.mask,
         )
@@ -57,6 +57,6 @@ class Product(NAryRelation):
         # then take the minimum value of those that remain in the last dimension
         return Membership(
             elements=membership.elements,
-            degrees=self.apply_mask(membership=membership).prod(dim=-1, keepdim=True),
+            degrees=self.apply_mask(membership=membership).prod(dim=-2, keepdim=True),
             mask=self.mask,
         )
