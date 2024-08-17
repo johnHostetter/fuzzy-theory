@@ -125,15 +125,15 @@ class NAryRelation(torch.nn.Module):
         Returns:
             The masked membership values (zero may or may not be a valid degree of truth).
         """
-        membership_shape: torch.Size = membership.mask.shape
-        if self.matrix.shape != membership_shape:
-            if len(membership_shape) > 2:
-                # this is for the case where masks have been stacked due to compound relations
-                membership_shape = membership_shape[-2:]  # get the last two dimensions
+        membership_shape: torch.Size = membership.degrees.shape
+        if self.matrix.shape[:-1] != membership_shape[1:]:
+            # if len(membership_shape) > 2:
+            # this is for the case where masks have been stacked due to compound relations
+            membership_shape = membership_shape[1:]  # get the last two dimensions
             self.resize(*membership_shape)
         # select the membership values that are not zeroed out (i.e., involved in the relation)
         after_mask = membership.degrees.unsqueeze(dim=-1) * self.mask
-        return after_mask.sum(dim=1, keepdim=True)  # drop the zeroed out values
+        return after_mask.sum(dim=1, keepdim=False)  # drop the zeroed out values
 
     def forward(self, membership: Membership) -> torch.Tensor:
         """
@@ -185,7 +185,7 @@ class Compound(torch.nn.Module):
         ]
         degrees: torch.Tensor = torch.cat(
             [membership.degrees for membership in memberships], dim=-1
-        )
+        ).unsqueeze(dim=-1)
         # create a new mask that accounts for the different masks for each relation
         mask = torch.stack([relation.mask for relation in self.relations])
         return Membership(elements=membership.elements, degrees=degrees, mask=mask)
