@@ -84,6 +84,7 @@ class SoftmaxSum(NAryRelation):
             The applicability of the fuzzy compounds (e.g., fuzzy logic rules).
         """
         # intermediate_values = self.calc_intermediate_input(antecedents_memberships)
-        firing_strengths = membership.sum(dim=1)
+        # TODO: these dimensions are possibly not correct, need to be fixed/tested
+        firing_strengths = membership.degrees.sum(dim=1)
         max_values, _ = firing_strengths.max(dim=-1, keepdim=True)
         return torch.nn.functional.softmax(firing_strengths - max_values, dim=-1)
