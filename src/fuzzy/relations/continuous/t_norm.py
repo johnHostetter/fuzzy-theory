@@ -87,4 +87,8 @@ class SoftmaxSum(NAryRelation):
         # TODO: these dimensions are possibly not correct, need to be fixed/tested
         firing_strengths = membership.degrees.sum(dim=1)
         max_values, _ = firing_strengths.max(dim=-1, keepdim=True)
-        return torch.nn.functional.softmax(firing_strengths - max_values, dim=-1)
+        return Membership(
+            elements=membership.elements,
+            degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
+            mask=self.mask,
+        )
