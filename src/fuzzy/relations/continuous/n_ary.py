@@ -21,7 +21,6 @@ class NAryRelation(torch.nn.Module):
     truth value.
     """
 
-    # TODO: add support for indices to be List[Tuple[int, int]] for multiple compound indices
     def __init__(
         self,
         *indices: Union[Tuple[int, int], List[Tuple[int, int]]],
@@ -48,6 +47,10 @@ class NAryRelation(torch.nn.Module):
         self._coo_matrix: List[sps._coo.coo_matrix] = []
         self._original_shape: List[Tuple[int, int]] = []
         for relation_indices in indices:
+            if len(set(relation_indices)) < len(relation_indices):
+                raise ValueError(
+                    "The indices must be unique for the relation to be well-defined."
+                )
             coo_matrix = self.convert_indices_to_matrix(relation_indices)
             self._original_shape.append(coo_matrix.shape)
             self._coo_matrix.append(coo_matrix)
@@ -56,14 +59,6 @@ class NAryRelation(torch.nn.Module):
         max_term = max(t[1] for t in self._original_shape)
         self.make_np_matrix(max_var, max_term)
         self.indices.extend(indices)
-        # else:
-        #     # this is the normal scenario where we have a single relation but multiple indices
-        #     self._coo_matrix: sps._coo.coo_matrix = self.convert_indices_to_matrix(
-        #         indices
-        #     )
-        #     self._original_shape = self._coo_matrix.shape
-        #     self.matrix: np.ndarray = self._coo_matrix.toarray()[:, :, None]
-        #     self.indices.append(list(indices))
 
         # this mask is used to zero out the values that are not part of the relation
         self.mask: torch.Tensor = torch.tensor(
@@ -76,7 +71,17 @@ class NAryRelation(torch.nn.Module):
         # we can create a graph from the adjacency matrix
         # g = igraph.Graph.Adjacency(self._coo_matrix)
 
-    def make_np_matrix(self, max_var: int, max_term: int):
+    def make_np_matrix(self, max_var: int, max_term: int) -> None:
+        """
+        Make (or update) the numpy matrix from the COO matrices.
+
+        Args:
+            max_var: The maximum number of variables.
+            max_term: The maximum number of terms.
+
+        Returns:
+            None
+        """
         matrices = []
         for coo_matrix in self._coo_matrix:
             # first resize
@@ -110,15 +115,6 @@ class NAryRelation(torch.nn.Module):
         for coo_matrix in self._coo_matrix:
             coo_matrix.resize(*shape)
         self.make_np_matrix(shape[0], shape[1])
-        # resize the COO matrix in-place
-        # if isinstance(self._coo_matrix, list):
-        #     for coo_matrix in self._coo_matrix:
-        #         coo_matrix.resize(*shape)
-        #     self.make_np_matrix(shape[0], shape[1])
-        # else:
-        #     self._coo_matrix.resize(*shape)
-        #     # TODO: update the matrix to reflect the new shape
-        #     self.matrix = self._coo_matrix.toarray()[:, :, None]
 
         # update the mask to reflect the new shape
         self.mask = torch.tensor(self.matrix, dtype=torch.float32, device=self.device)
@@ -139,17 +135,10 @@ class NAryRelation(torch.nn.Module):
             # this is for the case where masks have been stacked due to compound relations
             membership_shape = membership_shape[1:]  # get the last two dimensions
             self.resize(*membership_shape)
-        # 1st part: select memberships that are not zeroed out (i.e., involved in the relation)
-        # 2nd part: add the mask complement to ignore the zeros
-        # after_mask = membership.degrees.unsqueeze(dim=-1) * self.mask
+        # select memberships that are not zeroed out (i.e., involved in the relation)
         after_mask = membership.degrees.unsqueeze(dim=-1) * self.mask.unsqueeze(0)
         # the complement mask adds zeros where the mask is zero, these are not part of the relation
-        complement_mask = 1 - torch.heaviside(
-            self.mask.sum(dim=0), values=torch.zeros(1, device=self.device)
-        )
         return (after_mask + (1 - self.mask)).prod(dim=2, keepdim=False)
-        return after_mask.sum(dim=2, keepdim=False)
-        # return after_mask.sum(dim=2, keepdim=False) + complement_mask  # drop the zeroed out values
 
     def forward(self, membership: Membership) -> torch.Tensor:
         """

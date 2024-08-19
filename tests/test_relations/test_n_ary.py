@@ -1,14 +1,18 @@
+"""
+Test the fuzzy n-ary relations work as expected.
+"""
+
 import unittest
 
 import torch
 import numpy as np
 
-from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
-from fuzzy.sets.continuous.group import GroupedFuzzySets
-from fuzzy.sets.continuous.impl import Gaussian
 from fuzzy.sets.continuous.membership import Membership
 from fuzzy.relations.continuous.t_norm import Minimum, Product
 from fuzzy.relations.continuous.n_ary import NAryRelation, Compound
+from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
+from fuzzy.sets.continuous.group import GroupedFuzzySets
+from fuzzy.sets.continuous.impl import Gaussian
 
 N_TERMS: int = 2
 N_VARIABLES: int = 4
@@ -18,6 +22,10 @@ AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class TestNAryRelation(unittest.TestCase):
+    """
+    Test the abstract n-ary relation, including functionality that is common to all n-ary relations.
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.gaussian_mf = Gaussian(
@@ -86,6 +94,7 @@ class TestNAryRelation(unittest.TestCase):
             None
         """
         n_ary = NAryRelation((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        # the forward pass should not be implemented
         self.assertRaises(NotImplementedError, n_ary.forward, None)
         # check that the matrix shape is correct
         self.assertEqual(n_ary._coo_matrix[0].shape, (2, 2))
@@ -97,25 +106,38 @@ class TestNAryRelation(unittest.TestCase):
         # check that the original shape is still kept after resizing
         self.assertEqual(n_ary._original_shape[0], (2, 2))
 
-    def test_minimum(self) -> None:
+    def test_duplicates(self) -> None:
         """
-        Test the n-ary minimum relation.
+        Test that the NAryRelation class throws an error when given duplicate indices. Otherwise, a
+        duplicate index will result in a value greater than 1 in the mask, which is not allowed.
 
         Returns:
             None
         """
-        n_ary = Minimum((0, 1), (1, 0), device=AVAILABLE_DEVICE)
-        membership = self.test_gaussian_membership()
-
-        # test the forward pass
-        min_membership: Membership = n_ary.forward(membership)
-        expected_min_values = torch.tensor(
-            [[2.5514542e-04], [8.4526926e-01], [5.7408627e-04]],
+        self.assertRaises(
+            ValueError,
+            NAryRelation,
+            (0, 1),
+            (1, 0),
+            (1, 0),
             device=AVAILABLE_DEVICE,
         )
-        self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
 
-        # now check the interior workings
+
+class TestProduct(TestNAryRelation):
+    """
+    Test the Product n-ary relation.
+    """
+
+    def test_algebraic_product(self) -> None:
+        """
+        Test the n-ary product operation given a single relation.
+
+        Returns:
+
+        """
+        n_ary = Product((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        membership = self.test_gaussian_membership()
 
         # test the mask application
         after_mask = n_ary.apply_mask(membership=membership)
@@ -128,32 +150,6 @@ class TestNAryRelation(unittest.TestCase):
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(after_mask, expected_after_mask))
-
-        # check that it is torch.jit scriptable (currently not working)
-        # n_ary_script = torch.jit.script(n_ary)
-        #
-        # after_mask_script = n_ary_script.apply_mask(membership=membership)
-        # self.assertTrue(torch.allclose(after_mask_script, expected_after_mask))
-        #
-        # min_values_script = n_ary_script.forward(membership)
-        # self.assertTrue(torch.allclose(min_values_script, expected_min_values))
-
-    def test_algebraic_product(self) -> None:
-        n_ary = Product((0, 1), (1, 0), device=AVAILABLE_DEVICE)
-
-        # TODO: do not allow duplicate indices
-        Product(
-            (1, 1), (1, 1), device=AVAILABLE_DEVICE
-        )  # results in [[0, 0], [0, 2]]  !!!
-        Product(
-            [(0, 0), (1, 0)],
-            [(0, 1), (1, 0)],
-            [(0, 1), (1, 1)],
-            [(1, 1)],
-            device=AVAILABLE_DEVICE,
-        )
-
-        membership = self.test_gaussian_membership()
 
         # test the forward pass
         prod_membership: Membership = n_ary.forward(membership)
@@ -167,20 +163,6 @@ class TestNAryRelation(unittest.TestCase):
         )
         self.assertTrue(torch.allclose(prod_membership.degrees, expected_prod_values))
 
-        # now check the interior workings
-
-        # test the mask application
-        after_mask = n_ary.apply_mask(membership=membership)
-        expected_after_mask = torch.tensor(
-            [
-                [[2.5514542e-04], [7.4245834e-01], [1.0000000e00], [1.0000000e00]],
-                [[9.6005607e-01], [8.4526926e-01], [1.0000000e00], [1.0000000e00]],
-                [[5.7408627e-04], [9.9679035e-01], [1.0000000e00], [1.0000000e00]],
-            ],
-            device=AVAILABLE_DEVICE,
-        )
-        self.assertTrue(torch.allclose(after_mask, expected_after_mask))
-
         # check that it is torch.jit scriptable (currently not working)
         # n_ary_script = torch.jit.script(n_ary)
         #
@@ -190,45 +172,15 @@ class TestNAryRelation(unittest.TestCase):
         # min_values_script = n_ary_script.forward(membership)
         # self.assertTrue(torch.allclose(min_values_script, expected_min_values))
 
-    def test_combination_of_t_norms(self) -> None:
+    def test_multiple_indices_passed_as_list(self) -> None:
         """
-        Test we can create a combination of t-norms to reflect more complex compound propositions.
+        Test the Product operation given multiple relations, where some variables are never used
+        by those relations. This is a test to ensure that the Product operation can handle
+        relations that do not use all variables (i.e., does not wrongly output zeros).
 
         Returns:
             None
         """
-        n_ary_min = Minimum((0, 1), (1, 0), device=AVAILABLE_DEVICE)
-        n_ary_prod = Product((0, 1), (1, 0), device=AVAILABLE_DEVICE)
-        membership = self.test_gaussian_membership()
-
-        t_norm = Compound(n_ary_min, n_ary_prod)
-        compound_values = t_norm(membership=membership)
-        expected_compound_values = torch.cat(
-            [
-                n_ary_min(membership=membership).degrees,
-                n_ary_prod(membership=membership).degrees,
-            ],
-            dim=-1,
-        ).unsqueeze(dim=-1)
-        self.assertTrue(
-            torch.allclose(compound_values.degrees, expected_compound_values)
-        )
-
-        # we can then follow it up with another t-norm
-
-        n_ary_next_min = Minimum((0, 1), (1, 0), device=AVAILABLE_DEVICE)
-        min_membership: Membership = n_ary_next_min(compound_values)
-        expected_min_values = torch.tensor(
-            [
-                [7.4245834e-01 * 2.5514542e-04],
-                [8.4526926e-01 * 9.6005607e-01],
-                [9.9679035e-01 * 5.7408627e-04],
-            ],
-            device=AVAILABLE_DEVICE,
-        )
-        self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
-
-    def test_multiple_indices_passed_as_list(self):
         n_ary = Product(
             [(0, 1), (1, 0)],
             [(1, 1), (2, 1)],
@@ -285,23 +237,82 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(prod_membership.degrees.shape, expected_prod_values.shape)
         self.assertTrue(torch.allclose(prod_membership.degrees, expected_prod_values))
 
-        n_ary_prod = Product(
-            [(0, 0), (1, 0)],
-            [(0, 1), (1, 0)],
-            [(0, 1), (1, 1)],
-            [(1, 1)],
-            device=AVAILABLE_DEVICE,
-        )
 
-
-class TestMinimum(unittest.TestCase):
+class TestMinimum(TestNAryRelation):
     """
     Test the Minimum n-ary relation.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.data = torch.tensor(
+        self.hypercube = GroupedFuzzySets(
+            modules_list=[
+                ContinuousFuzzySet.stack(
+                    [
+                        Gaussian(
+                            centers=np.array([-1, 0.0, 1.0]),
+                            widths=np.array([1.0, 1.0, 1.0]),
+                            device=AVAILABLE_DEVICE,
+                        ),
+                        Gaussian(
+                            centers=np.array([-1.0, 0.0, 1.0]),
+                            widths=np.array([1.0, 1.0, 1.0]),
+                            device=AVAILABLE_DEVICE,
+                        ),
+                    ]
+                )
+            ]
+        )
+
+    def test_minimum(self) -> None:
+        """
+        Test the n-ary minimum operation given a single relation.
+
+        Returns:
+            None
+        """
+        n_ary = Minimum((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        membership = self.test_gaussian_membership()
+
+        # test the mask application
+        after_mask = n_ary.apply_mask(membership=membership)
+        expected_after_mask = torch.tensor(
+            [
+                [[2.5514542e-04], [7.4245834e-01], [1.0000000e00], [1.0000000e00]],
+                [[9.6005607e-01], [8.4526926e-01], [1.0000000e00], [1.0000000e00]],
+                [[5.7408627e-04], [9.9679035e-01], [1.0000000e00], [1.0000000e00]],
+            ],
+            device=AVAILABLE_DEVICE,
+        )
+        self.assertTrue(torch.allclose(after_mask, expected_after_mask))
+
+        # test the forward pass
+        min_membership: Membership = n_ary.forward(membership)
+        expected_min_values = torch.tensor(
+            [[2.5514542e-04], [8.4526926e-01], [5.7408627e-04]],
+            device=AVAILABLE_DEVICE,
+        )
+        self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
+
+        # check that it is torch.jit scriptable (currently not working)
+        # n_ary_script = torch.jit.script(n_ary)
+        #
+        # after_mask_script = n_ary_script.apply_mask(membership=membership)
+        # self.assertTrue(torch.allclose(after_mask_script, expected_after_mask))
+        #
+        # min_values_script = n_ary_script.forward(membership)
+        # self.assertTrue(torch.allclose(min_values_script, expected_min_values))
+
+    def test_multiple_indices_passed_as_list(self) -> None:
+        """
+        Test the Minimum operation given multiple relations, where some variables are never used
+        by those relations. This is a test to ensure that the Minimum operation can handle
+        relations that do not use all variables (i.e., does not wrongly output zeros).
+
+        Returns:
+            None
+        """
+        data = torch.tensor(
             [
                 [1.5409961, -0.2934289],
                 [-2.1787894, 0.56843126],
@@ -310,24 +321,7 @@ class TestMinimum(unittest.TestCase):
             ],
             device=AVAILABLE_DEVICE,
         )
-        self.gaussian_mf = [
-            Gaussian(
-                centers=np.array([-1, 0.0, 1.0]),
-                widths=np.array([1.0, 1.0, 1.0]),
-                device=AVAILABLE_DEVICE,
-            ),
-            Gaussian(
-                centers=np.array([-1.0, 0.0, 1.0]),
-                widths=np.array([1.0, 1.0, 1.0]),
-                device=AVAILABLE_DEVICE,
-            ),
-        ]
-        self.hypercube = GroupedFuzzySets(
-            modules_list=[ContinuousFuzzySet.stack(self.gaussian_mf)]
-        )
-
-    def test_minimum(self) -> None:
-        self.minimum = Minimum(
+        minimum = Minimum(
             [(0, 0), (1, 0)],
             [(0, 0), (1, 1)],
             [(0, 1), (1, 0)],
@@ -336,8 +330,8 @@ class TestMinimum(unittest.TestCase):
             device=AVAILABLE_DEVICE,
         )
 
-        membership: Membership = self.hypercube(self.data)
-        min_membership: Membership = self.minimum(membership)
+        membership: Membership = self.hypercube(data)
+        min_membership: Membership = minimum(membership)
         expected_degrees = torch.tensor(
             [
                 [0.00157003, 0.00157003, 0.09304529, 0.09304529, 0.09304529],
@@ -355,3 +349,48 @@ class TestMinimum(unittest.TestCase):
         )
 
         self.assertTrue(torch.allclose(min_membership.degrees, expected_degrees))
+
+
+class TestCompound(TestNAryRelation):
+    """
+    Test the Compound n-ary relation, which allows the user to compound/aggregate multiple n-ary
+    relations together.
+    """
+
+    def test_combination_of_t_norms(self) -> None:
+        """
+        Test we can create a combination of t-norms to reflect more complex compound propositions.
+
+        Returns:
+            None
+        """
+        n_ary_min = Minimum((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        n_ary_prod = Product((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        membership = self.test_gaussian_membership()
+
+        t_norm = Compound(n_ary_min, n_ary_prod)
+        compound_values = t_norm(membership=membership)
+        expected_compound_values = torch.cat(
+            [
+                n_ary_min(membership=membership).degrees,
+                n_ary_prod(membership=membership).degrees,
+            ],
+            dim=-1,
+        ).unsqueeze(dim=-1)
+        self.assertTrue(
+            torch.allclose(compound_values.degrees, expected_compound_values)
+        )
+
+        # we can then follow it up with another t-norm
+
+        n_ary_next_min = Minimum((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        min_membership: Membership = n_ary_next_min(compound_values)
+        expected_min_values = torch.tensor(
+            [
+                [7.4245834e-01 * 2.5514542e-04],
+                [8.4526926e-01 * 9.6005607e-01],
+                [9.9679035e-01 * 5.7408627e-04],
+            ],
+            device=AVAILABLE_DEVICE,
+        )
+        self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
