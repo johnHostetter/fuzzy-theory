@@ -26,6 +26,7 @@ class NAryRelation(torch.nn.Module):
         self,
         *indices: Union[Tuple[int, int], List[Tuple[int, int]]],
         device: torch.device,
+        nan_replacement: float = 0.0,
         **kwargs,
     ):
         """
@@ -34,11 +35,17 @@ class NAryRelation(torch.nn.Module):
         Args:
             items: The 2-tuple indices to apply the n-ary relation to (e.g., (0, 1), (1, 0)).
             device: The device to use for the relation.
+            nan_replacement: The value to use when a value is missing in the relation (i.e., nan);
+                this is useful for when input to the relation is not complete. Default is 0.0
+                (penalize), a value of 1.0 would ignore missing values (i.e., do not penalize).
         """
         super().__init__(**kwargs)
         self.matrix = None  # this will be created later (via self._rebuild)
         self.graph = None  # this will be created later (via self._rebuild)
         self.device: torch.device = device
+        if nan_replacement not in [0.0, 1.0]:
+            raise ValueError("The nan_replacement must be either 0.0 or 1.0.")
+        self.nan_replacement: float = nan_replacement
         self.indices: List[List[Tuple[int, int]]] = []
 
         if not isinstance(indices[0], list):
@@ -177,7 +184,12 @@ class NAryRelation(torch.nn.Module):
         # select memberships that are not zeroed out (i.e., involved in the relation)
         after_mask = membership.degrees.unsqueeze(dim=-1) * self.mask.unsqueeze(0)
         # the complement mask adds zeros where the mask is zero, these are not part of the relation
-        return (after_mask + (1 - self.mask)).prod(dim=2, keepdim=False)
+        # nan_to_num is used to replace nan values with the nan_replacement value (often not needed)
+        return (
+            (after_mask + (1 - self.mask))
+            .prod(dim=2, keepdim=False)
+            .nan_to_num(self.nan_replacement)
+        )
 
     def forward(self, membership: Membership) -> torch.Tensor:
         """
