@@ -36,9 +36,10 @@ class NAryRelation(torch.nn.Module):
             device: The device to use for the relation.
         """
         super().__init__(**kwargs)
+        self.matrix = None  # this will be created later (via self._rebuild)
+        self.graph = None  # this will be created later (via self._rebuild)
         self.device: torch.device = device
         self.indices: List[List[Tuple[int, int]]] = []
-        # self.indices = indices
 
         if not isinstance(indices[0], list):
             indices = [indices]
@@ -58,19 +59,8 @@ class NAryRelation(torch.nn.Module):
         # now convert to a list of matrices
         max_var = max(t[0] for t in self._original_shape)
         max_term = max(t[1] for t in self._original_shape)
-        self.make_np_matrix(max_var, max_term)
         self.indices.extend(indices)
-
-        # this mask is used to zero out the values that are not part of the relation
-        self.mask: torch.Tensor = torch.tensor(
-            self.matrix, dtype=torch.float32, device=device
-        )
-        # matrix size can increase (in-place) for more potential rows (vars) and columns (terms)
-        # self._coo_matrix.resize(
-        #     self._coo_matrix.shape[0] + 1, self._coo_matrix.shape[1] + 1
-        # )
-        # we can create a graph from the adjacency matrix
-        # g = igraph.Graph.Adjacency(self._coo_matrix)
+        self._rebuild(*(max_var, max_term))
 
     @staticmethod
     def convert_indices_to_matrix(indices) -> sps._coo.coo_matrix:
@@ -87,7 +77,7 @@ class NAryRelation(torch.nn.Module):
         row, col = zip(*indices)
         return sps.coo_matrix((data, (row, col)), dtype=np.int8)
 
-    def make_np_matrix(self, max_var: int, max_term: int) -> None:
+    def create_ndarray(self, max_var: int, max_term: int) -> None:
         """
         Make (or update) the numpy matrix from the COO matrices.
 
@@ -106,26 +96,12 @@ class NAryRelation(torch.nn.Module):
         # make a new axis and stack long that axis
         self.matrix: np.ndarray = np.stack(matrices).swapaxes(0, 1).swapaxes(1, 2)
 
-    def resize(self, *shape):
+    def create_igraph(self) -> None:
         """
-        Resize the matrix in-place to the given shape.
-
-        Args:
-            shape: The new shape of the matrix.
-        """
-        for coo_matrix in self._coo_matrix:
-            coo_matrix.resize(*shape)
-        self.make_np_matrix(shape[0], shape[1])
-
-        # update the mask to reflect the new shape
-        self.mask = torch.tensor(self.matrix, dtype=torch.float32, device=self.device)
-
-    def get_graph(self) -> igraph.Graph:
-        """
-        Get the graph representation of the relation(s).
+        Create the graph representation of the relation(s).
 
         Returns:
-            The graph representation of the relation(s).
+            None
         """
         graphs: List[igraph.Graph] = []
         for relation in self.indices:
@@ -148,7 +124,39 @@ class NAryRelation(torch.nn.Module):
                     index_pair,
                     {"anchor"},
                 )
-        return igraph.union(graphs, byname=True)
+        self.graph = igraph.union(graphs, byname=True)
+
+    def _rebuild(self, *shape) -> None:
+        """
+        Rebuild the relation's matrix and graph.
+
+        Args:
+            shape: The new shape of the n-ary fuzzy relation; assuming shape is (max_var, max_term).
+
+        Returns:
+            None
+        """
+        # re-create the self.matrix
+        self.create_ndarray(shape[0], shape[1])
+        # re-create the self.graph
+        self.create_igraph()
+        # update the self.mask to reflect the new shape
+        # this mask is used to zero out the values that are not part of the relation
+        self.mask = torch.tensor(self.matrix, dtype=torch.float32, device=self.device)
+
+    def resize(self, *shape) -> None:
+        """
+        Resize the matrix in-place to the given shape, and then rebuild the relations' members.
+
+        Args:
+            shape: The new shape of the matrix.
+
+        Returns:
+            None
+        """
+        for coo_matrix in self._coo_matrix:
+            coo_matrix.resize(*shape)
+        self._rebuild(*shape)
 
     def apply_mask(self, membership: Membership) -> torch.Tensor:
         """

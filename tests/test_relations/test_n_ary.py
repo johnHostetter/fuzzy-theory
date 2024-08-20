@@ -134,7 +134,7 @@ class TestNAryRelation(unittest.TestCase):
         """
         indices: List[Tuple[int, int]] = [(0, 1), (1, 0)]
         single_n_ary = NAryRelation(*indices, device=AVAILABLE_DEVICE)
-        single_n_ary_graph: igraph.Graph = single_n_ary.get_graph()
+        single_n_ary_graph: igraph.Graph = single_n_ary.graph
         self.assertTrue(single_n_ary_graph is not None)
         self.assertEqual(
             single_n_ary_graph.vcount(), 3
@@ -154,7 +154,7 @@ class TestNAryRelation(unittest.TestCase):
 
         indices: List[List[Tuple[int, int]]] = [[(0, 1), (1, 0)], [(1, 1), (2, 1)]]
         multiple_n_ary = NAryRelation(*indices, device=AVAILABLE_DEVICE)
-        multiple_n_ary_graph: igraph.Graph = multiple_n_ary.get_graph()
+        multiple_n_ary_graph: igraph.Graph = multiple_n_ary.graph
         self.assertTrue(multiple_n_ary_graph is not None)
         self.assertEqual(
             multiple_n_ary_graph.vcount(), 6
@@ -170,7 +170,7 @@ class TestNAryRelation(unittest.TestCase):
         for relation_vertex in relation_vertices:
             self.assertEqual(relation_vertex["tags"], {"relation"})
             predecessors: List[igraph.Vertex] = relation_vertex.predecessors()
-            for predecessor_index, predecessor in enumerate(predecessors):
+            for predecessor in predecessors:
                 self.assertEqual(predecessor["tags"], {"anchor"})
                 # below does not work consistently
                 # self.assertEqual(predecessor["item"], indices[relation_index][index])
@@ -181,7 +181,7 @@ class TestNAryRelation(unittest.TestCase):
         multiple_n_ary = NAryRelation(
             [(0, 1), (1, 0)], [(1, 1), (0, 1)], device=AVAILABLE_DEVICE
         )
-        multiple_n_ary_graph_with_uniques: igraph.Graph = multiple_n_ary.get_graph()
+        multiple_n_ary_graph_with_uniques: igraph.Graph = multiple_n_ary.graph
         self.assertTrue(multiple_n_ary_graph_with_uniques is not None)
         self.assertEqual(
             multiple_n_ary_graph_with_uniques.vcount(), 5
