@@ -6,6 +6,7 @@ differing types) can then be combined into a compound relation.
 
 from typing import Union, Tuple, List
 
+import igraph
 import torch
 import numpy as np
 import scipy.sparse as sps
@@ -71,6 +72,21 @@ class NAryRelation(torch.nn.Module):
         # we can create a graph from the adjacency matrix
         # g = igraph.Graph.Adjacency(self._coo_matrix)
 
+    @staticmethod
+    def convert_indices_to_matrix(indices) -> sps._coo.coo_matrix:
+        """
+        Convert the given indices to a COO matrix.
+
+        Args:
+            indices: The indices where a '1' will be placed at each index.
+
+        Returns:
+            The COO matrix with a '1' at each index.
+        """
+        data = np.ones(len(indices))  # a '1' indicates a relation exists
+        row, col = zip(*indices)
+        return sps.coo_matrix((data, (row, col)), dtype=np.int8)
+
     def make_np_matrix(self, max_var: int, max_term: int) -> None:
         """
         Make (or update) the numpy matrix from the COO matrices.
@@ -90,21 +106,6 @@ class NAryRelation(torch.nn.Module):
         # make a new axis and stack long that axis
         self.matrix: np.ndarray = np.stack(matrices).swapaxes(0, 1).swapaxes(1, 2)
 
-    @staticmethod
-    def convert_indices_to_matrix(indices) -> sps._coo.coo_matrix:
-        """
-        Convert the given indices to a COO matrix.
-
-        Args:
-            indices: The indices where a '1' will be placed at each index.
-
-        Returns:
-            The COO matrix with a '1' at each index.
-        """
-        data = np.ones(len(indices))  # a '1' indicates a relation exists
-        row, col = zip(*indices)
-        return sps.coo_matrix((data, (row, col)), dtype=np.int8)
-
     def resize(self, *shape):
         """
         Resize the matrix in-place to the given shape.
@@ -118,6 +119,36 @@ class NAryRelation(torch.nn.Module):
 
         # update the mask to reflect the new shape
         self.mask = torch.tensor(self.matrix, dtype=torch.float32, device=self.device)
+
+    def get_graph(self) -> igraph.Graph:
+        """
+        Get the graph representation of the relation(s).
+
+        Returns:
+            The graph representation of the relation(s).
+        """
+        graphs: List[igraph.Graph] = []
+        for relation in self.indices:
+            # create a directed (mode="in") star graph with the relation as the center (vertex 0)
+            graphs.append(igraph.Graph.Star(n=len(relation) + 1, mode="in", center=0))
+            # relation vertices are the first vertices in the graph
+            relation_vertex: igraph.Vertex = graphs[-1].vs.find(0)  # located at index 0
+            # set item and tags for the relation vertex for easy retrieval; name is for graph union
+            (
+                relation_vertex["name"],
+                relation_vertex["item"],
+                relation_vertex["tags"],
+            ) = (hash(self) + hash(tuple(relation)), self, {"relation"})
+            # anchor vertices are the var-term pairs that are involved in the relation vertex
+            anchor_vertices: List[igraph.Vertex] = relation_vertex.predecessors()
+            # set anchor vertices' item and tags for easy retrieval; name is for graph union
+            for anchor_vertex, index_pair in zip(anchor_vertices, relation):
+                anchor_vertex["name"], anchor_vertex["item"], anchor_vertex["tags"] = (
+                    index_pair,
+                    index_pair,
+                    {"anchor"},
+                )
+        return igraph.union(graphs, byname=True)
 
     def apply_mask(self, membership: Membership) -> torch.Tensor:
         """

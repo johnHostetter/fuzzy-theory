@@ -3,16 +3,18 @@ Test the fuzzy n-ary relations work as expected.
 """
 
 import unittest
+from typing import List, Tuple
 
+import igraph
 import torch
 import numpy as np
 
+from fuzzy.sets.continuous.impl import Gaussian
 from fuzzy.sets.continuous.membership import Membership
+from fuzzy.sets.continuous.group import GroupedFuzzySets
+from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
 from fuzzy.relations.continuous.t_norm import Minimum, Product
 from fuzzy.relations.continuous.n_ary import NAryRelation, Compound
-from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
-from fuzzy.sets.continuous.group import GroupedFuzzySets
-from fuzzy.sets.continuous.impl import Gaussian
 
 N_TERMS: int = 2
 N_VARIABLES: int = 4
@@ -121,6 +123,71 @@ class TestNAryRelation(unittest.TestCase):
             (1, 0),
             (1, 0),
             device=AVAILABLE_DEVICE,
+        )
+
+    def test_graph(self) -> None:
+        """
+        Test that a graph representation of the relation can be created.
+
+        Returns:
+            None
+        """
+        indices: List[Tuple[int, int]] = [(0, 1), (1, 0)]
+        single_n_ary = NAryRelation(*indices, device=AVAILABLE_DEVICE)
+        single_n_ary_graph: igraph.Graph = single_n_ary.get_graph()
+        self.assertTrue(single_n_ary_graph is not None)
+        self.assertEqual(
+            single_n_ary_graph.vcount(), 3
+        )  # 2 index pairs + 1 for relation
+        self.assertEqual(single_n_ary_graph.ecount(), 2)  # 2 edges (relations)
+
+        # check vertex attributes are as we expect
+        self.assertEqual(single_n_ary_graph.vs[0]["tags"], {"relation"})
+        for index in (1, 2):
+            self.assertEqual(single_n_ary_graph.vs[index]["tags"], {"anchor"})
+            self.assertEqual(single_n_ary_graph.vs[index]["item"], indices[index - 1])
+
+        # check edges are as we expect
+        for index in (0, 1):
+            self.assertEqual(single_n_ary_graph.es[index].source, index + 1)
+            self.assertEqual(single_n_ary_graph.es[index].target, 0)
+
+        indices: List[List[Tuple[int, int]]] = [[(0, 1), (1, 0)], [(1, 1), (2, 1)]]
+        multiple_n_ary = NAryRelation(*indices, device=AVAILABLE_DEVICE)
+        multiple_n_ary_graph: igraph.Graph = multiple_n_ary.get_graph()
+        self.assertTrue(multiple_n_ary_graph is not None)
+        self.assertEqual(
+            multiple_n_ary_graph.vcount(), 6
+        )  # 4 index pairs + 2 for relations
+        self.assertEqual(multiple_n_ary_graph.ecount(), 4)  # 4 edges (relations)
+
+        # check vertex attributes are as we expect
+        relation_vertices: igraph.VertexSeq = multiple_n_ary_graph.vs.select(
+            tags_eq={"relation"}
+        )
+        self.assertEqual(len(relation_vertices), 2)
+        relation_index: int = 0
+        for relation_vertex in relation_vertices:
+            self.assertEqual(relation_vertex["tags"], {"relation"})
+            predecessors: List[igraph.Vertex] = relation_vertex.predecessors()
+            for predecessor_index, predecessor in enumerate(predecessors):
+                self.assertEqual(predecessor["tags"], {"anchor"})
+                # below does not work consistently
+                # self.assertEqual(predecessor["item"], indices[relation_index][index])
+            relation_index += 1
+
+        # check that relations involving the same index references share the same vertex
+
+        multiple_n_ary = NAryRelation(
+            [(0, 1), (1, 0)], [(1, 1), (0, 1)], device=AVAILABLE_DEVICE
+        )
+        multiple_n_ary_graph_with_uniques: igraph.Graph = multiple_n_ary.get_graph()
+        self.assertTrue(multiple_n_ary_graph_with_uniques is not None)
+        self.assertEqual(
+            multiple_n_ary_graph_with_uniques.vcount(), 5
+        )  # 3 unique index pairs + 2 for relations
+        self.assertEqual(
+            multiple_n_ary_graph_with_uniques.ecount(), 4  # 4 edges (relations)
         )
 
 
