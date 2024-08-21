@@ -4,13 +4,28 @@ are used to combine multiple membership values into a single value. The minimum 
 relations are implemented here.
 """
 
+from abc import ABC
+
 import torch
 
 from fuzzy.sets.continuous.membership import Membership
 from fuzzy.relations.continuous.n_ary import NAryRelation
 
 
-class Minimum(NAryRelation):
+class TNorm(NAryRelation, ABC):
+    """
+    This class represents the abstract n-ary fuzzy t-norm relation. This is a special case of the
+    n-ary fuzzy relation where the t-norm operation is assumed. This class is abstract and should
+    not be instantiated directly, but all fuzzy t-norm relations should inherit from this class.
+    """
+
+    def __str__(self) -> str:
+        if len(self.indices) == 1:
+            return " AND ".join([f"({i}, {j})" for i, j in self.indices[0]])
+        return super().__str__()
+
+
+class Minimum(TNorm):
     """
     This class represents the minimum n-ary fuzzy relation. This is a special case of
     the n-ary fuzzy relation where the minimum value is returned.
@@ -38,7 +53,7 @@ class Minimum(NAryRelation):
         )
 
 
-class Product(NAryRelation):
+class Product(TNorm):
     """
     This class represents the algebraic product n-ary fuzzy relation. This is a special case of
     the n-ary fuzzy relation where the product value is returned.
@@ -64,7 +79,7 @@ class Product(NAryRelation):
         )
 
 
-class SoftmaxSum(NAryRelation):
+class SoftmaxSum(TNorm):
     """
     This class represents the softmax sum n-ary fuzzy relation. This is a special case when dealing
     with high-dimensional TSK systems, where the softmax sum is used to leverage Gaussians'

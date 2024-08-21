@@ -71,6 +71,9 @@ class NAryRelation(torch.nn.Module):
         self.indices.extend(indices)
         self._rebuild(*(max_var, max_term))
 
+    def __str__(self):
+        return f"{self.__class__.__name__}({self.indices})"
+
     @staticmethod
     def convert_indices_to_matrix(indices) -> sps._coo.coo_matrix:
         """
