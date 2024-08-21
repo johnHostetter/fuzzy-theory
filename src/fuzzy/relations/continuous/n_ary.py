@@ -22,6 +22,8 @@ class NAryRelation(torch.nn.Module):
     truth value.
     """
 
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(
         self,
         *indices: Union[Tuple[int, int], List[Tuple[int, int]]],
