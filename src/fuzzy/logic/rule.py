@@ -4,10 +4,12 @@ fuzzy logic rules.
 """
 
 from typing import Union
+from dataclasses import dataclass
 
 from fuzzy.relations.continuous.n_ary import NAryRelation, Compound
 
 
+@dataclass
 class Rule:
     """
     A fuzzy logic rule that contains the premise and the consequence. The premise is a n-ary
@@ -23,6 +25,8 @@ class Rule:
         premise: Union[NAryRelation, Compound],
         consequence: NAryRelation,
     ):
+        if len(premise.indices) > 1 or len(consequence.indices) > 1:
+            raise ValueError("Only unary relations are supported to create a Rule.")
         self.premise = premise
         self.consequence = consequence
         self.id = Rule.next_id

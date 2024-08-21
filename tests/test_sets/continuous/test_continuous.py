@@ -35,7 +35,7 @@ class TestContinuousFuzzySet(unittest.TestCase):
         """
         with self.assertRaises(NotImplementedError):
             ContinuousFuzzySet.create(
-                number_of_variables=4, number_of_terms=2, device="cpu"
+                number_of_variables=4, number_of_terms=2, device=torch.device("cpu")
             )
 
     def test_save_and_load(self) -> None:
