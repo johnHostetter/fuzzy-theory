@@ -5,8 +5,8 @@ Test the fuzzy n-ary relations work as expected.
 import unittest
 from typing import List, Tuple
 
-import igraph
 import torch
+import igraph
 import numpy as np
 
 from fuzzy.sets.continuous.impl import Gaussian
