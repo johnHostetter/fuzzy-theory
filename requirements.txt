@@ -1,4 +1,6 @@
 numpy==1.26.4  # new is 2.0.1 (update when possible - tests fail otherwise)
+igraph==0.11.6
+scipy==1.13.1  # for sparse matrices
 sympy==1.13.2  # for torch
 torch==2.4.0
 torchquad==0.4.0

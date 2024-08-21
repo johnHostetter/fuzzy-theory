@@ -246,12 +246,8 @@ class GroupedFuzzySets(torch.nn.Module):
                     self.minimums = minimums
                     self.maximums = maximums
                 else:
-                    self.minimums = torch.min(
-                        minimums, self.minimums
-                    ).detach()
-                    self.maximums = torch.max(
-                        maximums, self.maximums
-                    ).detach()
+                    self.minimums = torch.min(minimums, self.minimums).detach()
+                    self.maximums = torch.max(maximums, self.maximums).detach()
 
                 # find where the new centers should be added, if any
                 # LogGaussian was used, then use following to check for real membership degrees:
