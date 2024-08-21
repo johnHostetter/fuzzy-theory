@@ -49,7 +49,7 @@ class Minimum(TNorm):
             degrees=self.apply_mask(membership=membership)
             .min(dim=-2, keepdim=False)
             .values,
-            mask=self.mask,
+            mask=self.applied_mask,
         )
 
 
@@ -75,7 +75,7 @@ class Product(TNorm):
         return Membership(
             elements=membership.elements,
             degrees=self.apply_mask(membership=membership).prod(dim=-2, keepdim=False),
-            mask=self.mask,
+            mask=self.applied_mask,
         )
 
 
@@ -106,5 +106,5 @@ class SoftmaxSum(TNorm):
         return Membership(
             elements=membership.elements,
             degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
-            mask=self.mask,
+            mask=self.applied_mask,
         )
