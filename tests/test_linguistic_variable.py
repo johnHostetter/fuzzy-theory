@@ -3,8 +3,8 @@ Tests for the linguistic variable class.
 """
 import unittest
 
-import numpy as np
 import torch
+import numpy as np
 
 from fuzzy.logic import LinguisticVariables
 from fuzzy.sets.continuous.impl import Gaussian
