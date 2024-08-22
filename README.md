@@ -1,9 +1,7 @@
 # fuzzy-theory: Fuzzy Set Theory and Fuzzy Logic Operations in PyTorch :fire:
 <a href="https://github.com/johnHostetter/fuzzy-theory/actions"><img alt="Actions Status" src="https://github.com/johnHostetter/fuzzy-theory/workflows/Test/badge.svg"></a>
 <a href="https://github.com/johnHostetter/fuzzy-theory/actions"><img alt="Actions Status" src="https://github.com/johnHostetter/fuzzy-theory/workflows/Pylint/badge.svg"></a>
-<a href="https://codecov.io/github/johnHostetter/fuzzy-theory" > 
- <img src="https://codecov.io/github/johnHostetter/fuzzy-theory/graph/badge.svg?token=WeWKlnVHqj"/> 
- </a>
+<a href="https://codecov.io/github/johnHostetter/fuzzy-theory"><img src="https://codecov.io/github/johnHostetter/fuzzy-theory/graph/badge.svg?token=WeWKlnVHqj"/></a>
 <a href="https://github.com/psf/fuzzy-theory"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
 The `fuzzy-theory` library provides a PyTorch interface to fuzzy set theory and fuzzy logic 
