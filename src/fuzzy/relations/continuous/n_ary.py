@@ -12,6 +12,7 @@ import numpy as np
 import scipy.sparse as sps
 
 from fuzzy.sets.continuous.membership import Membership
+from fuzzy.relations.continuous.linkage import GroupedLinks, BinaryLinks
 
 
 class NAryRelation(torch.nn.Module):
@@ -28,6 +29,7 @@ class NAryRelation(torch.nn.Module):
         self,
         *indices: Union[Tuple[int, int], List[Tuple[int, int]]],
         device: torch.device,
+        grouped_links: Union[None, GroupedLinks] = None,
         nan_replacement: float = 0.0,
         **kwargs,
     ):
@@ -37,39 +39,70 @@ class NAryRelation(torch.nn.Module):
         Args:
             items: The 2-tuple indices to apply the n-ary relation to (e.g., (0, 1), (1, 0)).
             device: The device to use for the relation.
+            grouped_links: The end-user can provide the links to use for the relation; this is
+                useful for when the links are already created and the user wants to use them, or
+                for a relation that requires more complex setup. Default is None.
             nan_replacement: The value to use when a value is missing in the relation (i.e., nan);
                 this is useful for when input to the relation is not complete. Default is 0.0
                 (penalize), a value of 1.0 would ignore missing values (i.e., do not penalize).
         """
         super().__init__(**kwargs)
-        self.matrix = None  # this will be created later (via self._rebuild)
-        self.graph = None  # this will be created later (via self._rebuild)
         self.device: torch.device = device
         if nan_replacement not in [0.0, 1.0]:
             raise ValueError("The nan_replacement must be either 0.0 or 1.0.")
         self.nan_replacement: float = nan_replacement
+
+        self.matrix = None  # created later (via self._rebuild)
+        self.grouped_links: Union[None, GroupedLinks] = (
+            None  # created later (via self._rebuild)
+        )
+        self.applied_mask: Union[None, torch.Tensor] = (
+            None  # created later (at the end of the constructor)
+        )
+        self.graph = None  # will be created later (via self._rebuild)
         self.indices: List[List[Tuple[int, int]]] = []
 
-        if not isinstance(indices[0], list):
-            indices = [indices]
-
-        # this scenario is for when we have multiple compound indices that use the same relation
-        # this is useful for computational efficiency (i.e., not having to use a for loop)
-        self._coo_matrix: List[sps._coo.coo_matrix] = []
-        self._original_shape: List[Tuple[int, int]] = []
-        for relation_indices in indices:
-            if len(set(relation_indices)) < len(relation_indices):
+        if not indices:  # indices are not given
+            if grouped_links is None:
                 raise ValueError(
-                    "The indices must be unique for the relation to be well-defined."
+                    "At least one set of indices must be provided, or GroupedLinks must be given."
                 )
-            coo_matrix = self.convert_indices_to_matrix(relation_indices)
-            self._original_shape.append(coo_matrix.shape)
-            self._coo_matrix.append(coo_matrix)
-        # now convert to a list of matrices
-        max_var = max(t[0] for t in self._original_shape)
-        max_term = max(t[1] for t in self._original_shape)
-        self.indices.extend(indices)
-        self._rebuild(*(max_var, max_term))
+            # note that many features are not available when using grouped_links
+            self.grouped_links = grouped_links
+        else:  # indices are given
+            if not isinstance(indices[0], list):
+                indices = [indices]
+
+            # this scenario is for when we have multiple compound indices that use the same relation
+            # this is useful for computational efficiency (i.e., not having to use a for loop)
+            self._coo_matrix: List[sps._coo.coo_matrix] = []
+            self._original_shape: List[Tuple[int, int]] = []
+            for relation_indices in indices:
+                if len(set(relation_indices)) < len(relation_indices):
+                    raise ValueError(
+                        "The indices must be unique for the relation to be well-defined."
+                    )
+                coo_matrix = self.convert_indices_to_matrix(relation_indices)
+                self._original_shape.append(coo_matrix.shape)
+                self._coo_matrix.append(coo_matrix)
+            # now convert to a list of matrices
+            max_var = max(t[0] for t in self._original_shape)
+            max_term = max(t[1] for t in self._original_shape)
+            self.indices.extend(indices)
+            self._rebuild(*(max_var, max_term))
+
+        # test if the relation is well-defined & build it
+        # the last index, -1, is the relation index; first 2 are (variable, term) indices
+        membership_shape: torch.Size = self.grouped_links.shape[:-1]
+        # but we also need to include a dummy batch dimension (32) for the grouped_links
+        membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
+        self.applied_mask = self.grouped_links(
+            Membership(
+                elements=torch.empty(membership_shape, device=self.device),
+                degrees=torch.empty(membership_shape, device=self.device),
+                mask=torch.empty(membership_shape, device=self.device),
+            )
+        )
 
     def __str__(self):
         return f"{self.__class__.__name__}({self.indices})"
@@ -152,9 +185,11 @@ class NAryRelation(torch.nn.Module):
         self.create_ndarray(shape[0], shape[1])
         # re-create the self.graph
         self.create_igraph()
-        # update the self.mask to reflect the new shape
-        # this mask is used to zero out the values that are not part of the relation
-        self.mask = torch.tensor(self.matrix, dtype=torch.float32, device=self.device)
+        # update the self.grouped_links to reflect the new shape
+        # these links are used to zero out the values that are not part of the relation
+        self.grouped_links = GroupedLinks(
+            modules=[BinaryLinks(links=self.matrix, device=self.device)]
+        )
 
     def resize(self, *shape) -> None:
         """
@@ -181,17 +216,20 @@ class NAryRelation(torch.nn.Module):
             The masked membership values (zero may or may not be a valid degree of truth).
         """
         membership_shape: torch.Size = membership.degrees.shape
-        if self.matrix.shape[:-1] != membership_shape[1:]:
+        if self.applied_mask.shape[:-1] != membership_shape[1:]:
             # if len(membership_shape) > 2:
             # this is for the case where masks have been stacked due to compound relations
             membership_shape = membership_shape[1:]  # get the last two dimensions
             self.resize(*membership_shape)
         # select memberships that are not zeroed out (i.e., involved in the relation)
-        after_mask = membership.degrees.unsqueeze(dim=-1) * self.mask.unsqueeze(0)
+        self.applied_mask: torch.Tensor = self.grouped_links(membership=membership)
+        after_mask = membership.degrees.unsqueeze(dim=-1) * self.applied_mask.unsqueeze(
+            0
+        )
         # the complement mask adds zeros where the mask is zero, these are not part of the relation
         # nan_to_num is used to replace nan values with the nan_replacement value (often not needed)
         return (
-            (after_mask + (1 - self.mask))
+            (after_mask + (1 - self.applied_mask))
             .prod(dim=2, keepdim=False)
             .nan_to_num(self.nan_replacement)
         )
@@ -211,42 +249,3 @@ class NAryRelation(torch.nn.Module):
             f"The {self.__class__.__name__} has no defined forward function. Please create a class "
             f"and inherit from {self.__class__.__name__}, or use a predefined class."
         )
-
-
-class Compound(torch.nn.Module):
-    """
-    This class represents an n-ary compound relation, where it expects at least 1 or more
-    instance of NAryRelation.
-    """
-
-    def __init__(self, *relations: NAryRelation, **kwargs):
-        """
-        Initialize the compound relation with the given n-ary relation(s).
-
-        Args:
-            relation: The n-ary compound relation.
-        """
-        super().__init__(**kwargs)
-        # store the relations as a module list (as they are also modules)
-        self.relations = torch.nn.ModuleList(relations)
-
-    def forward(self, membership: Membership) -> Membership:
-        """
-        Apply the compound n-ary relation to the given membership values.
-
-        Args:
-            membership: The membership values to apply the compound n-ary relation to.
-
-        Returns:
-            The stacked output of the compound n-ary relation; ready for subsequent follow-up.
-        """
-        # apply the compound n-ary relation to the membership values
-        memberships: List[Membership] = [
-            relation(membership=membership) for relation in self.relations
-        ]
-        degrees: torch.Tensor = torch.cat(
-            [membership.degrees for membership in memberships], dim=-1
-        ).unsqueeze(dim=-1)
-        # create a new mask that accounts for the different masks for each relation
-        mask = torch.stack([relation.mask for relation in self.relations])
-        return Membership(elements=membership.elements, degrees=degrees, mask=mask)

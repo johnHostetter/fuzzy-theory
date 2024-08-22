@@ -3,10 +3,9 @@ This directory contains the implementation of the Rule class, which is used to r
 fuzzy logic rules.
 """
 
-from typing import Union
 from dataclasses import dataclass
 
-from fuzzy.relations.continuous.n_ary import NAryRelation, Compound
+from fuzzy.relations.continuous.n_ary import NAryRelation
 
 
 @dataclass
@@ -22,7 +21,7 @@ class Rule:
 
     def __init__(
         self,
-        premise: Union[NAryRelation, Compound],
+        premise: NAryRelation,
         consequence: NAryRelation,
     ):
         if len(premise.indices) > 1 or len(consequence.indices) > 1:
@@ -32,5 +31,8 @@ class Rule:
         self.id = Rule.next_id
         Rule.next_id += 1
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"IF {self.premise} THEN {self.consequence}"
+
+    def __hash__(self) -> int:
+        return hash(self.premise) + hash(self.consequence) + hash(self.id)

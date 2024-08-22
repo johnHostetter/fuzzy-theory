@@ -14,7 +14,8 @@ from fuzzy.sets.continuous.membership import Membership
 from fuzzy.sets.continuous.group import GroupedFuzzySets
 from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
 from fuzzy.relations.continuous.t_norm import Minimum, Product
-from fuzzy.relations.continuous.n_ary import NAryRelation, Compound
+from fuzzy.relations.continuous.n_ary import NAryRelation
+from fuzzy.relations.continuous.compound import Compound
 
 N_TERMS: int = 2
 N_VARIABLES: int = 4
@@ -123,6 +124,36 @@ class TestNAryRelation(unittest.TestCase):
             (1, 0),
             (1, 0),
             device=AVAILABLE_DEVICE,
+        )
+
+    def test_grouped_links(self) -> None:
+        """
+        Test that the grouped links are created correctly.
+
+        Returns:
+            None
+        """
+        n_ary = NAryRelation((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        membership = self.test_gaussian_membership()
+        # we have not used the relation yet, but it is built from dummy inputs
+        self.assertTrue(n_ary.applied_mask is not None)
+        n_ary.apply_mask(membership=membership)
+        self.assertTrue(n_ary.grouped_links is not None)
+        self.assertTrue(n_ary.applied_mask is not None)  # we have used the relation
+        self.assertTrue(
+            torch.allclose(
+                n_ary.grouped_links(membership=membership), n_ary.applied_mask
+            )
+        )
+        # we can create a new n-ary relation with a GroupedLinks object
+        new_n_ary = NAryRelation(
+            grouped_links=n_ary.grouped_links, device=AVAILABLE_DEVICE
+        )
+        # the new n-ary relation should have the same applied mask as the original
+        self.assertTrue(
+            torch.allclose(
+                new_n_ary.grouped_links(membership=membership), n_ary.applied_mask
+            )
         )
 
     def test_graph(self) -> None:
