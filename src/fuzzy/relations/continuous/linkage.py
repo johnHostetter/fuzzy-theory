@@ -2,19 +2,13 @@
 This file helps support the linkage between relations necessary for fuzzy logic inference engines.
 """
 
-from typing import List, Union, Callable, Tuple
+from typing import List, Union  #, Callable, Tuple
 
 import torch
 import numpy as np
 from torch._C import Size
 
 from fuzzy.sets.continuous.membership import Membership
-
-
-# from fuzzy.sets.continuous.membership import Membership
-
-# from torchgraph import KnowledgeBase
-# from fuzzy_logic.rules.extraction import get_links_and_offsets
 
 
 class BinaryLinks(torch.nn.Module):
@@ -88,8 +82,9 @@ class GroupedLinks(torch.nn.Module):
         """
         Get the shape of links.
         """
+        # pylint: disable=fixme
         # TODO: return the real max shape
-        return max([module.shape for module in self.modules_list], key=lambda x: x[-1])
+        return max((module.shape for module in self.modules_list), key=lambda x: x[-1])
 
     def to(self, *args, **kwargs):
         """
@@ -108,84 +103,90 @@ class GroupedLinks(torch.nn.Module):
         )
         return self
 
-    def expand_logits_if_necessary(
-        self,
-        membership_degrees: torch.Tensor,
-        values: str = "random",
-        callback: Callable[[Tuple[int, int, int]], torch.nn.Module] = None,
-        membership_dimension: int = -1,
-    ) -> bool:
-        """
-        Determine if there is a mismatch between the incoming membership degrees and the currently
-        stored logits. In other words, if it appears in the membership degrees that a fuzzy set
-        has been introduced or created, then the logits probabilistically sampling from those fuzzy
-        sets along some dimension will not be 'aware' of this new fuzzy set yet. As such, we need to
-        expand the defined logits to account for this newly created fuzzy set.
-
-        Args:
-            membership_degrees: The membership degrees to some fuzzy sets.
-            values: Whether the new logits should follow a real-number value convention or binary
-            value convention. If values is 'random', then real-number values will be used; this is
-            useful for when Gumbel Softmax trick is being applied. If values is 'zero', then
-            binary values will be used, but all the values are initialized as zero. This is helpful
-            when we are using predefined rule premises, but a new fuzzy set has been added in the
-            premise layer that we must accommodate for. However, the network will *not* use the
-            newly added premise (as there is no connection to it, hence the zeroes).
-            membership_dimension: The membership dimension under consideration. For example, whether
-            to perform this operation along the number of inputs dimension. This is typically the
-            desired behavior, but which dimension refers to number of inputs may change from code to
-            code.
-
-        Returns:
-            None
-        """
-        existing_logits: torch.Tensor = self(None)
-        difference_between_shapes: int = (
-            membership_degrees.shape[-1] - existing_logits.shape[membership_dimension]
-        )
-        if difference_between_shapes > 0:
-            print("expanding the logits")
-            new_shape = list(existing_logits.shape)
-            new_shape[membership_dimension] = difference_between_shapes
-            if "random" in values.lower():
-                new_logits = LogitLinks(
-                    logits=torch.ones(new_shape, device=existing_logits.device).abs()
-                    * existing_logits.max(),
-                    # temperature=self.temperature,
-                )
-            elif "zero" in values.lower():
-                new_logits = BinaryLinks(
-                    links=torch.zeros(new_shape),
-                    device=existing_logits.device,
-                    # temperature=self.temperature,
-                )
-            else:
-                raise ValueError(f"The given values is not recognized: {values}")
-            new_idx: int = len(self.modules_list)
-            self.modules_list.add_module(str(new_idx), new_logits)
-        elif difference_between_shapes < 0:
-            print("cutting down the logits")
-            # cut down the logits to match the membership degrees
-            new_logits = existing_logits[:, :, 0 : membership_degrees.shape[-1]]
-            self.modules_list = torch.nn.ModuleList(
-                [LogitLinks(logits=new_logits).cuda()]
-            )
-            assert membership_degrees.shape[-1] == existing_logits.shape[-1], (
-                "The membership degrees have a larger shape than the logits. "
-                "This should not be possible, as the logits should be truncated to "
-                "account for any newly removed fuzzy sets."
-            )
-        return difference_between_shapes > 0
+    # pylint: disable=fixme
+    # TODO: add this back in
+    # def expand_logits_if_necessary(
+    #     self,
+    #     membership_degrees: torch.Tensor,
+    #     values: str = "random",
+    #     callback: Callable[[Tuple[int, int, int]], torch.nn.Module] = None,
+    #     membership_dimension: int = -1,
+    # ) -> bool:
+    #     """
+    #     Determine if there is a mismatch between the incoming membership degrees and
+    #     the currently
+    #     stored logits. In other words, if it appears in the membership degrees that a fuzzy set
+    #     has been introduced or created, then the logits probabilistically sampling from those
+    #     fuzzy
+    #     sets along some dimension will not be 'aware' of this new fuzzy set yet. As such, we
+    #     need to
+    #     expand the defined logits to account for this newly created fuzzy set.
+    #
+    #     Args:
+    #         membership_degrees: The membership degrees to some fuzzy sets.
+    #         values: Whether the new logits should follow a real-number value convention
+    #         or binary
+    #         value convention. If values is 'random', then real-number values will be used;
+    #         this is
+    #         useful for when Gumbel Softmax trick is being applied. If values is 'zero', then
+    #         binary values will be used, but all the values are initialized as zero. This is
+    #         helpful
+    #         when we are using predefined rule premises, but a new fuzzy set has been added in the
+    #         premise layer that we must accommodate for. However, the network will *not* use the
+    #         newly added premise (as there is no connection to it, hence the zeroes).
+    #         membership_dimension: The membership dimension under consideration. For example,
+    #         whether
+    #         to perform this operation along the number of inputs dimension. This is typically the
+    #         desired behavior, but which dimension refers to number of inputs may change from
+    #         code to
+    #         code.
+    #
+    #     Returns:
+    #         None
+    #     """
+    #     existing_logits: torch.Tensor = self(None)
+    #     difference_between_shapes: int = (
+    #         membership_degrees.shape[-1] - existing_logits.shape[membership_dimension]
+    #     )
+    #     if difference_between_shapes > 0:
+    #         print("expanding the logits")
+    #         new_shape = list(existing_logits.shape)
+    #         new_shape[membership_dimension] = difference_between_shapes
+    #         if "random" in values.lower():
+    #             new_logits = LogitLinks(
+    #                 logits=torch.ones(new_shape, device=existing_logits.device).abs()
+    #                 * existing_logits.max(),
+    #                 # temperature=self.temperature,
+    #             )
+    #         elif "zero" in values.lower():
+    #             new_logits = BinaryLinks(
+    #                 links=torch.zeros(new_shape),
+    #                 device=existing_logits.device,
+    #                 # temperature=self.temperature,
+    #             )
+    #         else:
+    #             raise ValueError(f"The given values is not recognized: {values}")
+    #         new_idx: int = len(self.modules_list)
+    #         self.modules_list.add_module(str(new_idx), new_logits)
+    #     elif difference_between_shapes < 0:
+    #         print("cutting down the logits")
+    #         # cut down the logits to match the membership degrees
+    #         new_logits = existing_logits[:, :, 0 : membership_degrees.shape[-1]]
+    #         self.modules_list = torch.nn.ModuleList(
+    #             [LogitLinks(logits=new_logits).cuda()]
+    #         )
+    #         assert membership_degrees.shape[-1] == existing_logits.shape[-1], (
+    #             "The membership degrees have a larger shape than the logits. "
+    #             "This should not be possible, as the logits should be truncated to "
+    #             "account for any newly removed fuzzy sets."
+    #         )
+    #     return difference_between_shapes > 0
 
     def forward(self, membership: Membership) -> torch.Tensor:
         """
-        Fetch the logits for later use.
+        Fetch the links for later use.
         """
-        logits: List[Union[torch.Tensor, torch.nn.Parameter]] = []
+        all_links: List[Union[torch.Tensor, torch.nn.Parameter]] = []
         for links in self.modules_list:
-            logit = links(membership)
-            if logit is None:
-                print()
-            else:
-                logits.append(logit)
-        return torch.cat(logits, dim=self.membership_dimension)
+            all_links.append(links(membership))
+        return torch.cat(all_links, dim=self.membership_dimension)

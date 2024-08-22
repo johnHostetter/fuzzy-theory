@@ -67,9 +67,8 @@ class NAryRelation(torch.nn.Module):
                 raise ValueError(
                     "At least one set of indices must be provided, or GroupedLinks must be given."
                 )
-            else:
-                # note that many features are not available when using grouped_links
-                self.grouped_links = grouped_links
+            # note that many features are not available when using grouped_links
+            self.grouped_links = grouped_links
         else:  # indices are given
             if not isinstance(indices[0], list):
                 indices = [indices]
@@ -93,8 +92,16 @@ class NAryRelation(torch.nn.Module):
             self._rebuild(*(max_var, max_term))
 
         # test if the relation is well-defined & build it
+        # the last index, -1, is the relation index; first 2 are (variable, term) indices
+        membership_shape: torch.Size = self.grouped_links.shape[:-1]
+        # but we also need to include a dummy batch dimension (32) for the grouped_links
+        membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
         self.applied_mask = self.grouped_links(
-            torch.empty(self.grouped_links.shape, device=self.device)
+            Membership(
+                elements=torch.empty(membership_shape, device=self.device),
+                degrees=torch.empty(membership_shape, device=self.device),
+                mask=torch.empty(membership_shape, device=self.device),
+            )
         )
 
     def __str__(self):
@@ -209,7 +216,7 @@ class NAryRelation(torch.nn.Module):
             The masked membership values (zero may or may not be a valid degree of truth).
         """
         membership_shape: torch.Size = membership.degrees.shape
-        if self.matrix.shape[:-1] != membership_shape[1:]:
+        if self.applied_mask.shape[:-1] != membership_shape[1:]:
             # if len(membership_shape) > 2:
             # this is for the case where masks have been stacked due to compound relations
             membership_shape = membership_shape[1:]  # get the last two dimensions

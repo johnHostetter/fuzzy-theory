@@ -98,10 +98,10 @@ class SoftmaxSum(TNorm):
         Returns:
             The applicability of the fuzzy compounds (e.g., fuzzy logic rules).
         """
-        # intermediate_values = self.calc_intermediate_input(antecedents_memberships)
+        intermediate_values: torch.Tensor = self.apply_mask(membership=membership)
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be fixed/tested
-        firing_strengths = membership.degrees.sum(dim=1)
+        firing_strengths = intermediate_values.sum(dim=1)
         max_values, _ = firing_strengths.max(dim=-1, keepdim=True)
         return Membership(
             elements=membership.elements,

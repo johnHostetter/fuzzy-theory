@@ -1,3 +1,6 @@
+"""
+Test the Rule class.
+"""
 import unittest
 from typing import List, Type
 
@@ -11,6 +14,9 @@ AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class TestRule(unittest.TestCase):
+    """
+    Test the Rule class.
+    """
     def test_invalid_rule_creation(self) -> None:
         """
         Test that a rule cannot be created with a premise and consequence that are not unary.

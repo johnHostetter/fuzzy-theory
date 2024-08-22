@@ -1,3 +1,6 @@
+"""
+Tests for the linguistic variable class.
+"""
 import unittest
 
 import numpy as np
@@ -11,6 +14,9 @@ AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class TestLinguisticVariable(unittest.TestCase):
+    """
+    Test the LinguisticVariables class.
+    """
     def test_create_linguistic_variable(self) -> None:
         """
         Test that linguistic variables can be created with a set of terms for input and output
