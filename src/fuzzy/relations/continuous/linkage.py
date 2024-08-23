@@ -2,7 +2,7 @@
 This file helps support the linkage between relations necessary for fuzzy logic inference engines.
 """
 
-from typing import List, Union  #, Callable, Tuple
+from typing import List, Union  # , Callable, Tuple
 
 import torch
 import numpy as np

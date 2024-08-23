@@ -1,6 +1,7 @@
 """
 Test the Rule class.
 """
+
 import unittest
 from typing import List, Type
 
@@ -17,6 +18,7 @@ class TestRule(unittest.TestCase):
     """
     Test the Rule class.
     """
+
     def test_invalid_rule_creation(self) -> None:
         """
         Test that a rule cannot be created with a premise and consequence that are not unary.
