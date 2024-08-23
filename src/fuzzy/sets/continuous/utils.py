@@ -3,19 +3,9 @@ Utility functions, such as for getting all the subclasses of a given class.
 """
 
 import inspect
-from typing import Dict, Any, Set
+from typing import Dict, Any
 
 import torch
-
-
-def all_subclasses(cls) -> Set[Any]:
-    """
-    Get all subclasses of the given class, recursively.
-
-    Returns:
-        A set of all subclasses of the given class.
-    """
-    return {cls}.union(s for c in cls.__subclasses__() for s in all_subclasses(c))
 
 
 def get_object_attributes(obj_instance) -> Dict[str, Any]:

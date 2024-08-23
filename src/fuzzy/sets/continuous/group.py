@@ -153,7 +153,7 @@ class GroupedFuzzySets(torch.nn.Module):
                             modules_list.append(torch.load(module_path))
                     else:
                         raise UserWarning(
-                            f"Unexpected file found in {file_path}: {module_path}"
+                            f"Unexpected file found in {file_path}: {subdirectory}"
                         )
                 local_attributes_only[file_path.name] = modules_list
 

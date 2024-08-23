@@ -21,11 +21,11 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from torchquad.utils.set_up_backend import set_up_backend
 
-from .utils import all_subclasses
 from .membership import Membership
+from fuzzy.utils import check_path_to_save_torch_module, TorchJitModule
 
 
-class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
+class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
     """
     A generic and abstract torch.nn.Module class that implements continuous fuzzy sets.
 
@@ -147,8 +147,8 @@ class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
     @classmethod
     def create(
         cls,
-        number_of_variables: int,
-        number_of_terms: int,
+        n_variables: int,
+        n_terms: int,
         device: torch.device,
         **kwargs,
     ) -> Union[NoReturn, "ContinuousFuzzySet"]:
@@ -159,8 +159,8 @@ class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
         a total of nine fuzzy sets. The centers and widths are initialized randomly.
 
         Args:
-            number_of_variables: The number of variables.
-            number_of_terms: The number of terms.
+            n_variables: The number of variables.
+            n_terms: The number of terms.
             device: The device to use.
 
         Returns:
@@ -177,8 +177,8 @@ class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
         if isinstance(device, str):
             device = torch.device(device)
 
-        centers: np.ndarray = np.random.randn(number_of_variables, number_of_terms)
-        widths: np.ndarray = np.random.randn(number_of_variables, number_of_terms)
+        centers: np.ndarray = np.random.randn(n_variables, n_terms)
+        widths: np.ndarray = np.random.randn(n_variables, n_terms)
         return cls(centers=centers, widths=widths, device=device, **kwargs)
 
     def __eq__(self, other: Any) -> bool:
@@ -258,7 +258,7 @@ class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         return sympy.latex(cls.sympy_formula())
 
-    def save(self, path: Path):
+    def save(self, path: Path) -> MutableMapping[str, Any]:
         """
         Save the fuzzy set to a file.
 
@@ -266,52 +266,16 @@ class ContinuousFuzzySet(torch.nn.Module, metaclass=abc.ABCMeta):
         parameters into a single tensor, which is then saved to a file.
 
         Returns:
-            None
+            A dictionary containing the state of the fuzzy set.
         """
+        check_path_to_save_torch_module(path)
         state_dict: MutableMapping = self.state_dict()
         state_dict["centers"] = self.get_centers()  # concatenate the centers
         state_dict["widths"] = self.get_widths()  # concatenate the widths
         state_dict["mask"] = self.get_mask()  # currently not used
         state_dict["class_name"] = self.__class__.__name__
-        if ".pt" not in path.name and ".pth" not in path.name:
-            raise ValueError(
-                f"The path to save the fuzzy set must have a file extension of '.pt', "
-                f"but got {path.name}"
-            )
-        if ".pth" in path.name:
-            raise ValueError(
-                f"The path to save the fuzzy set must have a file extension of '.pt', "
-                f"but got {path.name}. Please change the file extension to '.pt' as it is not "
-                f"recommended to use '.pth' for PyTorch models, as it conflicts with Python path"
-                f"configuration files."
-            )
         torch.save(state_dict, path)
         return state_dict
-
-    @staticmethod
-    @torch.jit.ignore
-    def get_subclass(class_name: str) -> Union["ContinuousFuzzySet"]:
-        """
-        Get the subclass of ContinuousFuzzySet with the given class name.
-
-        Args:
-            class_name: The name of the subclass of ContinuousFuzzySet.
-
-        Returns:
-            A subclass of ContinuousFuzzySet.
-        """
-        fuzzy_set_class = None
-        for subclass in all_subclasses(ContinuousFuzzySet):
-            if subclass.__name__ == class_name:
-                fuzzy_set_class = subclass
-                break
-        if fuzzy_set_class is None:
-            raise ValueError(
-                f"The fuzzy set class {class_name} was not found in the subclasses of "
-                f"ContinuousFuzzySet. Please ensure that the fuzzy set class is a subclass of "
-                f"ContinuousFuzzySet."
-            )
-        return fuzzy_set_class
 
     @classmethod
     def load(cls, path: Path, device: torch.device) -> "ContinuousFuzzySet":
