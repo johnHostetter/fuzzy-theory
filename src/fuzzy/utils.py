@@ -52,7 +52,7 @@ def all_subclasses(cls) -> Set[Any]:
 class NestedTorchJitModule(torch.nn.Module):
     def save(self, path: Path) -> None:
         """
-        Save the torch.nn.Module object to a file.
+        Save the torch.nn.Module object to a directory.
 
         Note: This does not preserve ParameterList structures, but rather concatenates the
         parameters into a single tensor, which is then saved to a file.
@@ -137,7 +137,9 @@ class NestedTorchJitModule(torch.nn.Module):
                             )
                         except ValueError:
                             # unknown and unrecognized module, but attempt to load the module
-                            modules_list.append(torch.load(module_path))
+                            modules_list.append(
+                                torch.load(module_path, weights_only=False)
+                            )
                     else:
                         raise UserWarning(
                             f"Unexpected file found in {file_path}: {subdirectory}"

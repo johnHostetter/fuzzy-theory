@@ -4,6 +4,7 @@ are used to combine multiple membership values into a single value. The n-ary re
 differing types) can then be combined into a compound relation.
 """
 
+import os
 from pathlib import Path
 from typing import Union, Tuple, List, MutableMapping, Any
 
@@ -126,10 +127,11 @@ class NAryRelation(TorchJitModule):
 
     def save(self, path: Path) -> MutableMapping[str, Any]:
         """
-        Save the n-ary relation to a dictionary.
+        Save the n-ary relation to a dictionary given a path.
 
         Args:
-            The path to save the n-ary relation.
+            path: The (requested) path to save the n-ary relation. This may be modified to ensure
+            all necessary files are saved (e.g., it may be turned into a directory instead).
 
         Returns:
             The dictionary representation of the n-ary relation.
@@ -140,15 +142,22 @@ class NAryRelation(TorchJitModule):
         state_dict["class_name"] = self.__class__.__name__
 
         if len(self.indices) == 0:
+            dir_path = path.parent / path.name.split(".")[0]
             # we will rebuild from the grouped_links, so we do not need to save the indices
-            state_dict["grouped_links"] = self.grouped_links.save()
+            grouped_links_dir: Path = dir_path / "grouped_links"
+            self.grouped_links.save(path=grouped_links_dir)
+            state_dict["grouped_links"] = (
+                grouped_links_dir  # save the path to the grouped_links
+            )
+            torch.save(state_dict, dir_path / "state_dict.pt")
         else:
             # we will rebuild from the indices, so we do not need to save the grouped_links
             state_dict["indices"] = (
                 self.indices if len(self.indices) > 1 else self.indices[0]
             )
+            torch.save(state_dict, path)
 
-        torch.save(state_dict, path)
+        torch.save(state_dict, path.parent / "state_dict.pt")
         return state_dict
 
     @classmethod
@@ -159,7 +168,14 @@ class NAryRelation(TorchJitModule):
         Returns:
             None
         """
-        state_dict: MutableMapping = torch.load(path)
+        if path.is_file() and path.suffix == ".pt":
+            # load from indices
+            state_dict: MutableMapping = torch.load(path, weights_only=False)
+        else:
+            # load from grouped_links, path is a directory
+            state_dict: MutableMapping = torch.load(
+                path / "state_dict.pt", weights_only=False
+            )
         nan_replacement = state_dict.pop("nan_replacement")
         class_name = state_dict.pop("class_name")
 
@@ -171,7 +187,7 @@ class NAryRelation(TorchJitModule):
                 nan_replacement=nan_replacement,
             )
         else:  # "grouped_links" in state_dict
-            grouped_links = state_dict.pop("grouped_links")
+            grouped_links: Path = state_dict.pop("grouped_links")
             return cls.get_subclass(class_name)(
                 device=device,
                 grouped_links=GroupedLinks.load(grouped_links, device=device),

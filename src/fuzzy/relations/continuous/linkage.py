@@ -62,7 +62,7 @@ class BinaryLinks(torch.nn.Module):
         Returns:
             None
         """
-        state_dict: MutableMapping = torch.load(path)
+        state_dict: MutableMapping = torch.load(path, weights_only=False)
         links = state_dict.pop("links")
         return cls(links, device, **state_dict)
 

@@ -285,7 +285,7 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         Returns:
             None
         """
-        state_dict: MutableMapping = torch.load(path)
+        state_dict: MutableMapping = torch.load(path, weights_only=False)
         centers = state_dict.pop("centers")
         widths = state_dict.pop("widths")
         class_name = state_dict.pop("class_name")
