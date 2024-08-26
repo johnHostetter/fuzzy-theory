@@ -2,13 +2,15 @@
 This file helps support the linkage between relations necessary for fuzzy logic inference engines.
 """
 
-from typing import List, Union  # , Callable, Tuple
+from pathlib import Path
+from typing import List, Union, MutableMapping, Any  # , Callable, Tuple
 
 import torch
 import numpy as np
 from torch._C import Size
 
 from fuzzy.sets.continuous.membership import Membership
+from fuzzy.utils import check_path_to_save_torch_module, NestedTorchJitModule
 
 
 class BinaryLinks(torch.nn.Module):
@@ -26,12 +28,43 @@ class BinaryLinks(torch.nn.Module):
         self.links: torch.Tensor = torch.tensor(links, dtype=torch.int8, device=device)
         self.device: torch.device = device
 
+    def __eq__(self, other):
+        return isinstance(other, BinaryLinks) and torch.equal(self.links, other.links)
+
     @property
     def shape(self) -> Size:
         """
         Get the shape of the binary links.
         """
         return self.links.shape
+
+    def save(self, path: Path) -> MutableMapping[str, Any]:
+        """
+        Save the n-ary relation to a dictionary.
+
+        Args:
+            The path to save the n-ary relation.
+
+        Returns:
+            The dictionary representation of the n-ary relation.
+        """
+        check_path_to_save_torch_module(path)
+        state_dict: MutableMapping = self.state_dict()
+        state_dict["links"] = self.links.cpu().numpy()
+        torch.save(state_dict, path)
+        return state_dict
+
+    @classmethod
+    def load(cls, path: Path, device: torch.device) -> "BinaryLinks":
+        """
+        Load the n-ary relation from a file and put it on the specified device.
+
+        Returns:
+            None
+        """
+        state_dict: MutableMapping = torch.load(path)
+        links = state_dict.pop("links")
+        return cls(links, device, **state_dict)
 
     def to(self, *args, **kwargs) -> "BinaryLinks":
         """
@@ -61,7 +94,7 @@ class BinaryLinks(torch.nn.Module):
         return self.links
 
 
-class GroupedLinks(torch.nn.Module):
+class GroupedLinks(NestedTorchJitModule):
     """
     This class is a container for the various LogitLinks or BinaryLinks that are used to
     probabilistically sample from the fuzzy sets along some dimension. This class is defined as a
@@ -70,11 +103,11 @@ class GroupedLinks(torch.nn.Module):
     functionality, such as GumbelSoftmax.
     """
 
-    def __init__(self, modules, *args, **kwargs):
+    def __init__(self, modules_list, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if modules is None:
-            modules = []
-        self.modules_list = torch.nn.ModuleList(modules)
+        if modules_list is None:
+            modules_list = []
+        self.modules_list = torch.nn.ModuleList(modules_list)
         self.membership_dimension = -1
 
     @property
@@ -82,9 +115,10 @@ class GroupedLinks(torch.nn.Module):
         """
         Get the shape of links.
         """
-        # pylint: disable=fixme
-        # TODO: return the real max shape
-        return max((module.shape for module in self.modules_list), key=lambda x: x[-1])
+        shape = list(self.modules_list[0].shape)
+        for module in self.modules_list[1:]:
+            shape[self.membership_dimension] += module.shape[self.membership_dimension]
+        return torch.Size(shape)
 
     def to(self, *args, **kwargs):
         """

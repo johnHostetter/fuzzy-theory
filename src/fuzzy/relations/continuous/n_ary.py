@@ -244,7 +244,7 @@ class NAryRelation(TorchJitModule):
         # update the self.grouped_links to reflect the new shape
         # these links are used to zero out the values that are not part of the relation
         self.grouped_links = GroupedLinks(
-            modules=[BinaryLinks(links=self.matrix, device=self.device)]
+            modules_list=[BinaryLinks(links=self.matrix, device=self.device)]
         )
 
     def resize(self, *shape) -> None:
