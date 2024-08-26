@@ -121,7 +121,8 @@ class NAryRelation(TorchJitModule):
                 and self.nan_replacement == other.nan_replacement
             )
         return (
-            torch.allclose(self.applied_mask, other.applied_mask)
+            self.applied_mask.shape == other.applied_mask.shape
+            and torch.allclose(self.applied_mask, other.applied_mask)
             and self.nan_replacement == other.nan_replacement
         )
 
