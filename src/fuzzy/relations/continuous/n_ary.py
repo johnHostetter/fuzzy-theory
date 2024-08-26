@@ -156,7 +156,6 @@ class NAryRelation(TorchJitModule):
             )
             torch.save(state_dict, path)
 
-        torch.save(state_dict, path.parent / "state_dict.pt")
         return state_dict
 
     @classmethod
