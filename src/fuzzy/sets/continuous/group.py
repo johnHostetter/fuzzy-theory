@@ -7,7 +7,7 @@ defined fuzzy sets with no difficulty. Further, this class was specifically desi
 dynamic addition of new fuzzy sets in the construction of neuro-fuzzy networks via network morphism.
 """
 
-from typing import List, Tuple, Type
+from typing import List, Tuple, Type, Any
 
 import torch
 
@@ -73,7 +73,7 @@ class GroupedFuzzySets(NestedTorchJitModule):
             _hash += str(hash(module))
         return hash(_hash)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, GroupedFuzzySets):
             return False
         if len(self.modules_list) != len(other.modules_list):

@@ -112,7 +112,7 @@ class NAryRelation(TorchJitModule):
     def __hash__(self) -> int:
         return hash(self.applied_mask) + hash(self.nan_replacement) + hash(self.device)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, NAryRelation) or not isinstance(self, type(other)):
             return False
         if self.applied_mask is None:

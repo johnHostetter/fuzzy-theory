@@ -28,10 +28,10 @@ class BinaryLinks(torch.nn.Module):
         self.links: torch.Tensor = torch.tensor(links, dtype=torch.int8, device=device)
         self.device: torch.device = device
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.links)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return isinstance(other, BinaryLinks) and torch.equal(self.links, other.links)
 
     @property

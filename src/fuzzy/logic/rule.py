@@ -4,8 +4,8 @@ fuzzy logic rules.
 """
 
 from pathlib import Path
-from typing import Union, Type
 from dataclasses import dataclass
+from typing import Union, Type, Any
 
 import torch
 
@@ -41,7 +41,7 @@ class Rule:
     def __hash__(self) -> int:
         return hash(self.premise) + hash(self.consequence) + hash(self.id)
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Rule):
             return False
         return self.premise == other.premise and self.consequence == other.consequence
