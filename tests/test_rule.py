@@ -1,6 +1,7 @@
 """
 Test the Rule class.
 """
+
 import shutil
 import unittest
 from pathlib import Path
@@ -88,7 +89,9 @@ class TestRule(unittest.TestCase):
         # check that the folder exists
         self.assertTrue((Path(__file__).parent / "test_rule").exists())
         # load the file
-        loaded_rule = Rule.load(Path(__file__).parent / "test_rule", device=AVAILABLE_DEVICE)
+        loaded_rule = Rule.load(
+            Path(__file__).parent / "test_rule", device=AVAILABLE_DEVICE
+        )
         # check that the loaded rule is the same class as the original rule
         self.assertIsInstance(loaded_rule, Rule)
         # compare devices
@@ -102,7 +105,7 @@ class TestRule(unittest.TestCase):
         self.assertTrue(
             torch.allclose(
                 rule.premise.grouped_links(None),
-                loaded_rule.premise.grouped_links(None)
+                loaded_rule.premise.grouped_links(None),
             )
         )
         # compare the ID of the Rule objects

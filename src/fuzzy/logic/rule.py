@@ -63,10 +63,14 @@ class Rule:
             )
 
         path.mkdir(parents=True, exist_ok=True)
-        self.premise.save(path / "premise.pt")  # may result in a .pt file or a directory
-        self.consequence.save(path / "consequence.pt")  # may result in a .pt file or a directory
+        self.premise.save(
+            path / "premise.pt"
+        )  # may result in a .pt file or a directory
+        self.consequence.save(
+            path / "consequence.pt"
+        )  # may result in a .pt file or a directory
         # save the ID of the Rule
-        with open(path / "id.txt", "w") as f:
+        with open(path / "id.txt", "w", encoding="utf-8") as f:
             f.write(str(self.id))
 
     @classmethod
@@ -86,11 +90,13 @@ class Rule:
         if (path / "premise.pt").exists():
             premise_location += ".pt"  # add the file extension; it is stored in a file
         if (path / "consequence.pt").exists():
-            consequence_location += ".pt"  # add the file extension; it is stored in a file
+            consequence_location += (
+                ".pt"  # add the file extension; it is stored in a file
+            )
 
         premise = NAryRelation.load(path / premise_location, device=device)
         consequence = NAryRelation.load(path / consequence_location, device=device)
-        with open(path / "id.txt", "r") as f:
+        with open(path / "id.txt", "r", encoding="utf-8") as f:
             rule_id = int(f.read())
         obj = cls(premise, consequence)
         obj.id = rule_id  # this may cause a bug if the ID is not unique
