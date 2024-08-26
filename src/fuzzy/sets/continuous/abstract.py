@@ -181,6 +181,15 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         widths: np.ndarray = np.random.randn(n_variables, n_terms)
         return cls(centers=centers, widths=widths, device=device, **kwargs)
 
+    def __hash__(self):
+        """
+        Hash the fuzzy set.
+
+        Returns:
+            The hash of the fuzzy set.
+        """
+        return hash((type(self), self.get_centers(), self.get_widths()))
+
     def __eq__(self, other: Any) -> bool:
         """
         Check if the fuzzy set is equal to another fuzzy set.
@@ -196,15 +205,6 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             and torch.equal(self.get_centers(), other.get_centers())
             and torch.equal(self.get_widths(), other.get_widths())
         )
-
-    def __hash__(self):
-        """
-        Hash the fuzzy set.
-
-        Returns:
-            The hash of the fuzzy set.
-        """
-        return hash((type(self), self.get_centers(), self.get_widths()))
 
     def get_centers(self) -> torch.Tensor:
         """
