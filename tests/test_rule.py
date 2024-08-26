@@ -1,8 +1,9 @@
 """
 Test the Rule class.
 """
-
+import shutil
 import unittest
+from pathlib import Path
 from typing import List, Type
 
 import torch
@@ -66,3 +67,45 @@ class TestRule(unittest.TestCase):
             self.assertEqual(rule.next_id, n_rules_created + 1)
             self.assertEqual(str(rule), expected_str)
             n_rules_created += 1
+
+    def test_save_and_load(self) -> None:
+        """
+        Test that we can save and load a Rule object.
+
+        Returns:
+            None
+        """
+        rule = Rule(
+            NAryRelation((0, 1), (1, 0), (2, 0), device=AVAILABLE_DEVICE),
+            NAryRelation((0, 0), device=AVAILABLE_DEVICE),
+        )
+
+        # illegal path name (has a file extension)
+        with self.assertRaises(ValueError):
+            rule.save(Path("test_rule.txt"))
+        # good path (folder) name
+        rule.save(Path(__file__).parent / "test_rule")
+        # check that the folder exists
+        self.assertTrue((Path(__file__).parent / "test_rule").exists())
+        # load the file
+        loaded_rule = Rule.load(Path(__file__).parent / "test_rule", device=AVAILABLE_DEVICE)
+        # check that the loaded rule is the same class as the original rule
+        self.assertIsInstance(loaded_rule, Rule)
+        # compare devices
+        self.assertEqual(rule.premise.device, loaded_rule.premise.device)
+        self.assertEqual(rule.consequence.device, loaded_rule.consequence.device)
+        # compare the premise indices
+        self.assertEqual(rule.premise.indices, loaded_rule.premise.indices)
+        # compare the consequence indices
+        self.assertEqual(rule.consequence.indices, loaded_rule.consequence.indices)
+        # compare the created GroupedLinks objects
+        self.assertTrue(
+            torch.allclose(
+                rule.premise.grouped_links(None),
+                loaded_rule.premise.grouped_links(None)
+            )
+        )
+        # compare the ID of the Rule objects
+        self.assertEqual(rule.id, loaded_rule.id)
+        # delete the folder
+        shutil.rmtree(Path(__file__).parent / "test_rule")
