@@ -47,18 +47,25 @@ class TestRuleBase(unittest.TestCase):
         """
         rule_base: RuleBase = RuleBase(self.rules, device=AVAILABLE_DEVICE)
         self.assertEqual(len(self.rules), len(rule_base))
-        for expected_rule, actual_rule in zip(self.rules, rule_base.rules):
-            self.assertEqual(expected_rule.id, actual_rule.id)
-            self.assertEqual(expected_rule.premise.indices, actual_rule.premise.indices)
-            self.assertEqual(
-                expected_rule.consequence.indices, actual_rule.consequence.indices
-            )
-            self.assertEqual(expected_rule.premise.device, actual_rule.premise.device)
-            self.assertEqual(
-                expected_rule.consequence.device, actual_rule.consequence.device
-            )
-        # the premise_t_norm should be a Product T-Norm (it aggregates the premises)
-        self.assertIsInstance(rule_base.premise_t_norm, Product)
+        for attribute in ["premise", "consequence"]:
+            for expected_rule, actual_rule in zip(self.rules, rule_base.rules):
+                self.assertEqual(expected_rule.id, actual_rule.id)
+                self.assertEqual(
+                    getattr(expected_rule, attribute).indices,
+                    getattr(actual_rule, attribute).indices,
+                )
+                self.assertEqual(
+                    expected_rule.consequence.indices, actual_rule.consequence.indices
+                )
+                self.assertEqual(
+                    getattr(expected_rule, attribute).device,
+                    getattr(actual_rule, attribute).device,
+                )
+                self.assertEqual(
+                    expected_rule.consequence.device, actual_rule.consequence.device
+                )
+        # the premises should be a Product T-Norm (it aggregates all across the rules' premises)
+        self.assertIsInstance(rule_base.premises, Product)
 
     def test_rule_base_output(self) -> None:
         """
@@ -93,17 +100,26 @@ class TestRuleBase(unittest.TestCase):
             path=Path("test_rule_base"), device=AVAILABLE_DEVICE
         )
         self.assertEqual(len(self.rules), len(loaded_rule_base))
-        for expected_rule, actual_rule in zip(rule_base.rules, loaded_rule_base.rules):
-            self.assertEqual(expected_rule.id, actual_rule.id)
-            self.assertEqual(expected_rule.premise.indices, actual_rule.premise.indices)
-            self.assertEqual(
-                expected_rule.consequence.indices, actual_rule.consequence.indices
-            )
-            self.assertEqual(expected_rule.premise.device, actual_rule.premise.device)
-            self.assertEqual(
-                expected_rule.consequence.device, actual_rule.consequence.device
-            )
-        # the premise_t_norm should be a Product T-Norm (it aggregates the premises)
-        self.assertIsInstance(loaded_rule_base.premise_t_norm, Product)
+        for attribute in ["premise", "consequence"]:
+            for expected_rule, actual_rule in zip(
+                rule_base.rules, loaded_rule_base.rules
+            ):
+                self.assertEqual(expected_rule.id, actual_rule.id)
+                self.assertEqual(
+                    getattr(expected_rule, attribute).indices,
+                    getattr(actual_rule, attribute).indices,
+                )
+                self.assertEqual(
+                    expected_rule.consequence.indices, actual_rule.consequence.indices
+                )
+                self.assertEqual(
+                    getattr(expected_rule, attribute).device,
+                    getattr(actual_rule, attribute).device,
+                )
+                self.assertEqual(
+                    expected_rule.consequence.device, actual_rule.consequence.device
+                )
+        # the premises should be a Product T-Norm (it aggregates all across the rules' premises)
+        self.assertIsInstance(loaded_rule_base.premises, Product)
         # remove the directory
         shutil.rmtree("test_rule_base")

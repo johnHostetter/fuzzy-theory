@@ -23,14 +23,34 @@ class RuleBase(torch.nn.Module):
     def __init__(self, rules: List[Rule], device: torch.device, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.rules: List[Rule] = rules
-        premise_t_norm_types = {type(rule.premise) for rule in self.rules}
-        if len(premise_t_norm_types) > 1:
-            raise NotImplementedError(
-                "The rules have different TNorm types. This is not supported yet."
+        self.device = device
+        self.premises = self._combine_t_norms(attribute="premise")
+        self.consequences = self._combine_t_norms(attribute="consequence")
+
+    def _combine_t_norms(self, attribute: str):
+        """
+        Combine the TNorms of the rules for the given attribute. The TNorms should be of the same
+        type. This greatly speeds up the inference process.
+
+        Args:
+            attribute: The attribute to combine the TNorms for (e.g., "premise" or "consequence").
+
+        Returns:
+            A TNorm object that combines the TNorms of the rules for the given attribute.
+        """
+        if attribute not in ["premise", "consequence"]:
+            raise ValueError(
+                f"Attribute {attribute} is not valid. Use 'premise' or 'consequence'."
             )
-        premise_t_norm_type: TNorm = premise_t_norm_types.pop()
-        self.premise_t_norm = premise_t_norm_type(
-            *[list(rule.premise.indices[0]) for rule in self.rules], device=device
+        t_norm_types = {type(getattr(rule, attribute)) for rule in self.rules}
+        if len(t_norm_types) > 1:
+            raise NotImplementedError(
+                f"The rules have different TNorm types for {attribute}. This is not supported yet."
+            )
+        t_norm_type: TNorm = t_norm_types.pop()
+        return t_norm_type(
+            *[list(getattr(rule, attribute).indices[0]) for rule in self.rules],
+            device=self.device,
         )
 
     def __len__(self) -> int:
@@ -83,4 +103,4 @@ class RuleBase(torch.nn.Module):
         Returns:
             The membership values of the rule base given the elements after applying the t-norm(s).
         """
-        return self.premise_t_norm(membership)
+        return self.premises(membership)
