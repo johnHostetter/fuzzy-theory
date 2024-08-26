@@ -9,7 +9,7 @@ from typing import List
 import torch
 from natsort import natsorted
 
-from fuzzy.logic import Rule
+from fuzzy.logic.rule import Rule
 from fuzzy.relations.continuous.t_norm import TNorm
 from fuzzy.sets.continuous.membership import Membership
 
