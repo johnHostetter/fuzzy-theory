@@ -67,6 +67,22 @@ class GroupedFuzzySets(NestedTorchJitModule):
         except AttributeError:
             return self.__getattr__(item)
 
+    def __hash__(self) -> int:
+        _hash: str = ""
+        for module in self.modules_list:
+            _hash += str(hash(module))
+        return hash(_hash)
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, GroupedFuzzySets):
+            return False
+        if len(self.modules_list) != len(other.modules_list):
+            return False
+        for self_module, other_module in zip(self.modules_list, other.modules_list):
+            if not self_module == other_module:
+                return False
+        return True
+
     def calculate_module_responses(self, observations) -> Membership:
         """
         Calculate the responses from the modules in the torch.nn.ModuleList of GroupedFuzzySets.

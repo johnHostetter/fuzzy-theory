@@ -106,8 +106,21 @@ class NAryRelation(TorchJitModule):
             )
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.indices})"
+
+    def __hash__(self) -> int:
+        return hash(self.applied_mask) + hash(self.nan_replacement) + hash(self.device)
+
+    def __eq__(self, other):
+        if not isinstance(other, NAryRelation) or type(self) != type(other):
+            return False
+        if self.applied_mask is None:
+            return self.indices == other.indices and self.nan_replacement == other.nan_replacement
+        return (
+            torch.allclose(self.applied_mask, other.applied_mask)
+            and self.nan_replacement == other.nan_replacement
+        )
 
     @staticmethod
     def convert_indices_to_matrix(indices) -> sps._coo.coo_matrix:
