@@ -100,4 +100,5 @@ class Rule:
             rule_id = int(f.read())
         obj = cls(premise, consequence)
         obj.id = rule_id  # this may cause a bug if the ID is not unique
+        cls.next_id -= 1  # decrement the next ID to counter the constructor's increment
         return obj

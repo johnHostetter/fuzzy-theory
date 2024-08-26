@@ -29,6 +29,7 @@ class TestRule(unittest.TestCase):
         Returns:
             None
         """
+        next_id_before_test: int = Rule.next_id
         with self.assertRaises(ValueError):
             Rule(
                 NAryRelation([(0, 1), (1, 0)], [(2, 0)], device=AVAILABLE_DEVICE),
@@ -38,6 +39,9 @@ class TestRule(unittest.TestCase):
                 NAryRelation((0, 1), (1, 0), (2, 0), device=AVAILABLE_DEVICE),
                 NAryRelation([(0, 0)], [(1, 0)], device=AVAILABLE_DEVICE),
             )
+        self.assertEqual(
+            Rule.next_id, next_id_before_test
+        )  # next ID shouldn't be incremented
 
     def test_create_rule_with_n_ary_relation(self) -> None:
         """
@@ -46,7 +50,8 @@ class TestRule(unittest.TestCase):
         Returns:
             None
         """
-        n_rules_created: int = 0
+        next_id_before_test: int = Rule.next_id
+        n_rules_created: int = next_id_before_test + 0
         n_ary_types: List[Type[NAryRelation]] = [
             NAryRelation,
             TNorm,
@@ -62,12 +67,13 @@ class TestRule(unittest.TestCase):
             premise = n_ary_type((0, 1), (1, 0), (2, 0), device=AVAILABLE_DEVICE)
             consequence = n_ary_type((0, 0), device=AVAILABLE_DEVICE)
             rule = Rule(premise, consequence)
-            self.assertEqual(rule.premise, premise)
-            self.assertEqual(rule.consequence, consequence)
-            self.assertEqual(rule.id, n_rules_created)
-            self.assertEqual(rule.next_id, n_rules_created + 1)
-            self.assertEqual(str(rule), expected_str)
+            self.assertEqual(premise, rule.premise)
+            self.assertEqual(consequence, rule.consequence)
+            self.assertEqual(n_rules_created, rule.id)
+            self.assertEqual(n_rules_created + 1, rule.next_id)
+            self.assertEqual(expected_str, str(rule))
             n_rules_created += 1
+        Rule.next_id = next_id_before_test  # reset the next ID for other unit tests
 
     def test_save_and_load(self) -> None:
         """
@@ -76,6 +82,7 @@ class TestRule(unittest.TestCase):
         Returns:
             None
         """
+        next_id_before_test: int = Rule.next_id
         rule = Rule(
             NAryRelation((0, 1), (1, 0), (2, 0), device=AVAILABLE_DEVICE),
             NAryRelation((0, 0), device=AVAILABLE_DEVICE),
@@ -112,3 +119,4 @@ class TestRule(unittest.TestCase):
         self.assertEqual(rule.id, loaded_rule.id)
         # delete the folder
         shutil.rmtree(Path(__file__).parent / "test_rule")
+        Rule.next_id = next_id_before_test  # reset the next ID for other unit tests
