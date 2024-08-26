@@ -6,10 +6,11 @@ import inspect
 import pickle
 from abc import abstractmethod
 from pathlib import Path
-from typing import Set, Any, MutableMapping, List, Tuple, Union, Dict
+from typing import Set, Any, MutableMapping, List, Tuple, Union, Dict, Callable
 
 import torch.nn
 from natsort import natsorted
+from torch.nn.modules.module import _forward_unimplemented
 
 from fuzzy.sets.continuous.utils import get_object_attributes
 
@@ -50,6 +51,16 @@ def all_subclasses(cls) -> Set[Any]:
 
 
 class NestedTorchJitModule(torch.nn.Module):
+    """
+    A NestedTorchJitModule is a torch.nn.Module that contains other torch.nn.Module objects as
+    attributes. This class is used to save and load the torch.nn.Module object to and from a
+    directory, respectively.
+    """
+
+    forward: Callable[..., Any] = (
+        _forward_unimplemented  # unsure of forward signature yet
+    )
+
     def save(self, path: Path) -> None:
         """
         Save the torch.nn.Module object to a directory.
@@ -220,6 +231,11 @@ class NestedTorchJitModule(torch.nn.Module):
 
 
 class TorchJitModule(torch.nn.Module):
+    """
+    A TorchJitModule is a torch.nn.Module that can be saved and loaded to and from a file. It is
+    also expected that the class that inherits from TorchJitModule will have subclasses of its own.
+    """
+
     @abstractmethod
     @torch.jit.ignore
     def save(self, path: Path) -> MutableMapping[str, Any]:

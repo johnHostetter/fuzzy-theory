@@ -7,18 +7,14 @@ defined fuzzy sets with no difficulty. Further, this class was specifically desi
 dynamic addition of new fuzzy sets in the construction of neuro-fuzzy networks via network morphism.
 """
 
-import pickle
-import inspect
-from pathlib import Path
-from typing import List, Tuple, Any, Dict, Set, Type, Union
+from typing import List, Tuple, Type
 
 import torch
-from natsort import natsorted
 
 from .membership import Membership
 from .abstract import ContinuousFuzzySet
-from .utils import get_object_attributes, find_widths
 from ...utils import NestedTorchJitModule
+from .utils import find_widths
 
 
 class GroupedFuzzySets(NestedTorchJitModule):

@@ -4,7 +4,6 @@ are used to combine multiple membership values into a single value. The n-ary re
 differing types) can then be combined into a compound relation.
 """
 
-import os
 from pathlib import Path
 from typing import Union, Tuple, List, MutableMapping, Any
 
@@ -13,9 +12,9 @@ import torch
 import numpy as np
 import scipy.sparse as sps
 
-from .linkage import GroupedLinks, BinaryLinks
 from fuzzy.sets.continuous.membership import Membership
 from fuzzy.utils import check_path_to_save_torch_module, TorchJitModule
+from .linkage import GroupedLinks, BinaryLinks
 
 
 class NAryRelation(TorchJitModule):
@@ -186,13 +185,12 @@ class NAryRelation(TorchJitModule):
                 device=device,
                 nan_replacement=nan_replacement,
             )
-        else:  # "grouped_links" in state_dict
-            grouped_links: Path = state_dict.pop("grouped_links")
-            return cls.get_subclass(class_name)(
-                device=device,
-                grouped_links=GroupedLinks.load(grouped_links, device=device),
-                nan_replacement=nan_replacement,
-            )
+        grouped_links: Path = state_dict.pop("grouped_links")
+        return cls.get_subclass(class_name)(
+            device=device,
+            grouped_links=GroupedLinks.load(grouped_links, device=device),
+            nan_replacement=nan_replacement,
+        )
 
     def create_ndarray(self, max_var: int, max_term: int) -> None:
         """

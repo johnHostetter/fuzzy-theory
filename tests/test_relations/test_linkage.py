@@ -1,3 +1,7 @@
+"""
+Test the linkage behavior, which helps support the calculations of n-ary fuzzy relations.
+"""
+
 import shutil
 import unittest
 from pathlib import Path
@@ -6,18 +10,28 @@ import torch
 import numpy as np
 
 from fuzzy.relations.continuous.linkage import BinaryLinks, GroupedLinks
-from fuzzy.sets.continuous.membership import Membership
+
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class TestBinaryLinks(unittest.TestCase):
+    """
+    Test the BinaryLinks class.
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.links = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         self.binary_links = BinaryLinks(self.links, device=AVAILABLE_DEVICE)
 
-    def test_create_linkage(self):
+    def test_create_linkage(self) -> None:
+        """
+        Test that a BinaryLinks object is created correctly.
+
+        Returns:
+            None
+        """
         self.assertIsInstance(self.binary_links, BinaryLinks)
         self.assertIsInstance(self.binary_links.links, torch.Tensor)
         self.assertEqual(AVAILABLE_DEVICE.type, self.binary_links.links.device.type)
@@ -28,7 +42,13 @@ class TestBinaryLinks(unittest.TestCase):
         )
         self.assertEqual((3, 3), self.binary_links.shape)
 
-    def test_save_and_load_linkage(self):
+    def test_save_and_load_linkage(self) -> None:
+        """
+        Test that we can save and load a BinaryLinks object.
+
+        Returns:
+            None
+        """
         # illegal path name
         self.assertRaises(ValueError, self.binary_links.save, Path("test.txt"))
         # bad path name
@@ -73,6 +93,10 @@ class TestBinaryLinks(unittest.TestCase):
 
 
 class TestGroupedLinks(unittest.TestCase):
+    """
+    Test the GroupedLinks class.
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.links_1 = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
@@ -83,7 +107,13 @@ class TestGroupedLinks(unittest.TestCase):
             modules_list=[self.binary_links_1, self.binary_links_2]
         )
 
-    def test_create_linkage(self):
+    def test_create_linkage(self) -> None:
+        """
+        Test that a GroupedLinks object is created correctly.
+
+        Returns:
+            None
+        """
         self.assertIsInstance(self.grouped_links, GroupedLinks)
         self.assertEqual((3, 6), self.grouped_links.shape)
         expected_grouped_links = torch.cat(
@@ -93,7 +123,13 @@ class TestGroupedLinks(unittest.TestCase):
             torch.allclose(expected_grouped_links, self.grouped_links(membership=None))
         )
 
-    def test_save_and_load_linkage(self):
+    def test_save_and_load_linkage(self) -> None:
+        """
+        Test that we can save and load a GroupedLinks object.
+
+        Returns:
+            None
+        """
         # illegal path name
         self.assertRaises(ValueError, self.grouped_links.save, Path("test.txt"))
         # bad path name

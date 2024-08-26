@@ -20,6 +20,7 @@ from fuzzy.relations.continuous.t_norm import Minimum, Product
 from fuzzy.relations.continuous.n_ary import NAryRelation
 from fuzzy.relations.continuous.compound import Compound
 
+
 N_TERMS: int = 2
 N_VARIABLES: int = 4
 N_OBSERVATIONS: int = 3
