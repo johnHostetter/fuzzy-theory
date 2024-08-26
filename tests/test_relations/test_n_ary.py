@@ -2,13 +2,16 @@
 Test the fuzzy n-ary relations work as expected.
 """
 
+import shutil
 import unittest
-from typing import List, Tuple
+from pathlib import Path
+from typing import List, Tuple, MutableMapping, Any
 
 import torch
 import igraph
 import numpy as np
 
+from fuzzy.relations.continuous.linkage import GroupedLinks, BinaryLinks
 from fuzzy.sets.continuous.impl import Gaussian
 from fuzzy.sets.continuous.membership import Membership
 from fuzzy.sets.continuous.group import GroupedFuzzySets
@@ -16,6 +19,7 @@ from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
 from fuzzy.relations.continuous.t_norm import Minimum, Product
 from fuzzy.relations.continuous.n_ary import NAryRelation
 from fuzzy.relations.continuous.compound import Compound
+
 
 N_TERMS: int = 2
 N_VARIABLES: int = 4
@@ -220,6 +224,96 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(
             multiple_n_ary_graph_with_uniques.ecount(), 4  # 4 edges (relations)
         )
+
+    def test_save_and_load_from_indices(self) -> None:
+        """
+        Test that the n-ary relation can be saved and loaded when its source was indices.
+
+        Returns:
+            None
+        """
+        indices: tuple = ((0, 1), (1, 0))
+        file_name: str = "n_ary_relation"
+        n_ary = NAryRelation(*indices, device=AVAILABLE_DEVICE)
+        self.assertRaises(
+            ValueError, n_ary.save, Path(f"{file_name}.txt")
+        )  # wrong extension
+        self.assertRaises(
+            ValueError, n_ary.save, Path(f"{file_name}.pth")
+        )  # bad extension
+        self.assertRaises(ValueError, n_ary.save, Path(f"{file_name}"))  # no extension
+        state_dict: MutableMapping[str, Any] = n_ary.save(Path(f"{file_name}.pt"))
+        # check that the file was created and exists
+
+        # check that the state dict contains the necessary keys
+        self.assertTrue(Path(f"{file_name}.pt").exists())
+        for key in ("indices", "class_name", "nan_replacement"):
+            self.assertTrue(
+                key in state_dict
+            )  # these should appear since they are saved
+        # check that the state dict does not contain unnecessary keys
+        self.assertTrue(
+            "grouped_links" not in state_dict
+        )  # not saved; loading from indices here
+
+        # check that the state dict contains the correct values
+        self.assertEqual(indices, state_dict["indices"])
+        self.assertEqual("NAryRelation", state_dict["class_name"])
+        self.assertEqual(n_ary.nan_replacement, state_dict["nan_replacement"])
+        loaded_n_ary = NAryRelation.load(
+            Path(f"{file_name}.pt"), device=AVAILABLE_DEVICE
+        )
+        self.assertEqual(n_ary.indices, loaded_n_ary.indices)
+        self.assertEqual(n_ary.nan_replacement, loaded_n_ary.nan_replacement)
+        # the applied_mask is the resulting output from grouped_links()
+        self.assertTrue(torch.allclose(n_ary.applied_mask, loaded_n_ary.applied_mask))
+        self.assertTrue(
+            np.allclose(
+                n_ary._coo_matrix[0].toarray(), loaded_n_ary._coo_matrix[0].toarray()
+            )
+        )
+        self.assertEqual(n_ary._coo_matrix[0].shape, loaded_n_ary._coo_matrix[0].shape)
+        # remove the file
+        Path(f"{file_name}.pt").unlink()
+
+    def test_save_and_load_from_grouped_links(self) -> None:
+        """
+        Test the n-ary relation can be saved and loaded when its source was a GroupedLinks object.
+
+        Returns:
+            None
+        """
+        grouped_links: GroupedLinks = GroupedLinks(
+            modules_list=[
+                BinaryLinks(np.eye(N_TERMS, N_TERMS), device=AVAILABLE_DEVICE),
+                BinaryLinks(np.eye(N_TERMS, N_TERMS), device=AVAILABLE_DEVICE),
+                BinaryLinks(np.eye(N_TERMS, N_TERMS), device=AVAILABLE_DEVICE),
+            ]
+        )
+        file_name: str = "n_ary_relation"
+        n_ary = NAryRelation(grouped_links=grouped_links, device=AVAILABLE_DEVICE)
+        self.assertRaises(ValueError, n_ary.save, Path(f"{file_name}.txt"))
+        self.assertRaises(ValueError, n_ary.save, Path(f"{file_name}.pth"))
+        intended_destination: Path = Path(__file__).parent / f"{file_name}.pt"
+        n_ary.save(path=intended_destination)
+        # note a .pt file is NOT created, but a directory is created instead
+        # (to save the grouped links)
+        actual_destination: Path = Path(__file__).parent / file_name
+        self.assertTrue(actual_destination.exists())
+        self.assertTrue(actual_destination.is_dir())
+        loaded_n_ary = NAryRelation.load(actual_destination, device=AVAILABLE_DEVICE)
+        self.assertTrue(
+            torch.allclose(n_ary.applied_mask, loaded_n_ary.applied_mask)
+        )  # the applied_mask is the resulting output from grouped_links()
+        for actual_module, loaded_module in zip(
+            n_ary.grouped_links.modules_list, loaded_n_ary.grouped_links.modules_list
+        ):
+            # modules are expected to have the shape property
+            self.assertEqual(actual_module.shape, loaded_module.shape)
+            # the loaded module should be the same as the original per __eq__ method
+            self.assertEqual(actual_module, loaded_module)
+        # remove the directory and its contents
+        shutil.rmtree(actual_destination)
 
 
 class TestProduct(TestNAryRelation):

@@ -7,20 +7,17 @@ defined fuzzy sets with no difficulty. Further, this class was specifically desi
 dynamic addition of new fuzzy sets in the construction of neuro-fuzzy networks via network morphism.
 """
 
-import pickle
-import inspect
-from pathlib import Path
-from typing import List, Tuple, Any, Dict, Set, Type, Union
+from typing import List, Tuple, Type
 
 import torch
-from natsort import natsorted
 
 from .membership import Membership
 from .abstract import ContinuousFuzzySet
-from .utils import get_object_attributes, find_widths
+from ...utils import NestedTorchJitModule
+from .utils import find_widths
 
 
-class GroupedFuzzySets(torch.nn.Module):
+class GroupedFuzzySets(NestedTorchJitModule):
     """
     A generic and abstract torch.nn.Module class that contains a torch.nn.ModuleList
     of ContinuousFuzzySet objects. The expectation here is that each ContinuousFuzzySet
@@ -70,124 +67,21 @@ class GroupedFuzzySets(torch.nn.Module):
         except AttributeError:
             return self.__getattr__(item)
 
-    def save(self, path: Path) -> None:
-        """
-        Save the model to the given path.
+    def __hash__(self) -> int:
+        _hash: str = ""
+        for module in self.modules_list:
+            _hash += str(hash(module))
+        return hash(_hash)
 
-        Args:
-            path: The path to save the GroupedFuzzySet to.
-
-        Returns:
-            None
-        """
-        # get the attributes that are local to the class, but not inherited from the super class
-        local_attributes_only = get_object_attributes(self)
-
-        # save a reference to the attributes (and their values) so that when iterating over them,
-        # we do not modify the dictionary while iterating over it (which would cause an error)
-        # we modify the dictionary by removing attributes that have a value of torch.nn.ModuleList
-        # because we want to save the modules in the torch.nn.ModuleList separately
-        local_attributes_only_items: List[Tuple[str, Any]] = list(
-            local_attributes_only.items()
-        )
-        for attr, value in local_attributes_only_items:
-            if isinstance(
-                value, torch.nn.ModuleList
-            ):  # e.g., attr may be self.modules_list
-                for idx, module in enumerate(value):
-                    subdirectory = path / attr / str(idx)
-                    subdirectory.mkdir(parents=True, exist_ok=True)
-                    if isinstance(module, ContinuousFuzzySet):
-                        # save the fuzzy set using the fuzzy set's special protocol
-                        module.save(
-                            path / attr / str(idx) / f"{module.__class__.__name__}.pt"
-                        )
-                    else:
-                        # unknown and unrecognized module, but attempt to save the module
-                        torch.save(
-                            module,
-                            path / attr / str(idx) / f"{module.__class__.__name__}.pt",
-                        )
-                # remove the torch.nn.ModuleList from the local attributes
-                del local_attributes_only[attr]
-
-        # save the remaining attributes
-        with open(path / f"{self.__class__.__name__}.pickle", "wb") as handle:
-            pickle.dump(local_attributes_only, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    @classmethod
-    def load(cls, path: Path, device: Union[str, torch.device]) -> "GroupedFuzzySets":
-        """
-        Load the model from the given path.
-
-        Args:
-            path: The path to load the GroupedFuzzySet from.
-            device: The device to load the GroupedFuzzySet to.
-
-        Returns:
-            The loaded GroupedFuzzySet.
-        """
-        if isinstance(device, str):
-            device = torch.device(device)
-        modules_list = []
-        local_attributes_only: Dict[str, Any] = {}
-        for file_path in path.iterdir():
-            if ".pickle" in file_path.name:
-                # load the remaining attributes
-                with open(file_path, "rb") as handle:
-                    local_attributes_only.update(pickle.load(handle))
-            elif file_path.is_dir():
-                for subdirectory in natsorted(file_path.iterdir()):
-                    if subdirectory.is_dir():
-                        module_path: Path = list(subdirectory.glob("*.pt"))[0]
-                        # load the fuzzy set using the fuzzy set's special protocol
-                        class_name: str = module_path.name.split(".pt")[0]
-                        try:
-                            modules_list.append(
-                                ContinuousFuzzySet.get_subclass(class_name).load(
-                                    module_path, device=device
-                                )
-                            )
-                        except ValueError:
-                            # unknown and unrecognized module, but attempt to load the module
-                            modules_list.append(torch.load(module_path))
-                    else:
-                        raise UserWarning(
-                            f"Unexpected file found in {file_path}: {module_path}"
-                        )
-                local_attributes_only[file_path.name] = modules_list
-
-        # of the remaining attributes, we must determine which are shared between the
-        # super class and the local class, otherwise we will get an error when trying to
-        # initialize the local class (more specifically, the torch.nn.Module __init__ method
-        # requires self.call_super_init to be set to True, but then the attribute would exist
-        # as a super class attribute, and not a local class attribute)
-        shared_args: Set[str] = set(
-            inspect.signature(cls).parameters.keys()
-        ).intersection(local_attributes_only.keys())
-
-        # create the GroupedFuzzySet object with the shared arguments
-        # (e.g., modules_list, expandable)
-        grouped_fuzzy_set: GroupedFuzzySets = cls(
-            **{
-                key: value
-                for key, value in local_attributes_only.items()
-                if key in shared_args
-            }
-        )
-
-        # determine the remaining attributes
-        remaining_args: Dict[str, Any] = {
-            key: value
-            for key, value in local_attributes_only.items()
-            if key not in shared_args
-        }
-
-        # set the remaining attributes
-        for attr, value in remaining_args.items():
-            setattr(grouped_fuzzy_set, attr, value)
-
-        return grouped_fuzzy_set
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, GroupedFuzzySets):
+            return False
+        if len(self.modules_list) != len(other.modules_list):
+            return False
+        for self_module, other_module in zip(self.modules_list, other.modules_list):
+            if not self_module == other_module:
+                return False
+        return True
 
     def calculate_module_responses(self, observations) -> Membership:
         """

@@ -35,7 +35,7 @@ class TestContinuousFuzzySet(unittest.TestCase):
         """
         with self.assertRaises(NotImplementedError):
             ContinuousFuzzySet.create(
-                number_of_variables=4, number_of_terms=2, device=torch.device("cpu")
+                n_variables=4, n_terms=2, device=torch.device("cpu")
             )
 
     def test_save_and_load(self) -> None:
@@ -47,7 +47,7 @@ class TestContinuousFuzzySet(unittest.TestCase):
         """
         for subclass in ContinuousFuzzySet.__subclasses__():
             membership_func = subclass.create(
-                number_of_variables=4, number_of_terms=4, device=AVAILABLE_DEVICE
+                n_variables=4, n_terms=4, device=AVAILABLE_DEVICE
             )
             state_dict: MutableMapping = membership_func.state_dict()
 

@@ -29,12 +29,8 @@ class TestGroupedFuzzySets(unittest.TestCase):
         """
         grouped_fuzzy_sets: GroupedFuzzySets = GroupedFuzzySets(
             modules_list=[
-                Gaussian.create(
-                    number_of_variables=2, number_of_terms=3, device=AVAILABLE_DEVICE
-                ),
-                Gaussian.create(
-                    number_of_variables=2, number_of_terms=3, device=AVAILABLE_DEVICE
-                ),
+                Gaussian.create(n_variables=2, n_terms=3, device=AVAILABLE_DEVICE),
+                Gaussian.create(n_variables=2, n_terms=3, device=AVAILABLE_DEVICE),
             ]
         )
 

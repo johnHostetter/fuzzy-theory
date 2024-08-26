@@ -4,7 +4,8 @@ are used to combine multiple membership values into a single value. The n-ary re
 differing types) can then be combined into a compound relation.
 """
 
-from typing import Union, Tuple, List
+from pathlib import Path
+from typing import Union, Tuple, List, MutableMapping, Any
 
 import igraph
 import torch
@@ -12,10 +13,11 @@ import numpy as np
 import scipy.sparse as sps
 
 from fuzzy.sets.continuous.membership import Membership
-from fuzzy.relations.continuous.linkage import GroupedLinks, BinaryLinks
+from fuzzy.utils import check_path_to_save_torch_module, TorchJitModule
+from .linkage import GroupedLinks, BinaryLinks
 
 
-class NAryRelation(torch.nn.Module):
+class NAryRelation(TorchJitModule):
     """
     This class represents an n-ary fuzzy relation. An n-ary fuzzy relation is a relation that takes
     n arguments and returns a (float) value. This class is useful for representing fuzzy relations
@@ -104,8 +106,25 @@ class NAryRelation(torch.nn.Module):
             )
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.indices})"
+
+    def __hash__(self) -> int:
+        return hash(self.applied_mask) + hash(self.nan_replacement) + hash(self.device)
+
+    def __eq__(self, other):
+        if not isinstance(other, NAryRelation) or not isinstance(self, type(other)):
+            return False
+        if self.applied_mask is None:
+            return (
+                self.indices == other.indices
+                and self.nan_replacement == other.nan_replacement
+            )
+        return (
+            self.applied_mask.shape == other.applied_mask.shape
+            and torch.allclose(self.applied_mask, other.applied_mask)
+            and self.nan_replacement == other.nan_replacement
+        )
 
     @staticmethod
     def convert_indices_to_matrix(indices) -> sps._coo.coo_matrix:
@@ -121,6 +140,73 @@ class NAryRelation(torch.nn.Module):
         data = np.ones(len(indices))  # a '1' indicates a relation exists
         row, col = zip(*indices)
         return sps.coo_matrix((data, (row, col)), dtype=np.int8)
+
+    def save(self, path: Path) -> MutableMapping[str, Any]:
+        """
+        Save the n-ary relation to a dictionary given a path.
+
+        Args:
+            path: The (requested) path to save the n-ary relation. This may be modified to ensure
+            all necessary files are saved (e.g., it may be turned into a directory instead).
+
+        Returns:
+            The dictionary representation of the n-ary relation.
+        """
+        check_path_to_save_torch_module(path)
+        state_dict: MutableMapping = self.state_dict()
+        state_dict["nan_replacement"] = self.nan_replacement
+        state_dict["class_name"] = self.__class__.__name__
+
+        if len(self.indices) == 0:
+            dir_path = path.parent / path.name.split(".")[0]
+            # we will rebuild from the grouped_links, so we do not need to save the indices
+            grouped_links_dir: Path = dir_path / "grouped_links"
+            self.grouped_links.save(path=grouped_links_dir)
+            state_dict["grouped_links"] = (
+                grouped_links_dir  # save the path to the grouped_links
+            )
+            torch.save(state_dict, dir_path / "state_dict.pt")
+        else:
+            # we will rebuild from the indices, so we do not need to save the grouped_links
+            state_dict["indices"] = (
+                self.indices if len(self.indices) > 1 else self.indices[0]
+            )
+            torch.save(state_dict, path)
+
+        return state_dict
+
+    @classmethod
+    def load(cls, path: Path, device: torch.device) -> "NAryRelation":
+        """
+        Load the n-ary relation from a file and put it on the specified device.
+
+        Returns:
+            None
+        """
+        if path.is_file() and path.suffix == ".pt":
+            # load from indices
+            state_dict: MutableMapping = torch.load(path, weights_only=False)
+        else:
+            # load from grouped_links, path is a directory
+            state_dict: MutableMapping = torch.load(
+                path / "state_dict.pt", weights_only=False
+            )
+        nan_replacement = state_dict.pop("nan_replacement")
+        class_name = state_dict.pop("class_name")
+
+        if "indices" in state_dict:
+            indices = state_dict.pop("indices")
+            return cls.get_subclass(class_name)(
+                *indices,
+                device=device,
+                nan_replacement=nan_replacement,
+            )
+        grouped_links: Path = state_dict.pop("grouped_links")
+        return cls.get_subclass(class_name)(
+            device=device,
+            grouped_links=GroupedLinks.load(grouped_links, device=device),
+            nan_replacement=nan_replacement,
+        )
 
     def create_ndarray(self, max_var: int, max_term: int) -> None:
         """
@@ -188,7 +274,7 @@ class NAryRelation(torch.nn.Module):
         # update the self.grouped_links to reflect the new shape
         # these links are used to zero out the values that are not part of the relation
         self.grouped_links = GroupedLinks(
-            modules=[BinaryLinks(links=self.matrix, device=self.device)]
+            modules_list=[BinaryLinks(links=self.matrix, device=self.device)]
         )
 
     def resize(self, *shape) -> None:
