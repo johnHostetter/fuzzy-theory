@@ -309,9 +309,8 @@ class KnowledgeBase(RoughDecisions):
             A KnowledgeBase object, with the linguistic_variables (i.e., antecedents, consequents),
             and fuzzy logic rules added.
         """
-        # TODO: add this back in
-        # if len(rules) == 0:
-        #     raise ValueError("No fuzzy logic rules were provided.")
+        if len(rules) == 0:
+            warnings.warn("No fuzzy logic rules were provided.")
         # gather the premises' graphs
         rule_graphs: List[ig.Graph] = []
         for rule in rules:

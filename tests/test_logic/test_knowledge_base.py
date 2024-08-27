@@ -44,6 +44,7 @@ class TestKnowledgeBase(unittest.TestCase):
         knowledge_base.add_parent_relation("c", attribute_groupings["c"])
         knowledge_base.add_parent_relation("d", attribute_groupings["d"])
 
+        # pylint: disable=fixme
         # TODO: Fix this; attributes are no longer stored
         # assert knowledge_base.attributes('x1') == {'a': 0, 'b': 0, 'c': 0, 'd': 1}
         # assert knowledge_base.attributes('x2') == {'a': 0, 'b': 1, 'c': 1, 'd': 0}
