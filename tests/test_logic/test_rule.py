@@ -43,6 +43,25 @@ class TestRule(unittest.TestCase):
             Rule.next_id, next_id_before_test
         )  # next ID shouldn't be incremented
 
+    def test_creating_mamdani_rule(self) -> None:
+        """
+        Test that a (Mamdani) fuzzy logic rule is correctly created.
+
+        Returns:
+            None
+        """
+        # the first variable, second term with the second variable, second term and the third
+        # variable with the first term is the input
+        antecedents = ((0, 1), (1, 1), (2, 0))
+        # the 4th variable and second term is the recommended output
+        consequents = ((3, 1),)
+        rule = Rule(
+            premise=Product(*antecedents, device=AVAILABLE_DEVICE),
+            consequence=NAryRelation(*consequents, device=AVAILABLE_DEVICE),
+        )
+        self.assertEqual(rule.premise.indices[0], antecedents)
+        self.assertEqual(rule.consequence.indices[0], consequents)
+
     def test_create_rule_with_n_ary_relation(self) -> None:
         """
         Test that a rule can be created with a NAryRelation premise and NAryRelation consequence.
