@@ -4,6 +4,7 @@ scipy==1.13.1  # for sparse matrices
 sympy==1.13.2  # for torch
 torch==2.4.0
 torchquad==0.4.0
+rough-theory==0.0.3  # mine
 matplotlib==3.9.1  # for torchquad
 SciencePlots==2.1.1  # for scientific publication plots
 natsort==8.4.0  # for natural sorting
