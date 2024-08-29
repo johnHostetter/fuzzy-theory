@@ -7,8 +7,8 @@ import unittest
 import torch
 import numpy as np
 
-from fuzzy.logic import LinguisticVariables
 from fuzzy.sets.continuous.impl import Gaussian
+from fuzzy.logic.variables import LinguisticVariables
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

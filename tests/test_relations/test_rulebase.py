@@ -4,12 +4,12 @@ Test the RuleBase class.
 
 import shutil
 import unittest
-from pathlib import Path
 from typing import List
+from pathlib import Path
 
 import torch
 
-from fuzzy.logic import Rule
+from fuzzy.logic.rule import Rule
 from fuzzy.logic.rulebase import RuleBase
 from fuzzy.relations.continuous.t_norm import Product
 from fuzzy.sets.continuous.membership import Membership

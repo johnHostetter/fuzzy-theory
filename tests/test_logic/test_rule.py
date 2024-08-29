@@ -9,7 +9,7 @@ from typing import List, Type
 
 import torch
 
-from fuzzy.logic import Rule
+from fuzzy.logic.rule import Rule
 from fuzzy.relations.continuous.n_ary import NAryRelation
 from fuzzy.relations.continuous.t_norm import TNorm, Minimum, Product, SoftmaxSum
 

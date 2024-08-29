@@ -126,6 +126,16 @@ class NAryRelation(TorchJitModule):
             and self.nan_replacement == other.nan_replacement
         )
 
+    @property
+    def shape(self) -> torch.Size:
+        """
+        Get the shape of the relation's matrix.
+
+        Returns:
+            The shape of the relation's matrix.
+        """
+        return self.grouped_links.shape
+
     @staticmethod
     def convert_indices_to_matrix(indices) -> sps._coo.coo_matrix:
         """

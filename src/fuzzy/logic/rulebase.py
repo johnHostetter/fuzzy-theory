@@ -4,14 +4,15 @@ used to perform fuzzy logic inference more efficiently than using a list of rule
 """
 
 from pathlib import Path
-from typing import List
+from typing import List, Union, Set
 
 import torch
 from natsort import natsorted
 
 from fuzzy.logic.rule import Rule
-from fuzzy.relations.continuous.t_norm import TNorm
+from fuzzy.logic.control.configurations import Shape
 from fuzzy.sets.continuous.membership import Membership
+from fuzzy.relations.continuous.t_norm import TNorm
 
 
 class RuleBase(torch.nn.Module):
@@ -20,14 +21,26 @@ class RuleBase(torch.nn.Module):
     used to perform fuzzy logic inference more efficiently than using a list of rules.
     """
 
-    def __init__(self, rules: List[Rule], device: torch.device, *args, **kwargs):
+    def __init__(
+        self, rules: List[Rule], device: Union[None, torch.device], *args, **kwargs
+    ):
+        """
+        Initialize the RuleBase object.
+
+        Args:
+            rules: A list of rules.
+            device: The device to move the RuleBase object to; if None, the device is not set, and
+            is automatically determined by the rules (they should all be on the same device).
+            *args: Optional positional arguments.
+            **kwargs: Optional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.rules: List[Rule] = rules
-        self.device = device
-        self.premises = self._combine_t_norms(attribute="premise")
-        self.consequences = self._combine_t_norms(attribute="consequence")
+        self.device: Union[None, torch.device] = device
+        self.premises: TNorm = self._combine_t_norms(attribute="premise")
+        self.consequences: TNorm = self._combine_t_norms(attribute="consequence")
 
-    def _combine_t_norms(self, attribute: str):
+    def _combine_t_norms(self, attribute: str) -> TNorm:
         """
         Combine the TNorms of the rules for the given attribute. The TNorms should be of the same
         type. This greatly speeds up the inference process.
@@ -48,9 +61,22 @@ class RuleBase(torch.nn.Module):
                 f"The rules have different TNorm types for {attribute}. This is not supported yet."
             )
         t_norm_type: TNorm = t_norm_types.pop()
+        # find the device to move the TNorm to
+        devices: Set[torch.device] = {
+            getattr(rule, attribute).device for rule in self.rules
+        }
+        device: Union[None, torch.device] = self.device
+        if self.device is None:
+            # if the device is not set,
+            if len(devices) != 1:
+                # cannot determine which device to move the TNorm to
+                raise ValueError("The rules are on different devices.")
+            # move the TNorm to the device of the rules
+            device = devices.pop()
+
         return t_norm_type(
             *[list(getattr(rule, attribute).indices[0]) for rule in self.rules],
-            device=self.device,
+            device=device,
         )
 
     def __len__(self) -> int:
@@ -58,6 +84,16 @@ class RuleBase(torch.nn.Module):
 
     def __getitem__(self, idx: int) -> Rule:
         return self.rules[idx]
+
+    @property
+    def shape(self) -> Shape:
+        return Shape(
+            n_inputs=self.premises.shape[0],
+            n_input_terms=self.premises.shape[1],
+            n_rules=self.premises.shape[2],
+            n_outputs=self.consequences.shape[0],
+            n_output_terms=self.consequences.shape[1],
+        )
 
     def save(self, path: Path) -> None:
         """
