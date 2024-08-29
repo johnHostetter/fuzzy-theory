@@ -7,6 +7,7 @@ import unittest
 from fuzzy.relations.discrete.snorm import StandardUnion
 from fuzzy.relations.discrete.tnorm import StandardIntersection
 from fuzzy.relations.discrete.extension import AlphaCut, SpecialFuzzySet
+
 from examples.discrete.student import known, learned
 
 

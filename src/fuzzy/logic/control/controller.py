@@ -8,16 +8,15 @@ and fuzzy logic rule matrices. These components may then be used to create a fuz
 """
 
 from collections import OrderedDict
-from typing import Union, List, Type, Tuple
+from typing import Union, List, Type
 
 import torch
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
-from fuzzy.sets.continuous.group import GroupedFuzzySets
 
+from .defuzzification import Defuzzification
 from .configurations import Shape, FuzzySystem, GranulationLayers
-from .defuzzification import Defuzzification, Mamdani
 from ...relations.continuous.t_norm import TNorm
 
 

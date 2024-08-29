@@ -87,6 +87,12 @@ class RuleBase(torch.nn.Module):
 
     @property
     def shape(self) -> Shape:
+        """
+        Get the shape of the RuleBase object.
+
+        Returns:
+            The shape of the RuleBase object.
+        """
         return Shape(
             n_inputs=self.premises.shape[0],
             n_input_terms=self.premises.shape[1],

@@ -5,24 +5,15 @@ Test the various mechanisms in which a fuzzy logic rule can be created.
 import unittest
 
 import torch
+
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.relations.continuous.t_norm import Product
 
-from examples.supervised.demo_flcs import toy_mamdani
+from examples.continuous.demo_flcs import toy_mamdani
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-def compare_rules(test_case: unittest.TestCase, knowledge_base, rules):
-    # check that the rules are the same if the id is ignored
-    actual_rules = knowledge_base.get_fuzzy_logic_rules()
-    for actual_rule, expected_rule in zip(actual_rules, rules):
-        test_case.assertEqual(
-            actual_rule.premise.indices, expected_rule.premise.indices
-        )
-        test_case.assertEqual(actual_rule.consequence, expected_rule.consequence)
 
 
 class TestFuzzyLogicRule(unittest.TestCase):
@@ -50,5 +41,8 @@ class TestFuzzyLogicRule(unittest.TestCase):
             len(knowledge_base.graph.vs.select(tags_eq={"rule"})), len(rules)
         )
 
-        # check that the rules are the same if the id is ignored
-        compare_rules(self, knowledge_base, rules)
+        # the recovered rules should be in the same order as the rules
+        for expected_rule, actual_rule in zip(
+            rules, knowledge_base.get_fuzzy_logic_rules()
+        ):
+            self.assertEqual(expected_rule, actual_rule)

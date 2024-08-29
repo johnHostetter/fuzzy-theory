@@ -7,6 +7,7 @@ from typing import List, Tuple
 
 import torch
 import numpy as np
+
 from fuzzy.sets.continuous.impl import Gaussian
 from fuzzy.sets.continuous.membership import Membership
 from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
@@ -17,13 +18,10 @@ from fuzzy.logic.control.defuzzification import ZeroOrder, Mamdani
 from fuzzy.logic.control.controller import FuzzyLogicController as FLC
 from fuzzy.relations.continuous.n_ary import NAryRelation
 from fuzzy.relations.continuous.t_norm import Product
+from fuzzy.utils.classes import TimeDistributed
 
-from neuro_fuzzy.temporal import TimeDistributed
-from soft_computing.utilities.reproducibility import set_rng
-from tests.test_logic.test_creation import compare_rules
-from examples.supervised.demo_flcs import toy_mamdani
+from examples.continuous.demo_flcs import toy_mamdani
 
-set_rng(0)
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -349,7 +347,10 @@ class TestTSK(unittest.TestCase):
             },
         )
         # the recovered rules should be in the same order as the rules
-        compare_rules(self, knowledge_base, rules)
+        for expected_rule, actual_rule in zip(
+            rules, knowledge_base.get_fuzzy_logic_rules()
+        ):
+            self.assertEqual(expected_rule, actual_rule)
 
         # check a zero-order TSK cannot be created with an incorrect number of consequences
         # self.assertRaises(
@@ -739,8 +740,11 @@ class TestMamdani(unittest.TestCase):
         rule_vertices = self.knowledge_base.select_by_tags("rule")
         # the number of rule vertices should equal len(rules)
         assert len(rule_vertices) == len(self.rules)
-        # the rules we have added should exist how we expected them
-        compare_rules(self, self.knowledge_base, self.rules)
+        # the recovered rules should be in the same order as the rules
+        for expected_rule, actual_rule in zip(
+            self.rules, self.knowledge_base.get_fuzzy_logic_rules()
+        ):
+            self.assertEqual(expected_rule, actual_rule)
 
     def test_links_and_offsets(self) -> None:
         """

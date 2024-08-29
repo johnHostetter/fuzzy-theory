@@ -9,6 +9,7 @@ from fuzzy.sets.discrete import (
     DiscreteFuzzySet,
     FuzzyVariable,
 )
+
 from examples.discrete.student import (
     unknown,
     known,

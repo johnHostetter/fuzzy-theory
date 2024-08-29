@@ -8,6 +8,7 @@ import torch
 import numpy as np
 
 from fuzzy.sets.continuous.impl import Triangular
+
 from tests.test_sets.continuous.impl.common import get_test_elements
 
 

@@ -7,6 +7,7 @@ from typing import Tuple, Type
 
 import torch
 import numpy as np
+
 from fuzzy.sets.continuous.impl import Gaussian
 from fuzzy.sets.continuous.membership import Membership
 from fuzzy.relations.continuous.t_norm import Minimum, Product, TNorm
@@ -15,8 +16,7 @@ from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.logic.control.defuzzification import ZeroOrder
 from fuzzy.logic.control.controller import FuzzyLogicController
 
-from soft_computing.utilities.reproducibility import set_rng
-from examples.supervised.demo_flcs import toy_tsk
+from examples.continuous.demo_flcs import toy_tsk
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -33,7 +33,6 @@ def make_test_scenario(t_norm: Type[TNorm]) -> Tuple[
         Number of output features, consequences (torch.nn.parameter.Parameter), links,
         offset, antecedents_memberships
     """
-    set_rng(0)
     input_data = torch.tensor(
         [
             [1.5409961, -0.2934289],

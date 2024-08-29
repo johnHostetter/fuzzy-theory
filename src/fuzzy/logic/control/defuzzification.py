@@ -2,6 +2,7 @@
 Implements the various versions of the defuzzification process within a fuzzy inference engine.
 """
 
+import abc
 from typing import Union
 
 import torch
@@ -35,8 +36,18 @@ class Defuzzification(torch.nn.Module):
             rule_base  # currently only used for Mamdani
         )
 
+    @abc.abstractmethod
     def forward(self, rule_activations: Membership) -> torch.Tensor:
-        raise NotImplementedError
+        """
+        Given the activations of the fuzzy logic rules, calculate the output of the
+        fuzzy logic controller.
+
+        Args:
+            rule_activations: The rule activations, or firing levels.
+
+        Returns:
+            The defuzzified output of the fuzzy logic controller.
+        """
 
 
 class ZeroOrder(Defuzzification):
@@ -58,6 +69,7 @@ class ZeroOrder(Defuzzification):
             consequences = torch.empty(
                 self.shape.n_rules, self.shape.n_outputs, device=self.device
             )
+            # pylint: disable=fixme
             # TODO: Add support for different initialization methods
             torch.nn.init.xavier_normal_(consequences)
         else:
@@ -108,6 +120,7 @@ class ZeroOrder(Defuzzification):
             * self.consequences
         ).sum(dim=1)
 
+        # pylint: disable=fixme
         # TODO: get this to work properly
         # if "softmax" in self.specs["defuzzification"]:
         #     # the high-dimensional TSK trick with Softmax requires only the numerator
