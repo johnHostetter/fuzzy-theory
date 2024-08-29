@@ -1,5 +1,5 @@
 """
-Utility functions for fuzzy-theory.
+This module contains classes that are reserved more for the internal use of the fuzzy package.
 """
 
 import inspect
@@ -8,46 +8,66 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import Set, Any, MutableMapping, List, Tuple, Union, Dict, Callable
 
-import torch.nn
+import torch
 from natsort import natsorted
 from torch.nn.modules.module import _forward_unimplemented
 
+from fuzzy.utils.functions import all_subclasses
 from fuzzy.sets.continuous.utils import get_object_attributes
 
 
-def check_path_to_save_torch_module(path: Path) -> None:
+class TimeDistributed(torch.nn.Module):
     """
-    Check if the path to save a PyTorch module has the correct file extension. If it does not,
-    raise an error.
-
-    Args:
-        path: The path to save the PyTorch module.
-
-    Returns:
-        None
+    A wrapper class for PyTorch modules that allows them to operate on a sequence of data.
     """
-    if ".pt" not in path.name and ".pth" not in path.name:
-        raise ValueError(
-            f"The path to save the fuzzy set must have a file extension of '.pt', "
-            f"but got {path.name}"
-        )
-    if ".pth" in path.name:
-        raise ValueError(
-            f"The path to save the fuzzy set must have a file extension of '.pt', "
-            f"but got {path.name}. Please change the file extension to '.pt' as it is not "
-            f"recommended to use '.pth' for PyTorch models, since it conflicts with Python path"
-            f"configuration files."
-        )
 
+    # https://discuss.pytorch.org/t/any-pytorch-function-can-work-as-keras-timedistributed/1346/4
+    def __init__(self, module: torch.nn.Module, batch_first: bool = False):
+        """
+        Initialize the TimeDistributed wrapper class.
 
-def all_subclasses(cls) -> Set[Any]:
-    """
-    Get all subclasses of the given class, recursively.
+        Args:
+            module: A PyTorch module.
+            batch_first: Whether the batch dimension is the first dimension.
+        """
+        super().__init__()
+        self.module = module
+        self.batch_first = batch_first
 
-    Returns:
-        A set of all subclasses of the given class.
-    """
-    return {cls}.union(s for c in cls.__subclasses__() for s in all_subclasses(c))
+    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the TimeDistributed wrapper class.
+
+        Args:
+            input_data: The input data.
+
+        Returns:
+            The output of the module on the input sequence of data.
+        """
+        if len(input_data.size()) <= 2:
+            return self.module(input_data)
+
+        # squash samples and timesteps into a single axis
+        reshaped_input_data = input_data.contiguous().view(
+            -1, input_data.size(-1)
+        )  # (samples * timesteps, input_size)
+
+        module_output = self.module(reshaped_input_data)
+
+        # reshape the output back to the original shape
+        output_dim = 1
+        if module_output.ndim == 2:
+            output_dim = module_output.size(-1)
+        if self.batch_first:
+            module_output = module_output.contiguous().view(
+                input_data.size(0), input_data.size(1), output_dim
+            )  # (samples, timesteps, output_size)
+        else:
+            module_output = module_output.view(
+                input_data.size(1), input_data.size(0), output_dim
+            )  # (timesteps, samples, output_size)
+
+        return module_output
 
 
 class NestedTorchJitModule(torch.nn.Module):
@@ -190,44 +210,6 @@ class NestedTorchJitModule(torch.nn.Module):
             except AttributeError:
                 continue  # the attribute is not a valid attribute of the class (e.g., property)
         return grouped_fuzzy_set
-
-
-# class FuzzySet:
-#     """
-#     A fuzzy set is a set that has a degree of membership for each element in the set.
-#     """
-#
-#     def __init__(self, name: str, membership_function=None):
-#         """
-#         Initialize the fuzzy set.
-#
-#         Args:
-#             name: The name of the fuzzy set.
-#             membership_function: The membership function of the fuzzy set.
-#
-#         Returns:
-#             None
-#         """
-#         self.name = name
-#         self.membership_function = membership_function
-#
-#     def __call__(self, *args, **kwargs):
-#         """
-#         Call the fuzzy set.
-#
-#         Returns:
-#             The membership function of the fuzzy set.
-#         """
-#         return self.membership_function(*args, **kwargs)
-#
-#     def save(self, path: Path) -> None:
-#         """
-#         Save the fuzzy set.
-#
-#         Args:
-#         """
-#         check_path_to_save_torch_module(path)
-#         # torch.save(self, path)
 
 
 class TorchJitModule(torch.nn.Module):

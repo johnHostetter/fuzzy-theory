@@ -11,11 +11,11 @@ import torch
 import igraph
 import numpy as np
 
-from fuzzy.relations.continuous.linkage import GroupedLinks, BinaryLinks
 from fuzzy.sets.continuous.impl import Gaussian
 from fuzzy.sets.continuous.membership import Membership
 from fuzzy.sets.continuous.group import GroupedFuzzySets
 from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
+from fuzzy.relations.continuous.linkage import GroupedLinks, BinaryLinks
 from fuzzy.relations.continuous.t_norm import Minimum, Product
 from fuzzy.relations.continuous.n_ary import NAryRelation
 from fuzzy.relations.continuous.compound import Compound

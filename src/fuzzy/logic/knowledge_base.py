@@ -15,16 +15,20 @@ import torch
 import numpy as np
 import pandas as pd
 import igraph as ig
+
 from rough.decisions import RoughDecisions
 
 from fuzzy.logic.rule import Rule
+from fuzzy.logic.rulebase import RuleBase
 from fuzzy.logic.variables import LinguisticVariables
+from fuzzy.logic.control.configurations import Shape, GranulationLayers, FuzzySystem
+from fuzzy.relations.continuous.t_norm import TNorm
 from fuzzy.relations.continuous.n_ary import NAryRelation
 from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
 from fuzzy.sets.continuous.group import GroupedFuzzySets
 
 
-class KnowledgeBase(RoughDecisions):
+class KnowledgeBase(RoughDecisions, FuzzySystem):
     """
     The KnowledgeBase class is a significant component to this Soft Computing library.
 
@@ -59,6 +63,39 @@ class KnowledgeBase(RoughDecisions):
     rough set theory) to be somewhat easily incorporated.
     """
 
+    @property
+    def shape(self) -> Shape:
+        return self.rule_base.shape
+
+    @property
+    def rule_base(self) -> RuleBase:
+        """
+        Get the RuleBase object from the KnowledgeBase; automatically determine the device.
+
+        Returns:
+            A RuleBase object.
+        """
+        return RuleBase(rules=self.get_fuzzy_logic_rules(), device=None)
+
+    def granulation_layers(self, device: torch.device) -> GranulationLayers:
+        layers = {"input": None, "output": None}
+        for attr, layer in zip(["input", "output"], ["premise", "consequence"]):
+            group_vertices: ig.VertexSeq = self.select_by_tags(tags={layer, "group"})
+            layer: Union[None, GroupedFuzzySets] = (
+                None  # default to None if no granules
+            )
+            if len(group_vertices) == 1:
+                layer: GroupedFuzzySets = group_vertices[0]["item"].to(device)
+            elif len(group_vertices) > 1:
+                raise ValueError(f"Ambiguous selection of {layer} group.")
+
+            layers[attr] = layer
+
+        return GranulationLayers(**layers)
+
+    def engine(self, device: torch.device) -> TNorm:
+        return self.rule_base.premises
+
     def get_granules(self, tags) -> ig.VertexSeq:
         """
         Given a set of tags, find the granules in the KnowledgeBase.
@@ -78,21 +115,6 @@ class KnowledgeBase(RoughDecisions):
         return all_matching_vertices.select(
             lambda vertex: not isinstance(vertex["item"], GroupedFuzzySets)
         )
-
-    def var_dimensions(self, tags: Union[str, Set[str]]) -> int:
-        """
-        Calculate the dimensionality of the variable space.
-
-        Args:
-            tags: A string or a set of strings that are used to filter the vertices
-            in the graph to find the granules.
-
-        Returns:
-            An integer.
-        """
-        granule_vertices = self.get_granules(tags)
-
-        return len(granule_vertices)
 
     def intra_dimensions(self, tags: Union[str, Set[str]]) -> np.ndarray:
         """

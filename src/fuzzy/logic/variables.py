@@ -17,3 +17,6 @@ class LinguisticVariables:
 
     inputs: List[ContinuousFuzzySet]
     targets: List[ContinuousFuzzySet]
+
+    def __post_init__(self):
+        pass  # no post-initialization needed for this dataclass
