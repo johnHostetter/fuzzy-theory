@@ -8,19 +8,19 @@ from typing import List, Tuple
 import torch
 import numpy as np
 
-from fuzzy.sets.continuous.impl import Gaussian
-from fuzzy.sets.continuous.membership import Membership
-from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
+from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.membership import Membership
+from fuzzy.sets.abstract import ContinuousFuzzySet
 from fuzzy.logic.rule import Rule
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.control.defuzzification import ZeroOrder, Mamdani
 from fuzzy.logic.control.controller import FuzzyLogicController as FLC
-from fuzzy.relations.continuous.n_ary import NAryRelation
-from fuzzy.relations.continuous.t_norm import Product
+from fuzzy.relations.n_ary import NAryRelation
+from fuzzy.relations.t_norm import Product
 from fuzzy.utils.classes import TimeDistributed
 
-from examples.continuous.demo_flcs import toy_mamdani
+from examples.demo_flcs import toy_mamdani
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

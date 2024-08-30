@@ -8,15 +8,15 @@ from typing import Tuple, Type
 import torch
 import numpy as np
 
-from fuzzy.sets.continuous.impl import Gaussian
-from fuzzy.sets.continuous.membership import Membership
-from fuzzy.relations.continuous.t_norm import Minimum, Product, TNorm
+from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.membership import Membership
+from fuzzy.relations.t_norm import Minimum, Product, TNorm
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.logic.control.defuzzification import ZeroOrder
 from fuzzy.logic.control.controller import FuzzyLogicController
 
-from examples.continuous.demo_flcs import toy_tsk
+from examples.demo_flcs import toy_tsk
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

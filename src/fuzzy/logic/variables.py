@@ -6,7 +6,7 @@ for fuzzy logic rule(s).
 from typing import List
 from dataclasses import dataclass
 
-from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
+from fuzzy.sets.abstract import ContinuousFuzzySet
 
 
 @dataclass

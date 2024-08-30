@@ -8,9 +8,9 @@ from pathlib import Path
 
 import torch
 
-from fuzzy.sets.continuous.impl import Gaussian
-from fuzzy.sets.continuous.group import GroupedFuzzySets
-from fuzzy.sets.continuous.utils import get_object_attributes
+from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.group import GroupedFuzzySets
+from fuzzy.sets.utils import get_object_attributes
 
 
 AVAILABLE_DEVICE: torch.device = torch.device(

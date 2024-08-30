@@ -7,7 +7,7 @@ import unittest
 import torch
 import numpy as np
 
-from fuzzy.sets.continuous.impl import Triangular
+from fuzzy.sets.impl import Triangular
 
 from .common import get_test_elements
 

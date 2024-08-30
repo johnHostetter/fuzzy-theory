@@ -11,8 +11,8 @@ from natsort import natsorted
 
 from fuzzy.logic.rule import Rule
 from fuzzy.logic.control.configurations import Shape
-from fuzzy.relations.continuous.t_norm import TNorm
-from fuzzy.sets.continuous.membership import Membership
+from fuzzy.sets.membership import Membership
+from fuzzy.relations.t_norm import TNorm
 
 
 class RuleBase(torch.nn.Module):

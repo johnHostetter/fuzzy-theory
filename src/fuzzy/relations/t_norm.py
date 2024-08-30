@@ -8,8 +8,8 @@ from abc import ABC
 
 import torch
 
-from fuzzy.sets.continuous.membership import Membership
-from fuzzy.relations.continuous.n_ary import NAryRelation
+from fuzzy.sets.membership import Membership
+from fuzzy.relations.n_ary import NAryRelation
 
 
 class TNorm(NAryRelation, ABC):

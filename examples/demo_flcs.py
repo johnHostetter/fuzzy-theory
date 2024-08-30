@@ -13,9 +13,9 @@ from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.logic.control.defuzzification import ZeroOrder, Mamdani
 from fuzzy.logic.control.controller import FuzzyLogicController as FLC
-from fuzzy.relations.continuous.t_norm import TNorm, Product
-from fuzzy.relations.continuous.n_ary import NAryRelation
-from fuzzy.sets.continuous.impl import Gaussian
+from fuzzy.relations.t_norm import TNorm, Product
+from fuzzy.relations.n_ary import NAryRelation
+from fuzzy.sets.impl import Gaussian
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

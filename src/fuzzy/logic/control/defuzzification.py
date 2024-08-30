@@ -10,8 +10,8 @@ import numpy as np
 
 from fuzzy.logic.rulebase import RuleBase
 from fuzzy.logic.control.configurations import Shape
-from fuzzy.sets.continuous.membership import Membership
-from fuzzy.sets.continuous.group import GroupedFuzzySets
+from fuzzy.sets.membership import Membership
+from fuzzy.sets.group import GroupedFuzzySets
 
 
 class Defuzzification(torch.nn.Module):

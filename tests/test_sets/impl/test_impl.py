@@ -6,8 +6,8 @@ import numpy as np
 import torch
 
 from fuzzy.utils import all_subclasses
-from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
-import fuzzy.sets.continuous.impl  # to make all subclasses available via all_subclasses
+from fuzzy.sets.abstract import ContinuousFuzzySet
+import fuzzy.sets.impl  # to make all subclasses available via all_subclasses
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

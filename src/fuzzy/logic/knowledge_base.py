@@ -22,10 +22,10 @@ from fuzzy.logic.rule import Rule
 from fuzzy.logic.rulebase import RuleBase
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.logic.control.configurations import Shape, GranulationLayers, FuzzySystem
-from fuzzy.relations.continuous.t_norm import TNorm
-from fuzzy.relations.continuous.n_ary import NAryRelation
-from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
-from fuzzy.sets.continuous.group import GroupedFuzzySets
+from fuzzy.relations.t_norm import TNorm
+from fuzzy.relations.n_ary import NAryRelation
+from fuzzy.sets.abstract import ContinuousFuzzySet
+from fuzzy.sets.group import GroupedFuzzySets
 
 
 class KnowledgeBase(RoughDecisions, FuzzySystem):
@@ -197,7 +197,7 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
             ]
         return attributes_values
 
-    def save(self, path: Path) -> Path:
+    def save(self, path: Path) -> None:
         """
         Save this Knowledgebase object for later use.
 
@@ -205,20 +205,12 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
             path: The path to the directory that this KnowledgeBase should be saved at.
 
         Returns:
-            The path to the directory that the KnowledgeBase was saved at.
+            None
         """
-        # create the directory if it does not already exist
-        if not os.path.exists(path):
-            os.makedirs(path)
-            warnings.warn(f"A new new_directory was created at: {path}")
-
-        # create a new directory to save the KnowledgeBase in
-        new_directory = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
-        timestamped_path = path / new_directory
-        timestamped_path.mkdir(parents=True, exist_ok=True)
+        path.mkdir(parents=True, exist_ok=True)
 
         # save the attribute table
-        path_to_attribute_table: Path = timestamped_path / "attribute_table.pickle"
+        path_to_attribute_table: Path = path / "attribute_table.pickle"
         with open(path_to_attribute_table, "wb") as handle:
             pickle.dump(self.attribute_table, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -226,15 +218,15 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         deepcopy_graph = self.graph.copy()
 
         # save the ContinuousFuzzySet objects
-        self.save_granules(timestamped_path, ContinuousFuzzySet, extension=".pt")
+        self.save_granules(path, ContinuousFuzzySet, extension=".pt")
         # save the GroupedFuzzySets objects (hypercubes)
-        self.save_granules(timestamped_path, GroupedFuzzySets, extension="")
+        self.save_granules(path, GroupedFuzzySets, extension="")
         # save the Rule objects
-        self.save_granules(timestamped_path, Rule, extension="")
+        self.save_granules(path, Rule, extension="")
         # save the NAryRelation objects
-        self.save_granules(timestamped_path, NAryRelation, extension=".pt")
+        self.save_granules(path, NAryRelation, extension=".pt")
 
-        path_to_graph = timestamped_path / "graph"
+        path_to_graph = path / "graph"
         path_to_graph.mkdir(parents=True, exist_ok=True)
 
         # save the graph vertices and edges
@@ -247,8 +239,6 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
 
         # restore the graph's attributes
         self.graph = deepcopy_graph
-
-        return timestamped_path
 
     def save_granules(self, path: Path, class_type: Any, extension: str) -> None:
         """
@@ -407,12 +397,12 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         return knowledge_base
 
     @staticmethod
-    def load(file_path: Path, device: torch.device) -> "KnowledgeBase":
+    def load(path: Path, device: torch.device) -> "KnowledgeBase":
         """
         Given a path to a directory, load the saved KnowledgeBase object at that location.
 
         Args:
-            file_path: The path to the directory that the KnowledgeBase was saved at.
+            path: The path to the directory that the KnowledgeBase was saved at.
             device: The device to use.
 
         Returns:
@@ -420,7 +410,7 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         """
         # the path_to_graph stores the directory that contains the graph + additional files
         # Note: path_to_graph / 'network' stores the actual graph file, but is not required here
-        path_to_graph: Path = file_path / "graph"
+        path_to_graph: Path = path / "graph"
 
         vertices_df: pd.DataFrame = pd.read_csv(f"{path_to_graph / 'vertices'}.csv")
         vertices_df.replace({np.nan: None}, inplace=True)  # convert np.nan to Nan
@@ -429,7 +419,7 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         knowledge_base = KnowledgeBase()
 
         # load the attribute table
-        path_to_attribute_table: Path = file_path / "attribute_table.pickle"
+        path_to_attribute_table: Path = path / "attribute_table.pickle"
         with open(path_to_attribute_table, "rb") as handle:
             knowledge_base.attribute_table = pickle.load(handle)
 
@@ -465,9 +455,7 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         for _, vertex_row in vertices_df.iterrows():  # ignore row index
             if vertex_row["file"] is not None:
                 tokens = vertex_row["item"].split(".")
-                module_path: str = ".".join(
-                    tokens[:-1]
-                )  # e.g., fuzzy.sets.continuous.impl
+                module_path: str = ".".join(tokens[:-1])  # e.g., fuzzy.sets.impl
                 class_name: str = tokens[-1]  # e.g., Gaussian
                 module = getattr(importlib.import_module(module_path), class_name)
                 # load the vertex 'type' information from the file

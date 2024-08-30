@@ -12,7 +12,7 @@ from typing import Union, List, Any
 import torch
 
 from .membership import Membership
-from ...utils import NestedTorchJitModule
+from ..utils import NestedTorchJitModule
 
 
 class GroupedFuzzySets(NestedTorchJitModule):

@@ -12,8 +12,8 @@ from collections import OrderedDict
 
 import torch
 
-from fuzzy.sets.continuous.impl import Gaussian
-from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
+from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.abstract import ContinuousFuzzySet
 
 
 AVAILABLE_DEVICE: torch.device = torch.device(

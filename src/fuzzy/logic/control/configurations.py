@@ -8,8 +8,8 @@ from typing import TypedDict, NamedTuple
 
 import torch
 
-from fuzzy.relations.continuous.t_norm import TNorm
-from fuzzy.sets.continuous.group import GroupedFuzzySets
+from fuzzy.relations.t_norm import TNorm
+from fuzzy.sets.group import GroupedFuzzySets
 
 
 class Shape(NamedTuple):

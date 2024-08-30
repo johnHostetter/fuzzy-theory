@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 from torchquad.utils.set_up_backend import set_up_backend
 
 from .membership import Membership
-from ...utils import check_path_to_save_torch_module, TorchJitModule
+from ..utils import check_path_to_save_torch_module, TorchJitModule
 
 
 class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):

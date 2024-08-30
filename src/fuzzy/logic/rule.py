@@ -9,7 +9,7 @@ from typing import Union, Type, Any
 
 import torch
 
-from fuzzy.relations.continuous.n_ary import NAryRelation
+from fuzzy.relations.n_ary import NAryRelation
 
 
 @dataclass

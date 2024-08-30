@@ -13,11 +13,11 @@ from typing import Union, List, Type
 import torch
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
-from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
+from fuzzy.sets.abstract import ContinuousFuzzySet
 
 from .defuzzification import Defuzzification
 from .configurations import Shape, FuzzySystem, GranulationLayers
-from ...relations.continuous.t_norm import TNorm
+from ...relations.t_norm import TNorm
 
 
 class FuzzyLogicController(torch.nn.Sequential):

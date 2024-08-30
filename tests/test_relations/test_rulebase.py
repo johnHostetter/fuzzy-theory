@@ -11,8 +11,8 @@ import torch
 
 from fuzzy.logic.rule import Rule
 from fuzzy.logic.rulebase import RuleBase
-from fuzzy.relations.continuous.t_norm import Product
-from fuzzy.sets.continuous.membership import Membership
+from fuzzy.relations.t_norm import Product
+from fuzzy.sets.membership import Membership
 from .test_n_ary import TestNAryRelation
 
 N_RULES: int = 5
