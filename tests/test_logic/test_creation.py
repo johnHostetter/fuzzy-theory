@@ -42,7 +42,5 @@ class TestFuzzyLogicRule(unittest.TestCase):
         )
 
         # the recovered rules should be in the same order as the rules
-        for expected_rule, actual_rule in zip(
-            rules, knowledge_base.get_fuzzy_logic_rules()
-        ):
+        for expected_rule, actual_rule in zip(rules, knowledge_base.rules):
             self.assertEqual(expected_rule, actual_rule)

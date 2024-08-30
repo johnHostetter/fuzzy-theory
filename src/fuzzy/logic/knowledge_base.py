@@ -68,6 +68,24 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         return self.rule_base.shape
 
     @property
+    def rules(self) -> List[Rule]:
+        """
+        Get a list of fuzzy logic rules, where each element in the list is a Rule object.
+
+        Note: This retrieves the rules from the KnowledgeBase's graph, as opposed to simply
+        retrieving the rules from an attribute. This is because the KnowledgeBase's graph
+        can be analyzed, modified, and used to create new rules.
+
+        Returns:
+            A list of fuzzy logic rules (as instances of Rule), ordered by their creation
+            (i.e., rule's id attribute).
+        """
+        rule_vertices: ig.VertexSeq = self.select_by_tags(tags="rule")
+        return sorted(
+            [rule["item"] for rule in rule_vertices], key=lambda rule: rule.id
+        )
+
+    @property
     def rule_base(self) -> RuleBase:
         """
         Get the RuleBase object from the KnowledgeBase; automatically determine the device.
@@ -75,7 +93,7 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         Returns:
             A RuleBase object.
         """
-        return RuleBase(rules=self.get_fuzzy_logic_rules(), device=None)
+        return RuleBase(rules=self.rules, device=None)
 
     def granulation_layers(self, device: torch.device) -> GranulationLayers:
         layers = {"input": None, "output": None}
@@ -94,9 +112,18 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         return GranulationLayers(**layers)
 
     def engine(self, device: torch.device) -> TNorm:
+        """
+        Create the fuzzy logic inference engine from the KnowledgeBase.
+
+        Args:
+            device: The device to use.
+
+        Returns:
+            The fuzzy logic inference engine.
+        """
         return self.rule_base.premises
 
-    def get_granules(self, tags) -> ig.VertexSeq:
+    def get_granules(self, tags: Union[str, Set[str]]) -> ig.VertexSeq:
         """
         Given a set of tags, find the granules in the KnowledgeBase.
 
@@ -145,20 +172,8 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
                     else 0
                 )
                 for params in granule_vertices["item"]
-            ]
-        ).astype("int32")
-
-    def get_fuzzy_logic_rules(self) -> List[Rule]:
-        """
-        Get a list of fuzzy logic rules, where each element in the list is a Rule object.
-
-        Returns:
-            A list of fuzzy logic rules (as instances of Rule), ordered by their creation
-            (i.e., rule's id attribute).
-        """
-        rule_vertices: ig.VertexSeq = self.select_by_tags(tags="rule")
-        return sorted(
-            [rule["item"] for rule in rule_vertices], key=lambda rule: rule.id
+            ],
+            dtype=np.int32,
         )
 
     def attributes(self, element: Union[int, str]) -> dict:
@@ -182,28 +197,28 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
             ]
         return attributes_values
 
-    def save(self, file_path: Path) -> Path:
+    def save(self, path: Path) -> Path:
         """
         Save this Knowledgebase object for later use.
 
         Args:
-            file_path: The path to the directory that this KnowledgeBase should be saved at.
+            path: The path to the directory that this KnowledgeBase should be saved at.
 
         Returns:
             The path to the directory that the KnowledgeBase was saved at.
         """
         # create the directory if it does not already exist
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
-            warnings.warn(f"A new new_directory was created at: {file_path}")
+        if not os.path.exists(path):
+            os.makedirs(path)
+            warnings.warn(f"A new new_directory was created at: {path}")
 
         # create a new directory to save the KnowledgeBase in
         new_directory = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
-        new_file_path = file_path / new_directory
-        new_file_path.mkdir(parents=True, exist_ok=True)
+        timestamped_path = path / new_directory
+        timestamped_path.mkdir(parents=True, exist_ok=True)
 
         # save the attribute table
-        path_to_attribute_table: Path = new_file_path / "attribute_table.pickle"
+        path_to_attribute_table: Path = timestamped_path / "attribute_table.pickle"
         with open(path_to_attribute_table, "wb") as handle:
             pickle.dump(self.attribute_table, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -211,15 +226,15 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         deepcopy_graph = self.graph.copy()
 
         # save the ContinuousFuzzySet objects
-        self.save_granules(new_file_path, ContinuousFuzzySet, extension=".pt")
+        self.save_granules(timestamped_path, ContinuousFuzzySet, extension=".pt")
         # save the GroupedFuzzySets objects (hypercubes)
-        self.save_granules(new_file_path, GroupedFuzzySets, extension="")
+        self.save_granules(timestamped_path, GroupedFuzzySets, extension="")
         # save the Rule objects
-        self.save_granules(new_file_path, Rule, extension="")
+        self.save_granules(timestamped_path, Rule, extension="")
         # save the NAryRelation objects
-        self.save_granules(new_file_path, NAryRelation, extension=".pt")
+        self.save_granules(timestamped_path, NAryRelation, extension=".pt")
 
-        path_to_graph = new_file_path / "graph"
+        path_to_graph = timestamped_path / "graph"
         path_to_graph.mkdir(parents=True, exist_ok=True)
 
         # save the graph vertices and edges
@@ -233,16 +248,14 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         # restore the graph's attributes
         self.graph = deepcopy_graph
 
-        return new_file_path
+        return timestamped_path
 
-    def save_granules(
-        self, new_file_path: Path, class_type: Any, extension: str
-    ) -> None:
+    def save_granules(self, path: Path, class_type: Any, extension: str) -> None:
         """
         Save the granules to the given path.
 
         Args:
-            new_file_path: The path to the directory that the granules should be saved at.
+            path: The path to the directory that the granules should be saved at.
             class_type: The type of the granules.
             extension: The file extension to save the granules as.
 
@@ -258,9 +271,7 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         for granule_vertex in matched_objects:
             granule = granule_vertex["item"]  # granule is the object instance
             # create the directory to save the granule in
-            subdirectory = (
-                new_file_path / class_type.__name__ / str(granule_vertex.index)
-            )
+            subdirectory = path / class_type.__name__ / str(granule_vertex.index)
             subdirectory.mkdir(parents=True, exist_ok=True)
             actual_path = subdirectory / f"{granule.__class__.__name__}{extension}"
             _ = granule.save(actual_path)  # ignore the return value

@@ -347,9 +347,7 @@ class TestTSK(unittest.TestCase):
             },
         )
         # the recovered rules should be in the same order as the rules
-        for expected_rule, actual_rule in zip(
-            rules, knowledge_base.get_fuzzy_logic_rules()
-        ):
+        for expected_rule, actual_rule in zip(rules, knowledge_base.rules):
             self.assertEqual(expected_rule, actual_rule)
 
         # check a zero-order TSK cannot be created with an incorrect number of consequences
@@ -741,9 +739,7 @@ class TestMamdani(unittest.TestCase):
         # the number of rule vertices should equal len(rules)
         assert len(rule_vertices) == len(self.rules)
         # the recovered rules should be in the same order as the rules
-        for expected_rule, actual_rule in zip(
-            self.rules, self.knowledge_base.get_fuzzy_logic_rules()
-        ):
+        for expected_rule, actual_rule in zip(self.rules, self.knowledge_base.rules):
             self.assertEqual(expected_rule, actual_rule)
 
     def test_links_and_offsets(self) -> None:

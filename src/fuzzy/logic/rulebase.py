@@ -4,15 +4,15 @@ used to perform fuzzy logic inference more efficiently than using a list of rule
 """
 
 from pathlib import Path
-from typing import List, Union, Set
+from typing import List, Union, Set, Any
 
 import torch
 from natsort import natsorted
 
 from fuzzy.logic.rule import Rule
 from fuzzy.logic.control.configurations import Shape
-from fuzzy.sets.continuous.membership import Membership
 from fuzzy.relations.continuous.t_norm import TNorm
+from fuzzy.sets.continuous.membership import Membership
 
 
 class RuleBase(torch.nn.Module):
@@ -39,6 +39,39 @@ class RuleBase(torch.nn.Module):
         self.device: Union[None, torch.device] = device
         self.premises: TNorm = self._combine_t_norms(attribute="premise")
         self.consequences: TNorm = self._combine_t_norms(attribute="consequence")
+
+    def __len__(self) -> int:
+        return len(self.rules)
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.rules))
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, RuleBase):
+            return False
+        # order matters here
+        return all(
+            rule == other_rule for rule, other_rule in zip(self.rules, other.rules)
+        )
+
+    def __getitem__(self, idx: int) -> Rule:
+        return self.rules[idx]
+
+    @property
+    def shape(self) -> Shape:
+        """
+        Get the shape of the RuleBase object.
+
+        Returns:
+            The shape of the RuleBase object.
+        """
+        return Shape(
+            n_inputs=self.premises.shape[0],
+            n_input_terms=self.premises.shape[1],
+            n_rules=self.premises.shape[2],
+            n_outputs=self.consequences.shape[0],
+            n_output_terms=self.consequences.shape[1],
+        )
 
     def _combine_t_norms(self, attribute: str) -> TNorm:
         """
@@ -77,28 +110,6 @@ class RuleBase(torch.nn.Module):
         return t_norm_type(
             *[list(getattr(rule, attribute).indices[0]) for rule in self.rules],
             device=device,
-        )
-
-    def __len__(self) -> int:
-        return len(self.rules)
-
-    def __getitem__(self, idx: int) -> Rule:
-        return self.rules[idx]
-
-    @property
-    def shape(self) -> Shape:
-        """
-        Get the shape of the RuleBase object.
-
-        Returns:
-            The shape of the RuleBase object.
-        """
-        return Shape(
-            n_inputs=self.premises.shape[0],
-            n_input_terms=self.premises.shape[1],
-            n_rules=self.premises.shape[2],
-            n_outputs=self.consequences.shape[0],
-            n_output_terms=self.consequences.shape[1],
         )
 
     def save(self, path: Path) -> None:
