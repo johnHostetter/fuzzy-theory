@@ -6,7 +6,7 @@ import inspect
 import pickle
 from abc import abstractmethod
 from pathlib import Path
-from typing import Set, Any, MutableMapping, List, Tuple, Union, Dict, Callable
+from typing import Set, Any, MutableMapping, List, Tuple, Dict, Callable
 
 import torch
 from natsort import natsorted

@@ -99,7 +99,7 @@ class FuzzyLogicController(torch.nn.Sequential):
         super().to(*args, **kwargs)
 
         # special handling for the modules with non-parameter tensors, such as mask or links
-        for idx, module in enumerate(self.children()):
+        for module in self.children():
             if hasattr(module, "to"):
                 module.to(*args, **kwargs)
         self.device = self.engine.device  # assuming torch.nn.Sequential is non-empty
