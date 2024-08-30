@@ -97,9 +97,7 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         layers = {"input": None, "output": None}
         for attr, layer in zip(["input", "output"], ["premise", "consequence"]):
             group_vertices: ig.VertexSeq = self.select_by_tags(tags={layer, "group"})
-            layer: Union[None, FuzzySetGroup] = (
-                None  # default to None if no granules
-            )
+            layer: Union[None, FuzzySetGroup] = None  # default to None if no granules
             if len(group_vertices) == 1:
                 layer: FuzzySetGroup = group_vertices[0]["item"].to(device)
             elif len(group_vertices) > 1:
@@ -293,9 +291,7 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
             granules: List[FuzzySet] = granule_vertices["item"]
             # create the efficient granule module
             stacked_granules: FuzzySet = FuzzySet.stack(granules)
-            hypercube: FuzzySetGroup = FuzzySetGroup(
-                modules_list=[stacked_granules]
-            )
+            hypercube: FuzzySetGroup = FuzzySetGroup(modules_list=[stacked_granules])
             # store the efficient granule module in the KnowledgeBase
             target_vertex: Union[None, ig.Vertex] = self.graph.add_vertex(
                 # source=add_stacked_granule,

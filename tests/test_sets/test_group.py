@@ -10,7 +10,7 @@ import torch
 
 from fuzzy.sets.impl import Gaussian
 from fuzzy.sets.group import FuzzySetGroup
-from fuzzy.sets.utils import get_object_attributes
+from fuzzy.utils.functions import get_object_attributes
 
 
 AVAILABLE_DEVICE: torch.device = torch.device(

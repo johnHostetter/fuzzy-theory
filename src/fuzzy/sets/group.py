@@ -66,9 +66,7 @@ class FuzzySetGroup(NestedTorchJitModule):
                         item_method: callable = getattr(module, f"get_{item}")
                         module_attributes.append(item_method())
                     return torch.cat(module_attributes, dim=-1)
-                raise ValueError(
-                    "The torch.nn.ModuleList of FuzzySetGroup is empty."
-                )
+                raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
             return object.__getattribute__(self, item)
         except AttributeError:
             return self.__getattr__(item)

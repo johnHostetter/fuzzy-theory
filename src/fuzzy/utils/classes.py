@@ -12,8 +12,7 @@ import torch
 from natsort import natsorted
 from torch.nn.modules.module import _forward_unimplemented
 
-from fuzzy.utils.functions import all_subclasses
-from fuzzy.sets.utils import get_object_attributes
+from fuzzy.utils.functions import all_subclasses, get_object_attributes
 
 
 class TimeDistributed(torch.nn.Module):
