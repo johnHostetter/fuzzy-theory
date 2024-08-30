@@ -9,7 +9,7 @@ import numpy as np
 
 from fuzzy.sets.continuous.impl import Gaussian
 
-from tests.test_sets.continuous.impl.common import get_test_elements
+from .common import get_test_elements
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

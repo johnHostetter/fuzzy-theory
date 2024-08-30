@@ -48,10 +48,12 @@ def make_test_scenario(t_norm: Type[TNorm]) -> Tuple[
         Gaussian(
             centers=np.array([-1, 0.0, 1.0]),
             widths=np.array([1.0, 1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
         ),
         Gaussian(
             centers=np.array([-1.0, 0.0, 1.0]),
             widths=np.array([1.0, 1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
         ),
     ]
 

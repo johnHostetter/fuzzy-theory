@@ -20,10 +20,11 @@ class LogGaussian(ContinuousFuzzySet):
 
     def __init__(
         self,
-        centers=None,
-        widths=None,
-        width_multiplier: float = 1.0,  # in fuzzy logic, convention is usually 1.0, but can be 2.0
-        device: Union[str, torch.device] = torch.device("cpu"),
+        centers,
+        widths,
+        device: torch.device,
+        width_multiplier: float = 1.0,
+        # in fuzzy logic, convention is usually 1.0, but can be 2.0
     ):
         super().__init__(centers=centers, widths=widths, device=device)
         self.width_multiplier = width_multiplier
@@ -214,14 +215,6 @@ class Lorentzian(ContinuousFuzzySet):
     """
     Implementation of the Lorentzian membership function, written in PyTorch.
     """
-
-    def __init__(
-        self,
-        centers=None,
-        widths=None,
-        device: Union[str, torch.device] = torch.device("cpu"),
-    ):
-        super().__init__(centers=centers, widths=widths, device=device)
 
     @property
     @torch.jit.ignore

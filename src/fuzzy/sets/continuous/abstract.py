@@ -77,12 +77,9 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                 f"Centers has {centers.ndim} dimensions and widths has {widths.ndim} dimensions."
             )
 
-        if centers.ndim == 1:
+        if centers.ndim == 1 and widths.ndim == 1:
             # assuming that the array is a single linguistic variable
-            centers = centers[None, :]
-        if widths.ndim == 1:
-            # assuming that the array is a single linguistic variable
-            widths = widths[None, :]
+            centers, widths = centers[None, :], widths[None, :]
 
         # avoid allocating new memory for the centers and widths
         # use torch.float32 to save memory and speed up computations
@@ -108,6 +105,7 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
 
         # special handling for the non-parameter tensors, such as mask
         self._mask = [mask.to(*args, **kwargs) for mask in self._mask]
+        self.device = self._centers[0].device
         return self
 
     def make_parameter(self, parameter: np.ndarray) -> torch.nn.Parameter:
@@ -173,9 +171,6 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                 "The ContinuousFuzzySet has no defined membership function. Please create a class "
                 "and inherit from ContinuousFuzzySet, or use a predefined class, such as Gaussian."
             )
-
-        if isinstance(device, str):
-            device = torch.device(device)
 
         centers: np.ndarray = np.random.randn(n_variables, n_terms)
         widths: np.ndarray = np.random.randn(n_variables, n_terms)
@@ -620,7 +615,6 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         Returns:
             A sympy.Expr object that represents the membership function of the fuzzy set.
         """
-        raise NotImplementedError("The sympy_formula method must be implemented.")
 
     @abc.abstractmethod
     def forward(self, observations) -> Membership:
@@ -635,7 +629,3 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         Returns:
             The membership degrees of the observations for the Gaussian fuzzy set.
         """
-        raise NotImplementedError(
-            "The ContinuousFuzzySet has no defined forward function. Please create a class and "
-            "inherit from ContinuousFuzzySet, or use a predefined class, such as Gaussian."
-        )
