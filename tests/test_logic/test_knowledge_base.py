@@ -1,6 +1,7 @@
 """
 Test properties of KnowledgeBase, such as how attributes of observations or granules are stored.
 """
+
 import shutil
 import unittest
 from typing import List

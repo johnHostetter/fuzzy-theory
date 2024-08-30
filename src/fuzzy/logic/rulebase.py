@@ -43,6 +43,9 @@ class RuleBase(torch.nn.Module):
     def __len__(self) -> int:
         return len(self.rules)
 
+    def __hash__(self) -> int:
+        return hash(tuple(self.rules))
+
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, RuleBase):
             return False
