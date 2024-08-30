@@ -2,13 +2,11 @@
 Implements the vital KnowledgeBase class.
 """
 
-import os
 import ast
 import pickle
 import warnings
 import importlib.util
 from pathlib import Path
-from datetime import datetime
 from typing import Union, Set, List, Any
 
 import torch
@@ -24,8 +22,8 @@ from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.logic.control.configurations import Shape, GranulationLayers, FuzzySystem
 from fuzzy.relations.t_norm import TNorm
 from fuzzy.relations.n_ary import NAryRelation
-from fuzzy.sets.abstract import ContinuousFuzzySet
-from fuzzy.sets.group import GroupedFuzzySets
+from fuzzy.sets.group import FuzzySetGroup
+from fuzzy.sets.abstract import FuzzySet
 
 
 class KnowledgeBase(RoughDecisions, FuzzySystem):
@@ -99,11 +97,11 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         layers = {"input": None, "output": None}
         for attr, layer in zip(["input", "output"], ["premise", "consequence"]):
             group_vertices: ig.VertexSeq = self.select_by_tags(tags={layer, "group"})
-            layer: Union[None, GroupedFuzzySets] = (
+            layer: Union[None, FuzzySetGroup] = (
                 None  # default to None if no granules
             )
             if len(group_vertices) == 1:
-                layer: GroupedFuzzySets = group_vertices[0]["item"].to(device)
+                layer: FuzzySetGroup = group_vertices[0]["item"].to(device)
             elif len(group_vertices) > 1:
                 raise ValueError(f"Ambiguous selection of {layer} group.")
 
@@ -138,9 +136,9 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         all_matching_vertices: ig.VertexSeq = self.select_by_tags(
             tags=tags | {"granule"}
         )
-        # drop the GroupedFuzzySets, as they are not part of the granules
+        # drop the FuzzySetGroup, as they are not part of the granules
         return all_matching_vertices.select(
-            lambda vertex: not isinstance(vertex["item"], GroupedFuzzySets)
+            lambda vertex: not isinstance(vertex["item"], FuzzySetGroup)
         )
 
     def intra_dimensions(self, tags: Union[str, Set[str]]) -> np.ndarray:
@@ -217,10 +215,10 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         # backup the graph's attributes
         deepcopy_graph = self.graph.copy()
 
-        # save the ContinuousFuzzySet objects
-        self.save_granules(path, ContinuousFuzzySet, extension=".pt")
-        # save the GroupedFuzzySets objects (hypercubes)
-        self.save_granules(path, GroupedFuzzySets, extension="")
+        # save the FuzzySet objects
+        self.save_granules(path, FuzzySet, extension=".pt")
+        # save the FuzzySetGroup objects (hypercubes)
+        self.save_granules(path, FuzzySetGroup, extension="")
         # save the Rule objects
         self.save_granules(path, Rule, extension="")
         # save the NAryRelation objects
@@ -292,10 +290,10 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         granule_vertices: ig.seq.VertexSeq = self.select_by_tags(tags)
         if len(granule_vertices) > 0:
             # from the igraph.VertexSeq object, extract the granules, stored in the "type" attribute
-            granules: List[ContinuousFuzzySet] = granule_vertices["item"]
+            granules: List[FuzzySet] = granule_vertices["item"]
             # create the efficient granule module
-            stacked_granules: ContinuousFuzzySet = ContinuousFuzzySet.stack(granules)
-            hypercube: GroupedFuzzySets = GroupedFuzzySets(
+            stacked_granules: FuzzySet = FuzzySet.stack(granules)
+            hypercube: FuzzySetGroup = FuzzySetGroup(
                 modules_list=[stacked_granules]
             )
             # store the efficient granule module in the KnowledgeBase

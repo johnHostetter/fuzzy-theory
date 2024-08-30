@@ -9,8 +9,8 @@ import torch
 import numpy as np
 
 from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.abstract import FuzzySet
 from fuzzy.sets.membership import Membership
-from fuzzy.sets.abstract import ContinuousFuzzySet
 from fuzzy.logic.rule import Rule
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.logic.knowledge_base import KnowledgeBase
@@ -392,7 +392,7 @@ class TestTSK(unittest.TestCase):
         assert flc.shape.n_inputs == 2
         assert flc.shape.n_outputs == 1
 
-        actual_variables: List[ContinuousFuzzySet] = flc.linguistic_variables().inputs
+        actual_variables: List[FuzzySet] = flc.linguistic_variables().inputs
         for actual_variable, expected_variable in zip(actual_variables, antecedents):
             assert torch.allclose(
                 actual_variable.get_centers(), expected_variable.get_centers()

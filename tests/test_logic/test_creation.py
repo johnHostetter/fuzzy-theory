@@ -6,9 +6,9 @@ import unittest
 
 import torch
 
+from fuzzy.relations.t_norm import Product
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
-from fuzzy.relations.t_norm import Product
 
 from examples.demo_flcs import toy_mamdani
 

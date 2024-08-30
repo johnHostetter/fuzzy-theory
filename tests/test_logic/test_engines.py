@@ -10,11 +10,11 @@ import numpy as np
 
 from fuzzy.sets.impl import Gaussian
 from fuzzy.sets.membership import Membership
-from fuzzy.relations.t_norm import Minimum, Product, TNorm
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.logic.control.defuzzification import ZeroOrder
 from fuzzy.logic.control.controller import FuzzyLogicController
+from fuzzy.relations.t_norm import Minimum, Product, TNorm
 
 from examples.demo_flcs import toy_tsk
 

@@ -17,7 +17,7 @@ from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.logic.control.configurations import Shape, GranulationLayers
 from fuzzy.relations.t_norm import TNorm
-from fuzzy.sets.group import GroupedFuzzySets
+from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.impl import Lorentzian
 
 
@@ -173,10 +173,10 @@ class TestKnowledgeBase(unittest.TestCase):
 
         # check that the stacked granule representation can easily be retrieved
         expected_granulation_layers: GranulationLayers = GranulationLayers(
-            input=GroupedFuzzySets(
+            input=FuzzySetGroup(
                 modules_list=[Lorentzian.stack(self.linguistic_variables.inputs)],
             ),
-            output=GroupedFuzzySets(
+            output=FuzzySetGroup(
                 modules_list=[Lorentzian.stack(self.linguistic_variables.targets)],
             ),
         )

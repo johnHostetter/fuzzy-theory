@@ -12,9 +12,9 @@ import igraph
 import numpy as np
 
 from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.abstract import FuzzySet
 from fuzzy.sets.membership import Membership
-from fuzzy.sets.group import GroupedFuzzySets
-from fuzzy.sets.abstract import ContinuousFuzzySet
+from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.relations.linkage import GroupedLinks, BinaryLinks
 from fuzzy.relations.t_norm import Minimum, Product
 from fuzzy.relations.n_ary import NAryRelation
@@ -451,9 +451,9 @@ class TestMinimum(TestNAryRelation):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.hypercube = GroupedFuzzySets(
+        self.hypercube = FuzzySetGroup(
             modules_list=[
-                ContinuousFuzzySet.stack(
+                FuzzySet.stack(
                     [
                         Gaussian(
                             centers=np.array([-1, 0.0, 1.0]),

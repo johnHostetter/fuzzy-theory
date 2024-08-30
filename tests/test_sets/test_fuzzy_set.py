@@ -13,7 +13,7 @@ from collections import OrderedDict
 import torch
 
 from fuzzy.sets.impl import Gaussian
-from fuzzy.sets.abstract import ContinuousFuzzySet
+from fuzzy.sets.abstract import FuzzySet
 
 
 AVAILABLE_DEVICE: torch.device = torch.device(
@@ -21,31 +21,29 @@ AVAILABLE_DEVICE: torch.device = torch.device(
 )
 
 
-class TestContinuousFuzzySet(unittest.TestCase):
+class TestFuzzySet(unittest.TestCase):
     """
-    Test the abstract ContinuousFuzzySet class.
+    Test the abstract FuzzySet class.
     """
 
     def test_illegal_attempt_to_create(self) -> None:
         """
-        Test that an illegal attempt to create a ContinuousFuzzySet raises an error.
+        Test that an illegal attempt to create a FuzzySet raises an error.
 
         Returns:
             None
         """
         with self.assertRaises(NotImplementedError):
-            ContinuousFuzzySet.create(
-                n_variables=4, n_terms=2, device=torch.device("cpu")
-            )
+            FuzzySet.create(n_variables=4, n_terms=2, device=torch.device("cpu"))
 
     def test_save_and_load(self) -> None:
         """
-        Test that saving and loading a ContinuousFuzzySet works as intended.
+        Test that saving and loading a FuzzySet works as intended.
 
         Returns:
             None
         """
-        for subclass in ContinuousFuzzySet.__subclasses__():
+        for subclass in FuzzySet.__subclasses__():
             membership_func = subclass.create(
                 n_variables=4, n_terms=4, device=AVAILABLE_DEVICE
             )
@@ -75,9 +73,9 @@ class TestContinuousFuzzySet(unittest.TestCase):
             # the original state dict, such as the class name and the labels
             assert "class_name" in saved_state_dict.keys() and saved_state_dict[
                 "class_name"
-            ] in (subclass.__name__ for subclass in ContinuousFuzzySet.__subclasses__())
+            ] in (subclass.__name__ for subclass in FuzzySet.__subclasses__())
 
-            loaded_membership_func = ContinuousFuzzySet.load(
+            loaded_membership_func = FuzzySet.load(
                 Path("membership_func.pt"), device=AVAILABLE_DEVICE
             )
             # check that the parameters and members are the same

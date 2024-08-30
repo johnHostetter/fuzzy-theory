@@ -1,5 +1,5 @@
 """
-Test functionality relating to GroupedFuzzySets.
+Test functionality relating to FuzzySetGroup.
 """
 
 import shutil
@@ -9,7 +9,7 @@ from pathlib import Path
 import torch
 
 from fuzzy.sets.impl import Gaussian
-from fuzzy.sets.group import GroupedFuzzySets
+from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.utils import get_object_attributes
 
 
@@ -18,16 +18,16 @@ AVAILABLE_DEVICE: torch.device = torch.device(
 )
 
 
-class TestGroupedFuzzySets(unittest.TestCase):
+class TestFuzzySetGroup(unittest.TestCase):
     """
-    Test the GroupedFuzzySets class.
+    Test the FuzzySetGroup class.
     """
 
     def test_save_grouped_fuzzy_sets(self):
         """
         Test saving grouped fuzzy sets.
         """
-        grouped_fuzzy_sets: GroupedFuzzySets = GroupedFuzzySets(
+        grouped_fuzzy_sets: FuzzySetGroup = FuzzySetGroup(
             modules_list=[
                 Gaussian.create(n_variables=2, n_terms=3, device=AVAILABLE_DEVICE),
                 Gaussian.create(n_variables=2, n_terms=3, device=AVAILABLE_DEVICE),
@@ -37,9 +37,9 @@ class TestGroupedFuzzySets(unittest.TestCase):
         # test compatibility with torch.jit.script
         torch.jit.script(grouped_fuzzy_sets)
 
-        # test that GroupedFuzzySets can be saved and loaded
+        # test that FuzzySetGroup can be saved and loaded
         grouped_fuzzy_sets.save(Path("test_grouped_fuzzy_sets"))
-        loaded_grouped_fuzzy_sets: GroupedFuzzySets = grouped_fuzzy_sets.load(
+        loaded_grouped_fuzzy_sets: FuzzySetGroup = grouped_fuzzy_sets.load(
             Path("test_grouped_fuzzy_sets"), device=AVAILABLE_DEVICE
         )
 
