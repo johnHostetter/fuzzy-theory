@@ -5,8 +5,6 @@ Utility functions, such as for getting all the subclasses of a given class.
 import inspect
 from typing import Dict, Any
 
-import torch
-
 
 def get_object_attributes(obj_instance) -> Dict[str, Any]:
     """
