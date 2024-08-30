@@ -99,9 +99,10 @@ class FuzzyLogicController(torch.nn.Sequential):
         super().to(*args, **kwargs)
 
         # special handling for the modules with non-parameter tensors, such as mask or links
-        for module in self.fuzzy_inference:
+        for module in self.children():
             if hasattr(module, "to"):
                 module.to(*args, **kwargs)
+        self.device = self.engine.device  # assuming torch.nn.Sequential is non-empty
         return self
 
     def disable_parameters_and_build(self, modules: OrderedDict) -> None:

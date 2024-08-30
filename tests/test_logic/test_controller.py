@@ -22,6 +22,7 @@ from fuzzy.utils.classes import TimeDistributed
 
 from examples.continuous.demo_flcs import toy_mamdani
 
+
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -79,6 +80,24 @@ class TestTSK(unittest.TestCase):
         )
         value_3 = 2**value_1
         assert value_3.grad_fn is not None
+
+    def test_to_device(self) -> None:
+        """
+        Check that we can move the FLC to another device.
+
+        Returns:
+            None
+        """
+        self.fuzzy_logic_controller.to(torch.device("cpu"))
+        self.assertEqual(torch.device("cpu"), self.fuzzy_logic_controller.device)
+        # check that this is reflected in each of its torch.nn.Modules
+        for module in self.fuzzy_logic_controller.children():
+            self.assertEqual(torch.device("cpu"), module.device)
+        self.fuzzy_logic_controller.to(AVAILABLE_DEVICE)
+        self.assertEqual(AVAILABLE_DEVICE, self.fuzzy_logic_controller.device)
+        # check that this is reflected in each of its torch.nn.Modules
+        for module in self.fuzzy_logic_controller.children():
+            self.assertEqual(AVAILABLE_DEVICE, module.device)
 
     def test_tsk(self) -> None:
         """

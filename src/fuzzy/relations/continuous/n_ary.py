@@ -151,6 +151,24 @@ class NAryRelation(TorchJitModule):
         row, col = zip(*indices)
         return sps.coo_matrix((data, (row, col)), dtype=np.int8)
 
+    def to(self, device: torch.device, *args, **kwargs) -> "NAryRelation":
+        """
+        Move the n-ary relation to the specified device.
+
+        Args:
+            device: The device to move the n-ary relation to.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            The n-ary relation on the specified device.
+        """
+        super().to(device, *args, **kwargs)
+        self.device = device
+        if self.grouped_links is not None:
+            self.grouped_links.to(device)
+        return self
+
     def save(self, path: Path) -> MutableMapping[str, Any]:
         """
         Save the n-ary relation to a dictionary given a path.

@@ -20,14 +20,18 @@ class LogGaussian(ContinuousFuzzySet):
 
     def __init__(
         self,
-        centers=None,
-        widths=None,
-        width_multiplier: float = 1.0,  # in fuzzy logic, convention is usually 1.0, but can be 2.0
-        device: Union[str, torch.device] = torch.device("cpu"),
+        centers,
+        widths,
+        device: torch.device,
+        width_multiplier: float = 1.0,
+        # in fuzzy logic, convention is usually 1.0, but can be 2.0
     ):
         super().__init__(centers=centers, widths=widths, device=device)
         self.width_multiplier = width_multiplier
-        assert int(self.width_multiplier) in [1, 2]
+        if int(self.width_multiplier) not in [1, 2]:
+            raise ValueError(
+                "The width multiplier must be either 1.0 or 2.0, but got {self.width_multiplier}."
+            )
 
     # @property
     # @torch.jit.ignore
@@ -214,14 +218,6 @@ class Lorentzian(ContinuousFuzzySet):
     """
     Implementation of the Lorentzian membership function, written in PyTorch.
     """
-
-    def __init__(
-        self,
-        centers=None,
-        widths=None,
-        device: Union[str, torch.device] = torch.device("cpu"),
-    ):
-        super().__init__(centers=centers, widths=widths, device=device)
 
     @property
     @torch.jit.ignore

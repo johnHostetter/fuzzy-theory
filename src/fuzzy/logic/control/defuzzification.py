@@ -36,6 +36,24 @@ class Defuzzification(torch.nn.Module):
             rule_base  # currently only used for Mamdani
         )
 
+    def to(self, device: torch.device, *args, **kwargs) -> "Defuzzification":
+        """
+        Move the defuzzification process to a device.
+
+        Args:
+            device: The device to move the defuzzification process to.
+            *args: Optional positional arguments.
+            **kwargs: Optional keyword arguments.
+
+        Returns:
+            The defuzzification process.
+        """
+        super().to(device, *args, **kwargs)
+        self.device = device
+        if hasattr(self.source, "to"):
+            self.source.to(device)
+        return self
+
     @abc.abstractmethod
     def forward(self, rule_activations: Membership) -> torch.Tensor:
         """
@@ -75,6 +93,22 @@ class ZeroOrder(Defuzzification):
         else:
             consequences = torch.as_tensor(source, device=self.device)
         self.consequences = torch.nn.Parameter(consequences)
+
+    def to(self, device: torch.device, *args, **kwargs) -> "ZeroOrder":
+        """
+        Move the defuzzification process to a device.
+
+        Args:
+            device: The device to move the defuzzification process to.
+            *args: Optional positional arguments.
+            **kwargs: Optional keyword arguments.
+
+        Returns:
+            The defuzzification process.
+        """
+        super().to(device, *args, **kwargs)
+        self.consequences.to(device)
+        return self
 
     def forward(self, rule_activations: Membership) -> torch.Tensor:
         # if self.training:
@@ -159,6 +193,22 @@ class TSK(Defuzzification):
             ),
         )
 
+    def to(self, device: torch.device, *args, **kwargs) -> "TSK":
+        """
+        Move the defuzzification process to a device.
+
+        Args:
+            device: The device to move the defuzzification process to.
+            *args: Optional positional arguments.
+            **kwargs: Optional keyword arguments.
+
+        Returns:
+            The defuzzification process.
+        """
+        super().to(device, *args, **kwargs)
+        self.consequences.to(device)
+        return self
+
     def forward(self, rule_activations: Membership) -> torch.Tensor:
         return self.consequences(rule_activations.degrees.squeeze(dim=-1))
 
@@ -192,6 +242,23 @@ class Mamdani(Defuzzification):
             device=self.device,
         )
         self.consequences: GroupedFuzzySets = source
+
+    def to(self, device: torch.device, *args, **kwargs) -> "Mamdani":
+        """
+        Move the defuzzification process to a device.
+
+        Args:
+            device: The device to move the defuzzification process to.
+            *args: Optional positional arguments.
+            **kwargs: Optional keyword arguments.
+
+        Returns:
+            The defuzzification process.
+        """
+        super().to(device, *args, **kwargs)
+        self.output_links.to(device)
+        self.consequences.to(device)
+        return self
 
     def forward(self, rule_activations: Membership) -> torch.Tensor:
         """
