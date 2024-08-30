@@ -132,9 +132,7 @@ class NestedTorchJitModule(torch.nn.Module):
             pickle.dump(local_attributes_only, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     @classmethod
-    def load(
-        cls, path: Path, device: Union[str, torch.device]
-    ) -> "NestedTorchJitModule":
+    def load(cls, path: Path, device: torch.device) -> "NestedTorchJitModule":
         """
         Load the torch.nn.Module from the given path.
 
@@ -145,8 +143,6 @@ class NestedTorchJitModule(torch.nn.Module):
         Returns:
             The loaded NestedTorchJitModule.
         """
-        if isinstance(device, str):
-            device = torch.device(device)
         modules_list = []
         local_attributes_only: Dict[str, Any] = {}
         for file_path in path.iterdir():

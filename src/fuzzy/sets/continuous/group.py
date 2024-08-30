@@ -32,12 +32,31 @@ class GroupedFuzzySets(NestedTorchJitModule):
     any kind of torch.nn.Module object.
     """
 
-    def __init__(self, *args, modules_list=None, expandable=False, **kwargs):
+    def __init__(
+        self,
+        *args,
+        modules_list=None,
+        expandable=False,
+        device: torch.device = None,
+        **kwargs,
+    ):
+        """
+        Initialize the GroupedFuzzySets object.
+
+        Args:
+            *args: Optional positional arguments.
+            modules_list: A list of torch.nn.Module objects.
+            expandable: Whether the GroupedFuzzySets can be expanded.
+            device: The device to move the GroupedFuzzySets object to; if None, the device is
+            inferred from the modules_list.
+            **kwargs: Optional keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         if modules_list is None:
             modules_list = []
         self.modules_list = torch.nn.ModuleList(modules_list)
         self.expandable = expandable
+        self.device = device
         self.epsilon = 1.5  # epsilon-completeness
         # keep track of minimums and maximums if for fuzzy set width calculation
         self.minimums: torch.Tensor = torch.empty(0, 0)
@@ -82,6 +101,21 @@ class GroupedFuzzySets(NestedTorchJitModule):
             if not self_module == other_module:
                 return False
         return True
+
+    def to(self, device: torch.device) -> "GroupedFuzzySets":
+        """
+        Move the GroupedFuzzySets to a different device.
+
+        Args:
+            device: The device to move the GroupedFuzzySets object to.
+
+        Returns:
+            The GroupedFuzzySets object.
+        """
+        self.device = device
+        for module in self.modules_list:
+            module.to(device)
+        return self
 
     def calculate_module_responses(self, observations) -> Membership:
         """

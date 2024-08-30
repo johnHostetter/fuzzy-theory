@@ -28,7 +28,10 @@ class LogGaussian(ContinuousFuzzySet):
     ):
         super().__init__(centers=centers, widths=widths, device=device)
         self.width_multiplier = width_multiplier
-        assert int(self.width_multiplier) in [1, 2]
+        if int(self.width_multiplier) not in [1, 2]:
+            raise ValueError(
+                "The width multiplier must be either 1.0 or 2.0, but got {self.width_multiplier}."
+            )
 
     # @property
     # @torch.jit.ignore

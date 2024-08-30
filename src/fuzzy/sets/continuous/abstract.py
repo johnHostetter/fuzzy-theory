@@ -427,7 +427,7 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
 
     def plot(
         self, output_dir: Path, selected_terms: List[Tuple[int, int]] = None
-    ) -> None:
+    ) -> Tuple[list, list]:
         """
         Plot the fuzzy set.
 
@@ -436,14 +436,17 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             selected_terms: The terms to highlight in the plot.
 
         Returns:
-            None
+            A 2-tuple containing the figures and axes of the plot for each variable (e.g., 0th
+            index contains the figure and axes for the 0th variable).
         """
         if selected_terms is None:
             selected_terms = []
 
+        figures, axes = [], []
+
         with plt.style.context(["science", "no-latex", "high-contrast"]):
             for variable_idx in range(self.get_centers().shape[0]):
-                _, ax = plt.subplots(1, figsize=(6, 4), dpi=100)
+                fig, ax = plt.subplots(1, figsize=(6, 4), dpi=100)
                 mpl.rcParams["figure.figsize"] = (6, 4)
                 mpl.rcParams["figure.dpi"] = 100
                 mpl.rcParams["savefig.dpi"] = 100
@@ -513,6 +516,10 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                 output_dir.mkdir(parents=True, exist_ok=True)
                 plt.savefig(output_dir / f"mu_{variable_idx}.png")
                 plt.clf()
+
+                figures.append(fig)
+                axes.append(ax)
+        return figures, axes
 
     @staticmethod
     def count_granule_terms(granules: List["ContinuousFuzzySet"]) -> np.ndarray:

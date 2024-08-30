@@ -42,6 +42,25 @@ class TestBinaryLinks(unittest.TestCase):
         )
         self.assertEqual((3, 3), self.binary_links.shape)
 
+        # test that we can move it to a different device
+        self.binary_links.to(torch.device("cpu"))
+        self.assertEqual(torch.device("cpu"), self.binary_links.device)
+        # test that this is reflected in its parameters
+        self.assertEqual(torch.device("cpu"), self.binary_links.links.device)
+
+        # test we can move it back
+        self.binary_links.to(AVAILABLE_DEVICE)
+        self.assertEqual(AVAILABLE_DEVICE.type, self.binary_links.device.type)
+        # test that this is reflected in its parameters
+        self.assertEqual(AVAILABLE_DEVICE.type, self.binary_links.links.device.type)
+
+        # test we can also create a GroupedLinks object without any modules
+        grouped_links = GroupedLinks(modules_list=None)
+        # and then later add a module
+        grouped_links.modules_list.add_module("0", self.binary_links)
+        self.assertEqual(1, len(grouped_links.modules_list))
+        self.assertIsInstance(grouped_links.modules_list[0], BinaryLinks)
+
     def test_save_and_load_linkage(self) -> None:
         """
         Test that we can save and load a BinaryLinks object.

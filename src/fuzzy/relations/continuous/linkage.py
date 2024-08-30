@@ -81,6 +81,7 @@ class BinaryLinks(torch.nn.Module):
 
         # special handling for the non-parameter tensors, such as mask
         self.links = self.links.to(*args, **kwargs)
+        self.device = self.links.device
         return self
 
     def forward(self, *_) -> torch.Tensor:
@@ -106,7 +107,9 @@ class GroupedLinks(NestedTorchJitModule):
     functionality, such as GumbelSoftmax.
     """
 
-    def __init__(self, modules_list, *args, **kwargs):
+    def __init__(
+        self, modules_list: Union[None, List[torch.nn.Module]], *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         if modules_list is None:
             modules_list = []

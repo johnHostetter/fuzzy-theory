@@ -93,6 +93,20 @@ class TestNAryRelation(unittest.TestCase):
         self.assertTrue(torch.allclose(membership.degrees, expected_membership_degrees))
         return membership
 
+    def test_invalid_use_of_n_ary_relation(self) -> None:
+        """
+        Test an Exception is raised when the n-ary relation is used incorrectly.
+
+        Returns:
+            None
+        """
+        # need to provide either indices or grouped_links
+        self.assertRaises(ValueError, NAryRelation, device=AVAILABLE_DEVICE)
+        # invalid selection for nan_replacement
+        self.assertRaises(
+            ValueError, NAryRelation, device=AVAILABLE_DEVICE, nan_replacement=3.0
+        )
+
     def test_n_ary_relation(self) -> None:
         """
         Test the abstract n-ary relation.

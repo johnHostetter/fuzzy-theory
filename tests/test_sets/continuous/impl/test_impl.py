@@ -1,10 +1,11 @@
+import shutil
 import unittest
+from pathlib import Path
 
 import numpy as np
 import torch
 
 from fuzzy.utils import all_subclasses
-from fuzzy.sets.continuous.impl import Lorentzian
 from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
 import fuzzy.sets.continuous.impl  # to make all subclasses available via all_subclasses
 
@@ -28,9 +29,6 @@ class TestFuzzySetImpl(unittest.TestCase):
             kwargs = {"device": AVAILABLE_DEVICE}
             if impl == ContinuousFuzzySet:
                 continue
-            # if impl == Lorentzian:
-            #     # Lorentzian requires a width_multiplier parameter
-            #     kwargs["width_multiplier"] = 1.0
             # centers must be a numpy array
             print(impl)
             self.assertRaises(ValueError, impl, None, None, **kwargs)
@@ -70,3 +68,34 @@ class TestFuzzySetImpl(unittest.TestCase):
             # check parameters are on the same device
             self.assertEqual(AVAILABLE_DEVICE.type, fuzzy_set.get_centers().device.type)
             self.assertEqual(AVAILABLE_DEVICE.type, fuzzy_set.get_widths().device.type)
+
+    def test_plot(self) -> None:
+        """
+        Test that the ContinuousFuzzySet implementations can be plotted without errors.
+
+        Returns:
+            None
+        """
+        for impl in all_subclasses(ContinuousFuzzySet):
+            if impl == ContinuousFuzzySet:
+                continue
+            fuzzy_set = impl(
+                centers=np.array([[0.0, 0.5, 1.0], [2.0, 2.5, 3.0]]),
+                widths=np.array([[0.5, 0.75, 1.0], [1.25, 1.5, 1.75]]),
+                device=AVAILABLE_DEVICE,
+            )
+            _, _ = fuzzy_set.plot(
+                output_dir=Path(__file__).parent / "plots" / impl.__name__
+            )
+            # check the directory exists
+            self.assertTrue((Path(__file__).parent / "plots" / impl.__name__).is_dir())
+            # check a plot exists for each variable dimension
+            for i in range(fuzzy_set.get_centers().shape[0]):
+                self.assertTrue(
+                    (
+                        Path(__file__).parent / "plots" / impl.__name__ / f"mu_{i}.png"
+                    ).is_file()
+                )
+
+        # delete the plots directory
+        shutil.rmtree(Path(__file__).parent / "plots")
