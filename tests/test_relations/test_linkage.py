@@ -9,7 +9,7 @@ from pathlib import Path
 import torch
 import numpy as np
 
-from fuzzy.relations.continuous.linkage import BinaryLinks, GroupedLinks
+from fuzzy.relations.linkage import BinaryLinks, GroupedLinks
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -16,9 +16,9 @@ from fuzzy.logic.rulebase import RuleBase
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.logic.control.configurations import Shape, GranulationLayers
-from fuzzy.relations.continuous.t_norm import TNorm
-from fuzzy.sets.continuous.group import GroupedFuzzySets
-from fuzzy.sets.continuous.impl import Lorentzian
+from fuzzy.relations.t_norm import TNorm
+from fuzzy.sets.group import FuzzySetGroup
+from fuzzy.sets.impl import Lorentzian
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -173,10 +173,10 @@ class TestKnowledgeBase(unittest.TestCase):
 
         # check that the stacked granule representation can easily be retrieved
         expected_granulation_layers: GranulationLayers = GranulationLayers(
-            input=GroupedFuzzySets(
+            input=FuzzySetGroup(
                 modules_list=[Lorentzian.stack(self.linguistic_variables.inputs)],
             ),
-            output=GroupedFuzzySets(
+            output=FuzzySetGroup(
                 modules_list=[Lorentzian.stack(self.linguistic_variables.targets)],
             ),
         )
@@ -216,15 +216,16 @@ class TestKnowledgeBase(unittest.TestCase):
         )
 
         # check that we can save and load the KnowledgeBase
-        path_returned = knowledge_base.save(Path(__file__).parent / "knowledge_base")
+        save_dir: Path = Path(__file__).parent / "knowledge_base"
+        knowledge_base.save(path=save_dir)
 
         loaded_knowledge_base = KnowledgeBase.load(
-            file_path=path_returned, device=AVAILABLE_DEVICE
+            path=save_dir, device=AVAILABLE_DEVICE
         )
 
         # remove the directory
-        shutil.rmtree(path_returned)
-        self.assertFalse(path_returned.exists())
+        shutil.rmtree(save_dir)
+        self.assertFalse(save_dir.exists())
 
         # check that the loaded KnowledgeBase is the same as the original
         self.assertEqual(

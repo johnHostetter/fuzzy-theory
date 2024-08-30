@@ -1,5 +1,5 @@
 """
-Implements various membership functions by inheriting from ContinuousFuzzySet.
+Implements various membership functions by inheriting from FuzzySet.
 """
 
 from typing import Union
@@ -7,11 +7,11 @@ from typing import Union
 import sympy
 import torch
 
+from .abstract import FuzzySet
 from .membership import Membership
-from .abstract import ContinuousFuzzySet
 
 
-class LogGaussian(ContinuousFuzzySet):
+class LogGaussian(FuzzySet):
     """
     Implementation of the Log Gaussian membership function, written in PyTorch.
     This is a modified version that helps when the dimensionality is high,
@@ -214,7 +214,7 @@ class Gaussian(LogGaussian):
         )
 
 
-class Lorentzian(ContinuousFuzzySet):
+class Lorentzian(FuzzySet):
     """
     Implementation of the Lorentzian membership function, written in PyTorch.
     """
@@ -356,7 +356,7 @@ class LogisticCurve(torch.nn.Module):
         )
 
 
-class Triangular(ContinuousFuzzySet):
+class Triangular(FuzzySet):
     """
     Implementation of the Triangular membership function, written in PyTorch.
     """

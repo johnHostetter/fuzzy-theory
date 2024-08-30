@@ -1,7 +1,7 @@
 """
-This module contains the GroupedFuzzySets class, which is a generic and abstract torch.nn.Module
-class that contains a torch.nn.ModuleList of ContinuousFuzzySet objects. The expectation here is
-that each ContinuousFuzzySet may define fuzzy sets of different conventions, such as Gaussian,
+This module contains the FuzzySetGroup class, which is a generic and abstract torch.nn.Module
+class that contains a torch.nn.ModuleList of FuzzySet objects. The expectation here is
+that each FuzzySet may define fuzzy sets of different conventions, such as Gaussian,
 Triangular, Trapezoidal, etc. Then, subsequent inference engines can handle these heterogeneously
 defined fuzzy sets with no difficulty. Further, this class was specifically designed to incorporate
 dynamic addition of new fuzzy sets in the construction of neuro-fuzzy networks via network morphism.
@@ -12,14 +12,14 @@ from typing import Union, List, Any
 import torch
 
 from .membership import Membership
-from ...utils import NestedTorchJitModule
+from ..utils import NestedTorchJitModule
 
 
-class GroupedFuzzySets(NestedTorchJitModule):
+class FuzzySetGroup(NestedTorchJitModule):
     """
     A generic and abstract torch.nn.Module class that contains a torch.nn.ModuleList
-    of ContinuousFuzzySet objects. The expectation here is that each ContinuousFuzzySet
-    may define fuzzy sets of different conventions, such as Gaussian, Triangular, Trapezoidal, etc.
+    of FuzzySet objects. The expectation here is that each FuzzySet may define fuzzy sets of
+    different conventions, such as Gaussian, Triangular, Trapezoidal, etc.
     Then, subsequent inference engines can handle these heterogeneously defined fuzzy sets
     with no difficulty. Further, this class was specifically designed to incorporate dynamic
     addition of new fuzzy sets in the construction of neuro-fuzzy networks via network morphism.
@@ -38,12 +38,12 @@ class GroupedFuzzySets(NestedTorchJitModule):
         **kwargs,
     ):
         """
-        Initialize the GroupedFuzzySets object.
+        Initialize the FuzzySetGroup object.
 
         Args:
             *args: Optional positional arguments.
             modules_list: A list of torch.nn.Module objects.
-            device: The device to move the GroupedFuzzySets object to; if None, the device is
+            device: The device to move the FuzzySetGroup object to; if None, the device is
             inferred from the modules_list.
             **kwargs: Optional keyword arguments.
         """
@@ -66,9 +66,7 @@ class GroupedFuzzySets(NestedTorchJitModule):
                         item_method: callable = getattr(module, f"get_{item}")
                         module_attributes.append(item_method())
                     return torch.cat(module_attributes, dim=-1)
-                raise ValueError(
-                    "The torch.nn.ModuleList of GroupedFuzzySets is empty."
-                )
+                raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
             return object.__getattribute__(self, item)
         except AttributeError:
             return self.__getattr__(item)
@@ -80,7 +78,7 @@ class GroupedFuzzySets(NestedTorchJitModule):
         return hash(_hash)
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, GroupedFuzzySets):
+        if not isinstance(other, FuzzySetGroup):
             return False
         if len(self.modules_list) != len(other.modules_list):
             return False
@@ -89,17 +87,17 @@ class GroupedFuzzySets(NestedTorchJitModule):
                 return False
         return True
 
-    def to(self, device: torch.device, *args, **kwargs) -> "GroupedFuzzySets":
+    def to(self, device: torch.device, *args, **kwargs) -> "FuzzySetGroup":
         """
-        Move the GroupedFuzzySets to a different device.
+        Move the FuzzySetGroup to a different device.
 
         Args:
-            device: The device to move the GroupedFuzzySets object to.
+            device: The device to move the FuzzySetGroup object to.
             *args: Optional positional arguments.
             **kwargs: Optional keyword arguments.
 
         Returns:
-            The GroupedFuzzySets object.
+            The FuzzySetGroup object.
         """
         super().to(device, *args, **kwargs)
         self.device = device
@@ -109,16 +107,16 @@ class GroupedFuzzySets(NestedTorchJitModule):
 
     def calculate_module_responses(self, observations) -> Membership:
         """
-        Calculate the responses from the modules in the torch.nn.ModuleList of GroupedFuzzySets.
+        Calculate the responses from the modules in the torch.nn.ModuleList of FuzzySetGroup.
         """
         if len(self.modules_list) > 0:
-            # modules' responses are membership degrees when modules are ContinuousFuzzySet
+            # modules' responses are membership degrees when modules are FuzzySet
             if len(self.modules_list) == 1:
                 # for computational efficiency, return the response from the only module
                 return self.modules_list[0](observations)
 
             # this can be computationally expensive, but it is necessary to calculate the responses
-            # from all the modules in the torch.nn.ModuleList of GroupedFuzzySets
+            # from all the modules in the torch.nn.ModuleList of FuzzySetGroup
             # ideally this should be done in parallel, but it is not possible with the current
             # implementation; only use this if the torch.nn.Module objects are different
             module_elements: List[torch.Tensor] = []
@@ -138,12 +136,12 @@ class GroupedFuzzySets(NestedTorchJitModule):
                 degrees=torch.cat(module_memberships, dim=-1),
                 mask=torch.cat(module_masks, dim=-1),
             )
-        raise ValueError("The torch.nn.ModuleList of GroupedFuzzySets is empty.")
+        raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
 
     def forward(self, observations) -> Membership:
         """
-        Calculate the responses from the modules in the torch.nn.ModuleList of GroupedFuzzySets.
-        Expand the GroupedFuzzySets if necessary.
+        Calculate the responses from the modules in the torch.nn.ModuleList of FuzzySetGroup.
+        Expand the FuzzySetGroup if necessary.
         """
         (
             _,  # module_elements

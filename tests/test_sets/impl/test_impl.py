@@ -6,8 +6,8 @@ import numpy as np
 import torch
 
 from fuzzy.utils import all_subclasses
-from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
-import fuzzy.sets.continuous.impl  # to make all subclasses available via all_subclasses
+from fuzzy.sets.abstract import FuzzySet
+import fuzzy.sets.impl  # to make all subclasses available via all_subclasses
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -15,19 +15,19 @@ AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class TestFuzzySetImpl(unittest.TestCase):
     """
-    Test various implementations of ContinuousFuzzySet class about general properties.
+    Test various implementations of FuzzySet class about general properties.
     """
 
     def test_numpy_args_are_required(self) -> None:
         """
-        Test that numpy args are required for the ContinuousFuzzySet class.
+        Test that numpy args are required for the FuzzySet class.
 
         Returns:
             None
         """
-        for impl in all_subclasses(ContinuousFuzzySet):
+        for impl in all_subclasses(FuzzySet):
             kwargs = {"device": AVAILABLE_DEVICE}
-            if impl == ContinuousFuzzySet:
+            if impl == FuzzySet:
                 continue
             # centers must be a numpy array
             print(impl)
@@ -41,13 +41,13 @@ class TestFuzzySetImpl(unittest.TestCase):
 
     def test_move_to_device(self) -> None:
         """
-        Test that the ContinuousFuzzySet can be moved to a device.
+        Test that the FuzzySet can be moved to a device.
 
         Returns:
             None
         """
-        for impl in all_subclasses(ContinuousFuzzySet):
-            if impl == ContinuousFuzzySet:
+        for impl in all_subclasses(FuzzySet):
+            if impl == FuzzySet:
                 continue
             fuzzy_set = impl(
                 centers=np.array([0.0, 0.5, 1.0]),
@@ -71,13 +71,13 @@ class TestFuzzySetImpl(unittest.TestCase):
 
     def test_plot(self) -> None:
         """
-        Test that the ContinuousFuzzySet implementations can be plotted without errors.
+        Test that the FuzzySet implementations can be plotted without errors.
 
         Returns:
             None
         """
-        for impl in all_subclasses(ContinuousFuzzySet):
-            if impl == ContinuousFuzzySet:
+        for impl in all_subclasses(FuzzySet):
+            if impl == FuzzySet:
                 continue
             fuzzy_set = impl(
                 centers=np.array([[0.0, 0.5, 1.0], [2.0, 2.5, 3.0]]),

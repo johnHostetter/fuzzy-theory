@@ -1,5 +1,5 @@
 """
-Implements an abstract class called ContinuousFuzzySet using PyTorch. All fuzzy sets defined over
+Implements an abstract class called FuzzySet using PyTorch. All fuzzy sets defined over
 a continuous domain are derived from this class. Further, the Membership class is defined within,
 which contains a helpful interface understanding membership degrees.
 """
@@ -22,10 +22,10 @@ import matplotlib.pyplot as plt
 from torchquad.utils.set_up_backend import set_up_backend
 
 from .membership import Membership
-from ...utils import check_path_to_save_torch_module, TorchJitModule
+from ..utils import check_path_to_save_torch_module, TorchJitModule
 
 
-class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
+class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
     """
     A generic and abstract torch.nn.Module class that implements continuous fuzzy sets.
 
@@ -37,9 +37,9 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
     but inference engines (should) only rely on the fuzzy set membership degrees.
 
     However, for convenience, some aspects of the SelfOrganize code may search for vertices that
-    have attributes of type 'ContinuousFuzzySet'. Thus, if it is pertinent that a vertex within
+    have attributes of type 'FuzzySet'. Thus, if it is pertinent that a vertex within
     the KnowledgeBase is recognized as a fuzzy set, it is very likely one might be interested in
-    inheriting or extending from ContinuousFuzzySet.
+    inheriting or extending from FuzzySet.
     """
 
     def __init__(
@@ -55,14 +55,14 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             # ensure that the centers are a numpy array (done for consistency)
             # specifically, we want to internally control the dtype and device of the centers
             raise ValueError(
-                f"The centers of a ContinuousFuzzySet must be a numpy array, "
+                f"The centers of a FuzzySet must be a numpy array, "
                 f"but got {type(centers)}"
             )
         if not isinstance(widths, np.ndarray):
             # ensure that the widths are a numpy array (done for consistency)
             # specifically, we want to internally control the dtype and device of the widths
             raise ValueError(
-                f"The widths of a ContinuousFuzzySet must be a numpy array, but got {type(widths)}"
+                f"The widths of a FuzzySet must be a numpy array, but got {type(widths)}"
             )
 
         if centers.ndim != widths.ndim:
@@ -73,7 +73,7 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
 
         if centers.ndim == 0 or widths.ndim == 0:
             raise ValueError(
-                f"The centers and widths of a ContinuousFuzzySet must have at least one dimension. "
+                f"The centers and widths of a FuzzySet must have at least one dimension. "
                 f"Centers has {centers.ndim} dimensions and widths has {widths.ndim} dimensions."
             )
 
@@ -95,7 +95,7 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
 
     def to(self, *args, **kwargs):
         """
-        Move the ContinuousFuzzySet to a new device.
+        Move the FuzzySet to a new device.
 
         Returns:
             None
@@ -149,7 +149,7 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         n_terms: int,
         device: torch.device,
         **kwargs,
-    ) -> Union[NoReturn, "ContinuousFuzzySet"]:
+    ) -> Union[NoReturn, "FuzzySet"]:
         """
         Create a fuzzy set with the given number of variables and terms, where each variable
         has the same number of terms. For example, if we have two variables, then we might have
@@ -162,14 +162,14 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             device: The device to use.
 
         Returns:
-            A ContinuousFuzzySet object, or a NotImplementedError if the method is not implemented.
+            A FuzzySet object, or a NotImplementedError if the method is not implemented.
         """
         if inspect.isabstract(cls):
-            # this error is thrown if the class is abstract, such as ContinuousFuzzySet, but
+            # this error is thrown if the class is abstract, such as FuzzySet, but
             # the method is not implemented (e.g., self.calculate_membership)
             raise NotImplementedError(
-                "The ContinuousFuzzySet has no defined membership function. Please create a class "
-                "and inherit from ContinuousFuzzySet, or use a predefined class, such as Gaussian."
+                "The FuzzySet has no defined membership function. Please create a class "
+                "and inherit from FuzzySet, or use a predefined class, such as Gaussian."
             )
 
         centers: np.ndarray = np.random.randn(n_variables, n_terms)
@@ -273,7 +273,7 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         return state_dict
 
     @classmethod
-    def load(cls, path: Path, device: torch.device) -> "ContinuousFuzzySet":
+    def load(cls, path: Path, device: torch.device) -> "FuzzySet":
         """
         Load the fuzzy set from a file and put it on the specified device.
 
@@ -388,16 +388,16 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             self._area_helper(self), device=self.device, dtype=torch.float32
         )
 
-    def split_by_variables(self) -> Union[list, List[Type["ContinuousFuzzySet"]]]:
+    def split_by_variables(self) -> Union[list, List[Type["FuzzySet"]]]:
         """
-        This operation takes the ContinuousFuzzySet and converts it to a list of ContinuousFuzzySet
+        This operation takes the FuzzySet and converts it to a list of FuzzySet
         objects, if applicable. For example, rather than using a single Gaussian object to represent
         all Gaussian membership functions in the input space, this function will convert that to a
         list of Gaussian objects, where each Gaussian function is defined and restricted to a single
         input dimension. This is particularly helpful when modifying along a specific dimension.
 
         Returns:
-            A list of ContinuousFuzzySet objects, where the length is equal to the number
+            A list of FuzzySet objects, where the length is equal to the number
             of input dimensions.
         """
         variables = []
@@ -522,12 +522,12 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         return figures, axes
 
     @staticmethod
-    def count_granule_terms(granules: List["ContinuousFuzzySet"]) -> np.ndarray:
+    def count_granule_terms(granules: List["FuzzySet"]) -> np.ndarray:
         """
         Count the number of granules that occur in each dimension.
 
         Args:
-            granules: A list of granules, where each granule is a ContinuousFuzzySet object.
+            granules: A list of granules, where each granule is a FuzzySet object.
 
         Returns:
             A Numpy array with shape (len(granules), ) and the data type is integer.
@@ -546,16 +546,16 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
 
     @staticmethod
     def stack(
-        granules: List["ContinuousFuzzySet"],
-    ) -> "ContinuousFuzzySet":
+        granules: List["FuzzySet"],
+    ) -> "FuzzySet":
         """
         Create a condensed and stacked representation of the given granules.
 
         Args:
-            granules: A list of granules, where each granule is a ContinuousFuzzySet object.
+            granules: A list of granules, where each granule is a FuzzySet object.
 
         Returns:
-            A ContinuousFuzzySet object.
+            A FuzzySet object.
         """
         if list(granules)[0].training:
             missing_center, missing_width = 0.0, -1.0
@@ -569,7 +569,7 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                         params.get_centers(),
                         pad=(
                             0,
-                            ContinuousFuzzySet.count_granule_terms(granules).max()
+                            FuzzySet.count_granule_terms(granules).max()
                             - params.get_centers().shape[-1],
                         ),
                         mode="constant",
@@ -577,7 +577,7 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                     )
                     if params.get_centers().dim() > 0
                     else torch.tensor(missing_center).repeat(
-                        ContinuousFuzzySet.count_granule_terms(granules).max()
+                        FuzzySet.count_granule_terms(granules).max()
                     )
                 )
                 for params in granules
@@ -590,7 +590,7 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                         params.get_widths(),
                         pad=(
                             0,
-                            ContinuousFuzzySet.count_granule_terms(granules).max()
+                            FuzzySet.count_granule_terms(granules).max()
                             - params.get_widths().shape[-1],
                         ),
                         mode="constant",
@@ -598,7 +598,7 @@ class ContinuousFuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                     )
                     if params.get_centers().dim() > 0
                     else torch.tensor(missing_center).repeat(
-                        ContinuousFuzzySet.count_granule_terms(granules).max()
+                        FuzzySet.count_granule_terms(granules).max()
                     )
                 )
                 for params in granules

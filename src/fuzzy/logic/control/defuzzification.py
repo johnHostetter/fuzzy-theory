@@ -10,8 +10,8 @@ import numpy as np
 
 from fuzzy.logic.rulebase import RuleBase
 from fuzzy.logic.control.configurations import Shape
-from fuzzy.sets.continuous.membership import Membership
-from fuzzy.sets.continuous.group import GroupedFuzzySets
+from fuzzy.sets.membership import Membership
+from fuzzy.sets.group import FuzzySetGroup
 
 
 class Defuzzification(torch.nn.Module):
@@ -22,7 +22,7 @@ class Defuzzification(torch.nn.Module):
     def __init__(
         self,
         shape: Shape,
-        source: Union[None, np.ndarray, torch.nn.Sequential, GroupedFuzzySets],
+        source: Union[None, np.ndarray, torch.nn.Sequential, FuzzySetGroup],
         device: torch.device,
         rule_base: Union[None, RuleBase],
         *args,
@@ -221,7 +221,7 @@ class Mamdani(Defuzzification):
     def __init__(
         self,
         shape: Shape,
-        source: GroupedFuzzySets,
+        source: FuzzySetGroup,
         device: torch.device,
         rule_base: RuleBase,
         *args,
@@ -241,7 +241,7 @@ class Mamdani(Defuzzification):
             dtype=torch.int8,
             device=self.device,
         )
-        self.consequences: GroupedFuzzySets = source
+        self.consequences: FuzzySetGroup = source
 
     def to(self, device: torch.device, *args, **kwargs) -> "Mamdani":
         """

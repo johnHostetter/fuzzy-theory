@@ -4,16 +4,15 @@ This module contains classes that are reserved more for the internal use of the 
 
 import inspect
 import pickle
-from abc import abstractmethod
 from pathlib import Path
+from abc import abstractmethod
 from typing import Set, Any, MutableMapping, List, Tuple, Dict, Callable
 
 import torch
 from natsort import natsorted
 from torch.nn.modules.module import _forward_unimplemented
 
-from fuzzy.utils.functions import all_subclasses
-from fuzzy.sets.continuous.utils import get_object_attributes
+from fuzzy.utils.functions import all_subclasses, get_object_attributes
 
 
 class TimeDistributed(torch.nn.Module):

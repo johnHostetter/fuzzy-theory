@@ -12,7 +12,7 @@ import torch
 import numpy as np
 import scipy.sparse as sps
 
-from fuzzy.sets.continuous.membership import Membership
+from fuzzy.sets.membership import Membership
 from fuzzy.utils import check_path_to_save_torch_module, TorchJitModule
 from .linkage import GroupedLinks, BinaryLinks
 

@@ -3,13 +3,13 @@ This file helps support the linkage between relations necessary for fuzzy logic 
 """
 
 from pathlib import Path
-from typing import List, Union, MutableMapping, Any  # , Callable, Tuple
+from typing import List, Union, MutableMapping, Any
 
 import torch
 import numpy as np
 from torch._C import Size
 
-from fuzzy.sets.continuous.membership import Membership
+from fuzzy.sets.membership import Membership
 from fuzzy.utils import check_path_to_save_torch_module, NestedTorchJitModule
 
 

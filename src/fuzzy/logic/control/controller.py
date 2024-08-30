@@ -11,13 +11,13 @@ from collections import OrderedDict
 from typing import Union, List, Type
 
 import torch
+from fuzzy.sets.abstract import FuzzySet
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
-from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
 
 from .defuzzification import Defuzzification
 from .configurations import Shape, FuzzySystem, GranulationLayers
-from ...relations.continuous.t_norm import TNorm
+from ...relations.t_norm import TNorm
 
 
 class FuzzyLogicController(torch.nn.Sequential):
@@ -127,7 +127,7 @@ class FuzzyLogicController(torch.nn.Sequential):
                         param.requires_grad = param_name not in self.disabled_parameters
                 self.add_module(module_name, module)
 
-    def split_granules_by_type(self) -> OrderedDict[str, List[ContinuousFuzzySet]]:
+    def split_granules_by_type(self) -> OrderedDict[str, List[FuzzySet]]:
         """
         Retrieves the granules at a given layer (e.g., premises, consequences) from the Fuzzy Logic
         Controller. Specifically, this operation takes the granulation layer (a more computationally
@@ -137,14 +137,14 @@ class FuzzyLogicController(torch.nn.Sequential):
         where each Gaussian function is defined and restricted to a single dimension in that layer.
 
         Returns:
-            A nested list of ContinuousFuzzySet objects, where the length is equal to the number
+            A nested list of FuzzySet objects, where the length is equal to the number
             of layer's dimensions. Within each element of the outer list, is another list that
-            contains all the definitions for ContinuousFuzzySet within that dimension. For
+            contains all the definitions for FuzzySet within that dimension. For
             example, if the 0'th index has a list equal to [Gaussian(), Trapezoid()], then this
             means in the 0'th dimension there are both membership functions defined using the
             Gaussian formula and the Trapezoid formula.
         """
-        results: {str: List[ContinuousFuzzySet]} = OrderedDict()
+        results: {str: List[FuzzySet]} = OrderedDict()
 
         # at each variable index, it is possible to have more than 1 type of module
         for module_name, module in self.named_modules():
@@ -159,7 +159,7 @@ class FuzzyLogicController(torch.nn.Sequential):
         variables in the FLC.
 
         Returns:
-            A list of ContinuousFuzzySet objects that represent the linguistic variables in the
+            A list of FuzzySet objects that represent the linguistic variables in the
             given layer.
         """
         results: OrderedDict = self.split_granules_by_type()
@@ -167,7 +167,7 @@ class FuzzyLogicController(torch.nn.Sequential):
             raise ValueError(
                 f"Expected 1 or 2 granulation layers, but received {len(results)}."
             )
-        results_lst: List[List[ContinuousFuzzySet]] = [
+        results_lst: List[List[FuzzySet]] = [
             variables for _, variables in results.items()
         ]  # discard the name of where the variables are from
         return LinguisticVariables(

@@ -8,8 +8,8 @@ from typing import TypedDict, NamedTuple
 
 import torch
 
-from fuzzy.relations.continuous.t_norm import TNorm
-from fuzzy.sets.continuous.group import GroupedFuzzySets
+from fuzzy.relations.t_norm import TNorm
+from fuzzy.sets.group import FuzzySetGroup
 
 
 class Shape(NamedTuple):
@@ -44,14 +44,14 @@ class Shape(NamedTuple):
 class GranulationLayers(TypedDict):
     """
     A dictionary that contains the input and output granulation layers. The input granulation
-    layer is a GroupedFuzzySets object that contains the input granules. The output granulation
-    layer is a GroupedFuzzySets object that contains the output granules. If the layer is None,
+    layer is a FuzzySetGroup object that contains the input granules. The output granulation
+    layer is a FuzzySetGroup object that contains the output granules. If the layer is None,
     then it is not defined and will be created during the construction of the FLC by searching
     the KnowledgeBase for the appropriate granules.
     """
 
-    input: GroupedFuzzySets
-    output: GroupedFuzzySets
+    input: FuzzySetGroup
+    output: FuzzySetGroup
 
 
 class FuzzySystem(abc.ABC):

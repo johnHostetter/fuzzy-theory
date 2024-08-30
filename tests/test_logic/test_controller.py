@@ -8,19 +8,19 @@ from typing import List, Tuple
 import torch
 import numpy as np
 
-from fuzzy.sets.continuous.impl import Gaussian
-from fuzzy.sets.continuous.membership import Membership
-from fuzzy.sets.continuous.abstract import ContinuousFuzzySet
+from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.abstract import FuzzySet
+from fuzzy.sets.membership import Membership
 from fuzzy.logic.rule import Rule
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.control.defuzzification import ZeroOrder, Mamdani
 from fuzzy.logic.control.controller import FuzzyLogicController as FLC
-from fuzzy.relations.continuous.n_ary import NAryRelation
-from fuzzy.relations.continuous.t_norm import Product
+from fuzzy.relations.n_ary import NAryRelation
+from fuzzy.relations.t_norm import Product
 from fuzzy.utils.classes import TimeDistributed
 
-from examples.continuous.demo_flcs import toy_mamdani
+from examples.demo_flcs import toy_mamdani
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -392,7 +392,7 @@ class TestTSK(unittest.TestCase):
         assert flc.shape.n_inputs == 2
         assert flc.shape.n_outputs == 1
 
-        actual_variables: List[ContinuousFuzzySet] = flc.linguistic_variables().inputs
+        actual_variables: List[FuzzySet] = flc.linguistic_variables().inputs
         for actual_variable, expected_variable in zip(actual_variables, antecedents):
             assert torch.allclose(
                 actual_variable.get_centers(), expected_variable.get_centers()
