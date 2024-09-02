@@ -353,6 +353,7 @@ class TestProduct(TestNAryRelation):
                 [[9.6005607e-01], [8.4526926e-01], [1.0000000e00], [1.0000000e00]],
                 [[5.7408627e-04], [9.9679035e-01], [1.0000000e00], [1.0000000e00]],
             ],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(after_mask, expected_after_mask))
@@ -365,6 +366,7 @@ class TestProduct(TestNAryRelation):
                 [8.4526926e-01 * 9.6005607e-01],
                 [9.9679035e-01 * 5.7408627e-04],
             ],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(prod_membership.degrees, expected_prod_values))
@@ -436,6 +438,7 @@ class TestProduct(TestNAryRelation):
                     * membership.degrees[2][0][1].item(),
                 ],
             ],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
         self.assertEqual(prod_membership.degrees.shape[0], N_OBSERVATIONS)
@@ -488,6 +491,7 @@ class TestMinimum(TestNAryRelation):
                 [[9.6005607e-01], [8.4526926e-01], [1.0000000e00], [1.0000000e00]],
                 [[5.7408627e-04], [9.9679035e-01], [1.0000000e00], [1.0000000e00]],
             ],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(after_mask, expected_after_mask))
@@ -496,6 +500,7 @@ class TestMinimum(TestNAryRelation):
         min_membership: Membership = n_ary.forward(membership)
         expected_min_values = torch.tensor(
             [[2.5514542e-04], [8.4526926e-01], [5.7408627e-04]],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
@@ -551,6 +556,7 @@ class TestMinimum(TestNAryRelation):
                 [0.8531001, 0.14141318, 0.3084521, 0.14141318, 0.00317242],
                 [0.034104, 0.13954304, 0.034104, 0.49545035, 0.8498557],
             ],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
 
@@ -597,6 +603,7 @@ class TestCompound(TestNAryRelation):
                 [8.4526926e-01 * 9.6005607e-01],
                 [9.9679035e-01 * 5.7408627e-04],
             ],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))

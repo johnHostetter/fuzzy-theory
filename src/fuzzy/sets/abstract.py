@@ -47,7 +47,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         centers: np.ndarray,
         widths: np.ndarray,
         device: torch.device,
-        use_sparse_tensor=False,
+        use_sparse_tensor=True,
     ):
         super().__init__()
         self.device = device

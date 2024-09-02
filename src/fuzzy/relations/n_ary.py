@@ -335,17 +335,35 @@ class NAryRelation(TorchJitModule):
             # this is for the case where masks have been stacked due to compound relations
             membership_shape = membership_shape[1:]  # get the last two dimensions
             self.resize(*membership_shape)
+        del membership_shape  # free up memory
+
         # select memberships that are not zeroed out (i.e., involved in the relation)
         self.applied_mask: torch.Tensor = self.grouped_links(membership=membership)
-        after_mask = membership.degrees.unsqueeze(dim=-1) * self.applied_mask.unsqueeze(
-            0
+        complement_mask = (
+            torch.ones_like(self.applied_mask, device=self.device) - self.applied_mask
         )
+
+        # original
+        after_mask = (
+            membership.degrees.unsqueeze(dim=-1) * self.applied_mask.unsqueeze(0)
+        ).to_sparse()
+
+        # new edits for sparse; reduce from torch.float32 to torch.float16 w/ half()
+        # applied_mask = self.applied_mask.to_sparse()
+        # complement_mask = torch.ones_like(applied_mask.to_dense(), device=applied_mask.device) - applied_mask
+        # after_mask = membership.degrees.unsqueeze(dim=-1) * applied_mask
+        # del applied_mask  # free up memory
+
+        # applied_mask: torch.Tensor = self.applied_mask.unsqueeze(0)
+        # after_mask = membership.degrees.unsqueeze(dim=-1) * applied_mask.to_sparse()
         # the complement mask adds zeros where the mask is zero, these are not part of the relation
         # nan_to_num is used to replace nan values with the nan_replacement value (often not needed)
+        torch.cuda.empty_cache()
         return (
-            (after_mask + (1 - self.applied_mask))
-            .prod(dim=2, keepdim=False)
-            .nan_to_num(self.nan_replacement)
+            # ((1 - self.applied_mask) + after_mask)  # add(dense, sparse) - NOT add(sparse, dense)
+            (complement_mask + after_mask.to_dense())
+            # (torch.ones_like(after_mask.to_dense(), device=after_mask.device) - after_mask).to_dense()
+            .prod(dim=2, keepdim=False).nan_to_num(self.nan_replacement)
         )
 
     def forward(self, membership: Membership) -> torch.Tensor:

@@ -85,7 +85,9 @@ class LogGaussian(FuzzySet):
                 2,
             )
             / (width_multiplier * torch.pow(widths, 2) + 1e-32)
-        )
+        ).clip(
+            min=-1e16, max=0
+        )  # force values very close to zero to be zero
 
     @classmethod
     @torch.jit.ignore
