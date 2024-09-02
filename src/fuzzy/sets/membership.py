@@ -17,7 +17,7 @@ from collections import namedtuple
 
 
 class Membership(
-    namedtuple(typename="Membership", field_names=("elements", "degrees", "mask"))
+    namedtuple(typename="Membership", field_names=("degrees"))
 ):
     """
     The Membership class contains information describing both membership *degrees* and

@@ -131,9 +131,9 @@ class LogGaussian(FuzzySet):
         # ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            elements=observations.squeeze(dim=-1),  # remove the last dimension
+            # elements=observations.squeeze(dim=-1),  # remove the last dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
+            # mask=self.get_mask(),
         )
 
 
@@ -210,9 +210,9 @@ class Gaussian(LogGaussian):
         # ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            elements=observations.squeeze(dim=-1),  # remove the last dimension
+            # elements=observations.squeeze(dim=-1),  # remove the last dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
+            # mask=self.get_mask(),
         )
 
 
@@ -306,9 +306,9 @@ class Lorentzian(FuzzySet):
         ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            elements=observations.squeeze(dim=-1),  # remove the last dimension
+            # elements=observations.squeeze(dim=-1),  # remove the last dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
+            # mask=self.get_mask(),
         )
 
 
@@ -439,7 +439,7 @@ class Triangular(FuzzySet):
         ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            elements=observations.squeeze(dim=-1),  # remove the last dimension
+            # elements=observations.squeeze(dim=-1),  # remove the last dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
+            # mask=self.get_mask(),
         )

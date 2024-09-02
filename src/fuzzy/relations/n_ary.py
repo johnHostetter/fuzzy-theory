@@ -100,9 +100,9 @@ class NAryRelation(TorchJitModule):
         membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
         self.applied_mask = self.grouped_links(
             Membership(
-                elements=torch.empty(membership_shape, device=self.device),
+                # elements=torch.empty(membership_shape, device=self.device),
                 degrees=torch.empty(membership_shape, device=self.device),
-                mask=torch.empty(membership_shape, device=self.device),
+                # mask=torch.empty(membership_shape, device=self.device),
             )
         )
 

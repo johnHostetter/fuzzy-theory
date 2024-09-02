@@ -47,5 +47,6 @@ class Compound(torch.nn.Module):
             [membership.degrees for membership in memberships], dim=-1
         ).unsqueeze(dim=-1)
         # create a new mask that accounts for the different masks for each relation
-        mask = torch.stack([relation.applied_mask for relation in self.relations])
-        return Membership(elements=membership.elements, degrees=degrees, mask=mask)
+        # mask = torch.stack([relation.applied_mask for relation in self.relations])
+        return Membership(degrees=degrees)
+        # return Membership(elements=membership.elements, degrees=degrees)#, mask=mask)

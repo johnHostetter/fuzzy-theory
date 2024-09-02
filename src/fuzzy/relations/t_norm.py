@@ -45,11 +45,11 @@ class Minimum(TNorm):
         # first filter out the values that are not part of the relation
         # then take the minimum value of those that remain in the last dimension
         return Membership(
-            elements=membership.elements,
+            # elements=membership.elements,
             degrees=self.apply_mask(membership=membership)
             .min(dim=-2, keepdim=False)
             .values,
-            mask=self.applied_mask,
+            # mask=self.applied_mask,
         )
 
 
@@ -73,9 +73,9 @@ class Product(TNorm):
         # first filter out the values that are not part of the relation
         # then take the minimum value of those that remain in the last dimension
         return Membership(
-            elements=membership.elements,
+            # elements=membership.elements,
             degrees=self.apply_mask(membership=membership).prod(dim=-2, keepdim=False),
-            mask=self.applied_mask,
+            # mask=self.applied_mask,
         )
 
 
@@ -104,9 +104,9 @@ class SoftmaxSum(TNorm):
         firing_strengths = intermediate_values.sum(dim=1)
         max_values, _ = firing_strengths.max(dim=-1, keepdim=True)
         return Membership(
-            elements=membership.elements,
+            # elements=membership.elements,
             degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
-            mask=self.applied_mask,
+            # mask=self.applied_mask,
         )
 
 
@@ -122,12 +122,12 @@ class GeneralizedLukasiewicz(TNorm):
         # TODO: these dimensions are possibly not correct, need to be fixed/tested
         firing_strengths = intermediate_values.sum(dim=1)
         return Membership(
-            elements=membership.elements,
+            # elements=membership.elements,
             degrees=torch.nn.functional.relu(
                 firing_strengths
                 - (membership.elements.shape[-1] - 1)  # subtract # of inputs - 1
             ),
-            mask=self.applied_mask,
+            # mask=self.applied_mask,
         )
 
 
@@ -172,7 +172,7 @@ class SoftmaxMean(TNorm):
             dim=-1, keepdim=True
         )  # add this to prevent overflow
         return Membership(
-            elements=membership.elements,
+            # elements=membership.elements,
             degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
-            mask=self.applied_mask,
+            # mask=self.applied_mask,
         )
