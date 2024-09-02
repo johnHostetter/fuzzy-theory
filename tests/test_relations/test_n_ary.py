@@ -90,7 +90,7 @@ class TestNAryRelation(unittest.TestCase):
             ],
             device=AVAILABLE_DEVICE,
         )
-        self.assertTrue(torch.allclose(membership.degrees, expected_membership_degrees))
+        self.assertTrue(torch.allclose(membership.degrees.to_dense(), expected_membership_degrees))
         return membership
 
     def test_invalid_use_of_n_ary_relation(self) -> None:
@@ -444,7 +444,7 @@ class TestProduct(TestNAryRelation):
         self.assertEqual(prod_membership.degrees.shape[0], N_OBSERVATIONS)
         self.assertEqual(prod_membership.degrees.shape[1], N_COMPOUNDS)
         self.assertEqual(prod_membership.degrees.shape, expected_prod_values.shape)
-        self.assertTrue(torch.allclose(prod_membership.degrees, expected_prod_values))
+        self.assertTrue(torch.allclose(prod_membership.degrees.to_dense(), expected_prod_values))
 
 
 class TestMinimum(TestNAryRelation):
@@ -560,7 +560,7 @@ class TestMinimum(TestNAryRelation):
             device=AVAILABLE_DEVICE,
         )
 
-        self.assertTrue(torch.allclose(min_membership.degrees, expected_degrees))
+        self.assertTrue(torch.allclose(min_membership.degrees.to_dense(), expected_degrees))
 
 
 class TestCompound(TestNAryRelation):
