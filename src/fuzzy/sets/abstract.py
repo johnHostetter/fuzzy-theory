@@ -47,7 +47,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         centers: np.ndarray,
         widths: np.ndarray,
         device: torch.device,
-        use_sparse_tensor=True,
+        use_sparse_tensor=False,
     ):
         super().__init__()
         self.device = device
@@ -173,7 +173,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             )
 
         centers: np.ndarray = np.random.randn(n_variables, n_terms)
-        widths: np.ndarray = np.random.randn(n_variables, n_terms)
+        widths: np.ndarray = np.ones((n_variables, n_terms), dtype=np.float32) * 10.0
         return cls(centers=centers, widths=widths, device=device, **kwargs)
 
     def __hash__(self):

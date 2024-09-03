@@ -79,14 +79,14 @@ class LogGaussian(FuzzySet):
         Returns:
             The membership degrees of the observations for the Log Gaussian fuzzy set.
         """
-        return -1.0 * (
+        return (-1.0 * (
             torch.pow(
                 observations - centers,
                 2,
             )
             / (width_multiplier * torch.pow(widths, 2) + 1e-32)
-        ).clip(
-            min=-1e16, max=0
+        )).clamp(
+            min=-10, max=0
         )  # force values very close to zero to be zero
 
     @classmethod

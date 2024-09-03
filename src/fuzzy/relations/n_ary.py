@@ -58,9 +58,9 @@ class NAryRelation(TorchJitModule):
         self.grouped_links: Union[None, GroupedLinks] = (
             None  # created later (via self._rebuild)
         )
-        self.applied_mask: Union[None, torch.Tensor] = (
-            None  # created later (at the end of the constructor)
-        )
+        # self.applied_mask: Union[None, torch.Tensor] = (
+        #     None  # created later (at the end of the constructor)
+        # )
         self.graph = None  # will be created later (via self._rebuild)
         self.indices: List[List[Tuple[int, int]]] = []
 
@@ -93,24 +93,11 @@ class NAryRelation(TorchJitModule):
             self.indices.extend(indices)
             self._rebuild(*(max_var, max_term))
 
-        # test if the relation is well-defined & build it
-        # the last index, -1, is the relation index; first 2 are (variable, term) indices
-        membership_shape: torch.Size = self.grouped_links.shape[:-1]
-        # but we also need to include a dummy batch dimension (32) for the grouped_links
-        membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
-        self.applied_mask = self.grouped_links(
-            Membership(
-                # elements=torch.empty(membership_shape, device=self.device),
-                degrees=torch.empty(membership_shape, device=self.device),
-                # mask=torch.empty(membership_shape, device=self.device),
-            )
-        )
-
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.indices})"
 
     def __hash__(self) -> int:
-        return hash(self.applied_mask) + hash(self.nan_replacement) + hash(self.device)
+        return hash(self.nan_replacement) + hash(self.device)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, NAryRelation) or not isinstance(self, type(other)):
@@ -135,6 +122,27 @@ class NAryRelation(TorchJitModule):
             The shape of the relation's matrix.
         """
         return self.grouped_links.shape
+
+    @property
+    def applied_mask(self) -> torch.Tensor:
+        """
+        Get the applied mask.
+
+        Returns:
+            The applied mask.
+        """
+        # test if the relation is well-defined & build it
+        # the last index, -1, is the relation index; first 2 are (variable, term) indices
+        membership_shape: torch.Size = self.grouped_links.shape[:-1]
+        # but we also need to include a dummy batch dimension (32) for the grouped_links
+        membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
+        return self.grouped_links(
+            Membership(
+                # elements=torch.empty(membership_shape, device=self.device),
+                degrees=torch.empty(membership_shape, device=self.device),
+                # mask=torch.empty(membership_shape, device=self.device),
+            )
+        )
 
     @staticmethod
     def convert_indices_to_matrix(indices) -> sps._coo.coo_matrix:
@@ -340,62 +348,63 @@ class NAryRelation(TorchJitModule):
         # for very large batch sizes (e.g., 1024), we can run out of memory
         # so to avoid this, we cut the batch size by using blocks
         result_blocks = []
-        block_size = 64
+        # block_size = 64
 
-        print(f"original membership.degrees: {membership.degrees.shape}")
-        for i in range(0, membership.degrees.shape[0], block_size):
-            membership_block: Membership = Membership(degrees=membership.degrees.to_dense()[i:i + block_size])
+        # print(f"original membership.degrees: {membership.degrees.shape}")
+        # for i in range(0, membership.degrees.shape[0], block_size):
+        #     membership_block: Membership = Membership(degrees=membership.degrees.to_dense()[i:i + block_size])
+        membership_block = membership
+        # select memberships that are not zeroed out (i.e., involved in the relation)
+        applied_mask: torch.Tensor = self.grouped_links(membership=membership_block)
+        # complement_mask = (
+        #     torch.ones_like(applied_mask, device=self.device) - applied_mask
+        # )
+        #
+        # print(f"membership.degrees: {membership_block.degrees.shape}")
+        # print(f"self.applied_mask: {applied_mask.shape}")
 
-            # select memberships that are not zeroed out (i.e., involved in the relation)
-            self.applied_mask: torch.Tensor = self.grouped_links(membership=membership_block)
-            complement_mask = (
-                torch.ones_like(self.applied_mask, device=self.device) - self.applied_mask
-            )
+        # einsum formula - this works, but is not efficient
+        after_mask = torch.einsum('ijk,jkl->ijkl', membership_block.degrees,
+                                      applied_mask)#.to_sparse()
+        del membership_block  # free up memory
 
-            print(f"membership.degrees: {membership_block.degrees.shape}")
-            print(f"self.applied_mask: {self.applied_mask.shape}")
+        # result_blocks.append(after_mask)
 
-            # einsum formula - this works, but is not efficient
-            after_mask = torch.einsum('ijk,jkl->ijkl', membership_block.degrees,
-                                          self.applied_mask).to_sparse()
-            del membership_block  # free up memory
+        # new_after_mask = (
+        #     membership.degrees.to_dense().unsqueeze(dim=-1) * applied_mask.unsqueeze(0).to_sparse()
+        # )
+        #
+        # # original (works)
+        # after_mask = (
+        #     membership.degrees.to_dense().unsqueeze(dim=-1) * applied_mask.unsqueeze(0)
+        # ).to_sparse()
 
-            # result_blocks.append(after_mask)
+        # after_mask = torch.cat(result_blocks, dim=0)
+        # print(f"after_mask: {after_mask.shape}")
 
-            # new_after_mask = (
-            #     membership.degrees.to_dense().unsqueeze(dim=-1) * self.applied_mask.unsqueeze(0).to_sparse()
-            # )
-            #
-            # # original (works)
-            # after_mask = (
-            #     membership.degrees.to_dense().unsqueeze(dim=-1) * self.applied_mask.unsqueeze(0)
-            # ).to_sparse()
+        # new edits for sparse; reduce from torch.float32 to torch.float16 w/ half()
+        # applied_mask = applied_mask.to_sparse()
+        # complement_mask = torch.ones_like(applied_mask.to_dense(), device=applied_mask.device) - applied_mask
+        # after_mask = membership.degrees.unsqueeze(dim=-1) * applied_mask
+        # del applied_mask  # free up memory
 
-            # after_mask = torch.cat(result_blocks, dim=0)
-            # print(f"after_mask: {after_mask.shape}")
-
-            # new edits for sparse; reduce from torch.float32 to torch.float16 w/ half()
-            # applied_mask = self.applied_mask.to_sparse()
-            # complement_mask = torch.ones_like(applied_mask.to_dense(), device=applied_mask.device) - applied_mask
-            # after_mask = membership.degrees.unsqueeze(dim=-1) * applied_mask
-            # del applied_mask  # free up memory
-
-            # applied_mask: torch.Tensor = self.applied_mask.unsqueeze(0)
-            # after_mask = membership.degrees.unsqueeze(dim=-1) * applied_mask.to_sparse()
-            # the complement mask adds zeros where the mask is zero, these are not part of the relation
-            # nan_to_num is used to replace nan values with the nan_replacement value (often not needed)
-            torch.cuda.empty_cache()
-            result_blocks.append(
-                # ((1 - self.applied_mask) + after_mask)  # add(dense, sparse) - NOT add(sparse, dense)
-                (complement_mask + after_mask.to_dense())
-                # (torch.ones_like(after_mask.to_dense(), device=after_mask.device) - after_mask).to_dense()
-                .prod(dim=2, keepdim=False).nan_to_num(self.nan_replacement).to_sparse()
-            )
-            del after_mask, complement_mask
-        result = torch.cat(result_blocks, dim=0)
-        del result_blocks
+        # applied_mask: torch.Tensor = applied_mask.unsqueeze(0)
+        # after_mask = membership.degrees.unsqueeze(dim=-1) * applied_mask.to_sparse()
+        # the complement mask adds zeros where the mask is zero, these are not part of the relation
+        # nan_to_num is used to replace nan values with the nan_replacement value (often not needed)
         torch.cuda.empty_cache()
-        return result
+        result_blocks.append(
+            ((1 - applied_mask) + after_mask)  # add(dense, sparse) - NOT add(sparse, dense)
+            # (complement_mask + after_mask)
+            # (torch.ones_like(after_mask.to_dense(), device=after_mask.device) - after_mask).to_dense()
+            .prod(dim=2, keepdim=False).nan_to_num(self.nan_replacement)
+        )  # result is dense
+        del after_mask, applied_mask  # free up memory
+        return result_blocks[0]
+        # result = torch.cat(result_blocks, dim=0)
+        # del result_blocks
+        # torch.cuda.empty_cache()
+        # return result
 
     def forward(self, membership: Membership) -> torch.Tensor:
         """
