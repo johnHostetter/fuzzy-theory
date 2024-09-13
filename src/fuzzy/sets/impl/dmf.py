@@ -38,17 +38,12 @@ class DimensionDependent(FuzzySet, ABC):
         rho: Union[None, torch.Tensor] = None,
     ):
         super().__init__(centers, widths, device)
-        self.n_inputs: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([centers.shape[0]], dtype=torch.float32, device=device),
-            requires_grad=False,
+        self.n_inputs: torch.Tensor = torch.tensor(
+            [centers.shape[0]], dtype=torch.float32, device=device
         )  # count of input variables/features/dimensions
-        self.rho: torch.nn.Parameter = torch.nn.Parameter(
-            (
-                self._calculate_rho(n_inputs=self.n_inputs.item(), device=device)
-                if rho is None
-                else torch.tensor([rho], dtype=torch.float32, device=device)
-            ),
-            requires_grad=False,
+        self.rho: torch.Tensor = (
+            self._calculate_rho(n_inputs=self.n_inputs.item(), device=device)
+            if rho is None else torch.tensor([rho], dtype=torch.float32, device=device)
         )
 
     @staticmethod
