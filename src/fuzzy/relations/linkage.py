@@ -114,7 +114,7 @@ class GroupedLinks(NestedTorchJitModule):
         if modules_list is None:
             modules_list = []
         self.modules_list = torch.nn.ModuleList(modules_list)
-        self.membership_dimension = -1
+        self.membership_dimension: int = 1
 
     @property
     def shape(self) -> Size:
@@ -226,6 +226,10 @@ class GroupedLinks(NestedTorchJitModule):
         """
         Fetch the links for later use.
         """
+        if torch.is_grad_enabled():
+            assert (
+                membership.degrees.grad_fn is not None
+            ), "The membership degrees must have a grad_fn."
         all_links: List[Union[torch.Tensor, torch.nn.Parameter]] = []
         for links in self.modules_list:
             all_links.append(links(membership))

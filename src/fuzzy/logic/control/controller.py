@@ -7,17 +7,20 @@ This Python module also contains functions for extracting information from a kno
 and fuzzy logic rule matrices. These components may then be used to create a fuzzy inference system.
 """
 
+from pathlib import Path
 from collections import OrderedDict
-from typing import Union, List, Type
+from typing import Union, List, Type, MutableMapping, Any
 
 import torch
 from fuzzy.sets.abstract import FuzzySet
-from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
 
 from .defuzzification import Defuzzification
-from .configurations import Shape, FuzzySystem, GranulationLayers
+from .configurations.data import Shape, GranulationLayers
+from .configurations.abstract import FuzzySystem
+from .configurations.impl import Defined
 from ...relations.t_norm import TNorm
+from ...sets import FuzzySetGroup
 
 
 class FuzzyLogicController(torch.nn.Sequential):
@@ -39,26 +42,24 @@ class FuzzyLogicController(torch.nn.Sequential):
             disabled_parameters = []
 
         self.source = source
-        self.inference_type = inference
         self.device: torch.device = device
         self.disabled_parameters: List[str] = disabled_parameters
 
         # build or extract the necessary components for the FLC from the source
-        granulation_layers: GranulationLayers = source.granulation_layers(
-            device=self.device
-        )
-        engine: TNorm = source.engine(device=self.device)
+        granulation_layers: GranulationLayers = source.granulation_layers
+        engine: TNorm = source.engine
+        defuzzification = source.defuzzification(inference, device=self.device)
 
-        defuzzification = self.inference_type(
-            shape=self.source.shape,
-            source=granulation_layers["output"],
-            device=self.device,
-            rule_base=(
-                self.source.rule_base
-                if isinstance(self.source, KnowledgeBase)
-                else None
-            ),
-        )
+        # check that the size of the components are compatible
+        input_granulation_size: torch.Size = granulation_layers["input"].centers.shape
+        engine_size: torch.Size = engine.shape[
+            :-1
+        ]  # drop the last dimension (# of rules)
+        if input_granulation_size != engine_size:
+            raise ValueError(
+                f"The input granulation layer size {input_granulation_size} "
+                f"does not match the engine size {engine_size}."
+            )
 
         # disables certain parameters & prepare fuzzy inference process
         self.disable_parameters_and_build(
@@ -80,6 +81,67 @@ class FuzzyLogicController(torch.nn.Sequential):
             The shape of the FLC.
         """
         return self.source.shape
+
+    def save(self, path: Path) -> None:
+        """
+        Save the FLC to a directory. This is a custom process to ensure that all the necessary
+        components are saved properly.
+
+        Args:
+            path: The directory path to save the FLC to.
+
+        Returns:
+            None
+        """
+        # each component is given its own directory to save to for easier access
+        # and to avoid the risk of overwriting files
+        state_dict: MutableMapping[str, Any] = self.state_dict()
+        state_dict["shape"] = tuple(self.shape)  # cast to tuple for serialization
+        torch.save(state_dict, path / "flc.pt")  # save the FLC state dictionary
+        self.input.save(
+            path / "input"
+        )  # save the input granulation layer (drop the extension)
+        self.engine.save(path / "engine.pt")  # save the inference engine
+        self.defuzzification.save(
+            path / "defuzzification"
+        )  # save the defuzzification method
+
+    @staticmethod
+    def load(path: Path, device: torch.device) -> "FuzzyLogicController":
+        """
+        Load the FLC from a directory. This is a custom process to ensure that all the necessary
+        components are loaded properly.
+
+        Args:
+            path: The directory path to load the FLC from.
+            device: The device to load the FLC to.
+
+        Returns:
+            The FLC object.
+        """
+        # load the components from their respective directories
+        input = FuzzySetGroup.load(path / "input", device=device)
+        engine = TNorm.load(path / "engine", device=device)
+        defuzzification = Defuzzification.load(path / "defuzzification", device=device)
+
+        # load the FLC state dictionary for the remaining components
+        state_dict: MutableMapping[str, Any] = torch.load(
+            path / "flc.pt", map_location=device
+        )
+        shape: Shape = Shape(*state_dict.pop("shape"))
+
+        defined_fuzzy_system = Defined(
+            shape=shape,
+            granulation=GranulationLayers(input=input, output=None),
+            engine=engine,
+            defuzzification=defuzzification,
+        )
+
+        return FuzzyLogicController(
+            source=defined_fuzzy_system,
+            inference=type(defuzzification),
+            device=device,
+        )
 
     def to(self, *args, **kwargs):
         """
@@ -119,12 +181,12 @@ class FuzzyLogicController(torch.nn.Sequential):
         """
         for module_name, module in modules.items():  # ignore the name
             if module is not None:
-                for param_name, param in module.named_parameters():
-                    if "mask" not in param_name and hasattr(param, "requires_grad"):
-                        # ignore attribute with "mask" in it; assume it's a non-learnable parameter,
-                        # or cannot enable this parameter; this is by design - do not raise an error
-                        # examples of such a case are mask parameters, links, and offsets
-                        param.requires_grad = param_name not in self.disabled_parameters
+                # for param_name, param in module.named_parameters():
+                #     if "mask" not in param_name and hasattr(param, "requires_grad"):
+                #         # ignore attribute with "mask" in it; assume it's a non-learnable parameter,
+                #         # or cannot enable this parameter; this is by design - do not raise an error
+                #         # examples of such a case are mask parameters, links, and offsets
+                #         param.requires_grad = param_name not in self.disabled_parameters
                 self.add_module(module_name, module)
 
     def split_granules_by_type(self) -> OrderedDict[str, List[FuzzySet]]:
@@ -174,3 +236,27 @@ class FuzzyLogicController(torch.nn.Sequential):
             inputs=results_lst[0],
             targets=None if len(results_lst) < 2 else results_lst[1],
         )
+
+    def forward(self, observations: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass for the FLC. This is the main method that will be called when the FLC is used
+        in a forward pass. This method will perform the fuzzy inference process, which includes
+        fuzzification, rule evaluation, and defuzzification.
+
+        Args:
+            observations: The observations to perform the fuzzy inference on.
+
+        Returns:
+            The defuzzified output of the FLC.
+        """
+        # fuzzification
+        granulated_input = self.input(observations)
+
+        # rule evaluation
+        rule_strengths = self.engine(granulated_input)
+
+        # defuzzification
+        try:  # TSK
+            return self.defuzzification(observations, rule_strengths)
+        except TypeError as e:  # Mamdani, ZeroOrder, etc.
+            return self.defuzzification(rule_strengths)

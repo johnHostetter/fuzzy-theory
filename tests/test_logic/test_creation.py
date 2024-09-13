@@ -9,8 +9,7 @@ import torch
 from fuzzy.relations.t_norm import Product
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
-
-from examples.demo_flcs import toy_mamdani
+from .demo_flcs import toy_mamdani
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

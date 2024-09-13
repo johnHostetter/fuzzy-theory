@@ -1,4 +1,5 @@
 import shutil
+import inspect
 import unittest
 from pathlib import Path
 
@@ -27,7 +28,7 @@ class TestFuzzySetImpl(unittest.TestCase):
         """
         for impl in all_subclasses(FuzzySet):
             kwargs = {"device": AVAILABLE_DEVICE}
-            if impl == FuzzySet:
+            if inspect.isabstract(impl):  # skip abstract classes (e.g., FuzzySet)
                 continue
             # centers must be a numpy array
             print(impl)
@@ -39,6 +40,34 @@ class TestFuzzySetImpl(unittest.TestCase):
             # centers and widths must not be empty
             self.assertRaises(ValueError, impl, np.array(1), np.array(1), **kwargs)
 
+    def test_grad_fn_is_not_none(self) -> None:
+        """
+        Sanity check that the grad_fn is not None for the FuzzySet implementations.
+
+        Returns:
+            None
+        """
+        for impl in all_subclasses(FuzzySet):
+            if inspect.isabstract(impl):  # skip abstract classes (e.g., FuzzySet)
+                continue
+            fuzzy_set = impl(
+                centers=np.array([0.0, 0.5, 1.0]),
+                widths=np.array([0.5, 0.75, 1.0]),
+                device=AVAILABLE_DEVICE,
+            )
+            # check that the grad_fn is not None
+            membership = fuzzy_set(
+                torch.tensor([[0.0], [0.25], [0.75]], device=AVAILABLE_DEVICE)
+            )
+            self.assertIsNotNone(membership.degrees.grad_fn)
+
+            # check that the grad_fn is not None if we made a FuzzySet from .stack()
+            fuzzy_set = impl.stack([fuzzy_set, fuzzy_set])
+            membership = fuzzy_set(
+                torch.tensor([[0.0], [0.25], [0.75]], device=AVAILABLE_DEVICE)
+            )
+            self.assertIsNotNone(membership.degrees.grad_fn)
+
     def test_move_to_device(self) -> None:
         """
         Test that the FuzzySet can be moved to a device.
@@ -47,7 +76,7 @@ class TestFuzzySetImpl(unittest.TestCase):
             None
         """
         for impl in all_subclasses(FuzzySet):
-            if impl == FuzzySet:
+            if inspect.isabstract(impl):  # skip abstract classes (e.g., FuzzySet)
                 continue
             fuzzy_set = impl(
                 centers=np.array([0.0, 0.5, 1.0]),
@@ -77,7 +106,7 @@ class TestFuzzySetImpl(unittest.TestCase):
             None
         """
         for impl in all_subclasses(FuzzySet):
-            if impl == FuzzySet:
+            if inspect.isabstract(impl):  # skip abstract classes (e.g., FuzzySet)
                 continue
             fuzzy_set = impl(
                 centers=np.array([[0.0, 0.5, 1.0], [2.0, 2.5, 3.0]]),

@@ -5,7 +5,6 @@ Demo of the ZeroOrderTSK or Mamdani FLC and how to use it when doing 'expert des
 
 from copy import deepcopy
 from typing import Tuple, List, Any, Type
-
 import torch
 import numpy as np
 from fuzzy.logic.rule import Rule

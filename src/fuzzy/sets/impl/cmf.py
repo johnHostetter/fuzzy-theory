@@ -1,5 +1,5 @@
 """
-Implements various membership functions by inheriting from FuzzySet.
+Implements various conventional membership functions (CMFs) by inheriting from FuzzySet.
 """
 
 from typing import Union
@@ -7,8 +7,8 @@ from typing import Union
 import sympy
 import torch
 
-from .abstract import FuzzySet
-from .membership import Membership
+from ..abstract import FuzzySet
+from ..membership import Membership
 
 
 class LogGaussian(FuzzySet):
@@ -79,13 +79,16 @@ class LogGaussian(FuzzySet):
         Returns:
             The membership degrees of the observations for the Log Gaussian fuzzy set.
         """
-        return (-1.0 * (
-            torch.pow(
-                observations - centers,
-                2,
+        return (
+            -1.0
+            * (
+                torch.pow(
+                    observations - centers,
+                    2,
+                )
+                / (width_multiplier * torch.pow(widths, 2) + 1e-32)
             )
-            / (width_multiplier * torch.pow(widths, 2) + 1e-32)
-        )).clamp(
+        ).clamp(
             min=-10, max=0
         )  # force values very close to zero to be zero
 
@@ -133,7 +136,7 @@ class LogGaussian(FuzzySet):
         return Membership(
             # elements=observations.squeeze(dim=-1),  # remove the last dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            # mask=self.get_mask(),
+            mask=self.get_mask(),
         )
 
 
@@ -212,7 +215,7 @@ class Gaussian(LogGaussian):
         return Membership(
             # elements=observations.squeeze(dim=-1),  # remove the last dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            # mask=self.get_mask(),
+            mask=self.get_mask(),
         )
 
 
@@ -308,7 +311,7 @@ class Lorentzian(FuzzySet):
         return Membership(
             # elements=observations.squeeze(dim=-1),  # remove the last dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            # mask=self.get_mask(),
+            mask=self.get_mask(),
         )
 
 
@@ -441,5 +444,5 @@ class Triangular(FuzzySet):
         return Membership(
             # elements=observations.squeeze(dim=-1),  # remove the last dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            # mask=self.get_mask(),
+            mask=self.get_mask(),
         )

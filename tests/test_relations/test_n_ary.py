@@ -90,7 +90,9 @@ class TestNAryRelation(unittest.TestCase):
             ],
             device=AVAILABLE_DEVICE,
         )
-        self.assertTrue(torch.allclose(membership.degrees.to_dense(), expected_membership_degrees))
+        self.assertTrue(
+            torch.allclose(membership.degrees.to_dense(), expected_membership_degrees)
+        )
         return membership
 
     def test_invalid_use_of_n_ary_relation(self) -> None:
@@ -154,14 +156,12 @@ class TestNAryRelation(unittest.TestCase):
         n_ary = NAryRelation((0, 1), (1, 0), device=AVAILABLE_DEVICE)
         membership = self.test_gaussian_membership()
         # we have not used the relation yet, but it is built from dummy inputs
-        self.assertTrue(n_ary.applied_mask is not None)
+        self.assertTrue(n_ary.get_mask() is not None)
         n_ary.apply_mask(membership=membership)
         self.assertTrue(n_ary.grouped_links is not None)
-        self.assertTrue(n_ary.applied_mask is not None)  # we have used the relation
+        self.assertTrue(n_ary.get_mask() is not None)  # we have used the relation
         self.assertTrue(
-            torch.allclose(
-                n_ary.grouped_links(membership=membership), n_ary.applied_mask
-            )
+            torch.allclose(n_ary.grouped_links(membership=membership), n_ary.get_mask())
         )
         # we can create a new n-ary relation with a GroupedLinks object
         new_n_ary = NAryRelation(
@@ -170,7 +170,7 @@ class TestNAryRelation(unittest.TestCase):
         # the new n-ary relation should have the same applied mask as the original
         self.assertTrue(
             torch.allclose(
-                new_n_ary.grouped_links(membership=membership), n_ary.applied_mask
+                new_n_ary.grouped_links(membership=membership), n_ary.get_mask()
             )
         )
 
@@ -280,7 +280,7 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(n_ary.indices, loaded_n_ary.indices)
         self.assertEqual(n_ary.nan_replacement, loaded_n_ary.nan_replacement)
         # the applied_mask is the resulting output from grouped_links()
-        self.assertTrue(torch.allclose(n_ary.applied_mask, loaded_n_ary.applied_mask))
+        self.assertTrue(torch.allclose(n_ary.get_mask(), loaded_n_ary.get_mask()))
         self.assertTrue(
             np.allclose(
                 n_ary._coo_matrix[0].toarray(), loaded_n_ary._coo_matrix[0].toarray()
@@ -317,7 +317,7 @@ class TestNAryRelation(unittest.TestCase):
         self.assertTrue(actual_destination.is_dir())
         loaded_n_ary = NAryRelation.load(actual_destination, device=AVAILABLE_DEVICE)
         self.assertTrue(
-            torch.allclose(n_ary.applied_mask, loaded_n_ary.applied_mask)
+            torch.allclose(n_ary.get_mask(), loaded_n_ary.get_mask())
         )  # the applied_mask is the resulting output from grouped_links()
         for actual_module, loaded_module in zip(
             n_ary.grouped_links.modules_list, loaded_n_ary.grouped_links.modules_list
@@ -444,7 +444,9 @@ class TestProduct(TestNAryRelation):
         self.assertEqual(prod_membership.degrees.shape[0], N_OBSERVATIONS)
         self.assertEqual(prod_membership.degrees.shape[1], N_COMPOUNDS)
         self.assertEqual(prod_membership.degrees.shape, expected_prod_values.shape)
-        self.assertTrue(torch.allclose(prod_membership.degrees.to_dense(), expected_prod_values))
+        self.assertTrue(
+            torch.allclose(prod_membership.degrees.to_dense(), expected_prod_values)
+        )
 
 
 class TestMinimum(TestNAryRelation):
@@ -560,7 +562,9 @@ class TestMinimum(TestNAryRelation):
             device=AVAILABLE_DEVICE,
         )
 
-        self.assertTrue(torch.allclose(min_membership.degrees.to_dense(), expected_degrees))
+        self.assertTrue(
+            torch.allclose(min_membership.degrees.to_dense(), expected_degrees)
+        )
 
 
 class TestCompound(TestNAryRelation):

@@ -138,9 +138,12 @@ class TestGroupedLinks(unittest.TestCase):
         expected_grouped_links = torch.cat(
             [self.binary_links_1.links, self.binary_links_2.links], dim=1
         )
-        self.assertTrue(
-            torch.allclose(expected_grouped_links, self.grouped_links(membership=None))
-        )
+        with torch.no_grad():  # disable grad checking
+            self.assertTrue(
+                torch.allclose(
+                    expected_grouped_links, self.grouped_links(membership=None)
+                )
+            )
 
     def test_save_and_load_linkage(self) -> None:
         """

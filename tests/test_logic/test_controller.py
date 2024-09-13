@@ -19,8 +19,7 @@ from fuzzy.logic.control.controller import FuzzyLogicController as FLC
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.relations.t_norm import Product
 from fuzzy.utils.classes import TimeDistributed
-
-from examples.demo_flcs import toy_mamdani
+from .demo_flcs import toy_mamdani
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -108,6 +107,7 @@ class TestTSK(unittest.TestCase):
         """
         # check that the output is correct
         predicted_y = self.fuzzy_logic_controller(self.input_data)
+        self.assertIsNotNone(predicted_y.grad_fn)
         self.assertEqual(predicted_y.shape, torch.Size([5, 1]))
 
         # check that the input granulation was correctly created
@@ -507,7 +507,7 @@ class TestMamdani(unittest.TestCase):
             device=AVAILABLE_DEVICE,
         )
         predicted_y = self.fuzzy_logic_controller(input_data)
-
+        self.assertIsNotNone(predicted_y.grad_fn)
         assert torch.allclose(predicted_y, expected_y)
 
         # check that the FLC can handle missing values
@@ -791,7 +791,7 @@ class TestMamdani(unittest.TestCase):
         # is correctly constructed and stored in the Mamdani FLC inference engine
         assert torch.allclose(
             expected_input_links,
-            self.fuzzy_logic_controller.engine.applied_mask,
+            self.fuzzy_logic_controller.engine.get_mask(),
         )
         assert torch.allclose(
             expected_output_links,

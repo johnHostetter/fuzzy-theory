@@ -128,12 +128,13 @@ class TestRule(unittest.TestCase):
         # compare the consequence indices
         self.assertEqual(rule.consequence.indices, loaded_rule.consequence.indices)
         # compare the created GroupedLinks objects
-        self.assertTrue(
-            torch.allclose(
-                rule.premise.grouped_links(None),
-                loaded_rule.premise.grouped_links(None),
+        with torch.no_grad():  # disable grad checking
+            self.assertTrue(
+                torch.allclose(
+                    rule.premise.grouped_links(None),
+                    loaded_rule.premise.grouped_links(None),
+                )
             )
-        )
         # compare the ID of the Rule objects
         self.assertEqual(rule.id, loaded_rule.id)
         # delete the folder

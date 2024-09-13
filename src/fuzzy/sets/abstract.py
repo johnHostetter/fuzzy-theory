@@ -120,7 +120,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         """
         return torch.nn.Parameter(
             torch.as_tensor(parameter, dtype=torch.float32, device=self.device),
-            requires_grad=True,  # explicitly set to True
+            # requires_grad=True,  # explicitly set to True
         )
 
     def make_mask(self, widths: np.ndarray) -> torch.Tensor:
@@ -148,6 +148,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         n_variables: int,
         n_terms: int,
         device: torch.device,
+        method: str,
         **kwargs,
     ) -> Union[NoReturn, "FuzzySet"]:
         """
@@ -160,6 +161,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             n_variables: The number of variables.
             n_terms: The number of terms.
             device: The device to use.
+            method: The method to use for creating the fuzzy set (e.g., "random" or "linear").
 
         Returns:
             A FuzzySet object, or a NotImplementedError if the method is not implemented.
@@ -172,8 +174,20 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                 "and inherit from FuzzySet, or use a predefined class, such as Gaussian."
             )
 
-        centers: np.ndarray = np.random.randn(n_variables, n_terms)
-        widths: np.ndarray = np.ones((n_variables, n_terms), dtype=np.float32) * 10.0
+        if method == "random":
+            centers: np.ndarray = np.random.randn(n_variables, n_terms)
+            widths: np.ndarray = np.abs(np.random.randn(n_variables, n_terms)).clip(
+                min=0.1
+            )
+        elif method == "linear":
+            centers: np.ndarray = np.linspace(start=0.0, stop=1.0, num=n_terms)[
+                None, :
+            ].repeat(repeats=n_variables, axis=0)
+            widths: np.ndarray = np.ones((n_variables, n_terms), dtype=np.float32) * 5.0
+        else:
+            raise ValueError(
+                f"The method must be either 'random' or 'linear', but got {method}"
+            )
         return cls(centers=centers, widths=widths, device=device, **kwargs)
 
     def __hash__(self):
@@ -208,6 +222,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         Returns:
             The concatenated centers of the fuzzy set.
         """
+        # return self._centers[0]
         return torch.cat(list(self._centers), dim=-1)
 
     def get_widths(self) -> torch.Tensor:
@@ -217,6 +232,8 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         Returns:
             The concatenated widths of the fuzzy set.
         """
+        # return self._widths[0]
+
         return torch.cat(list(self._widths), dim=-1)
 
     def get_mask(self) -> torch.Tensor:
@@ -226,6 +243,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         Returns:
             The concatenated mask of the fuzzy set.
         """
+        # return self._mask[0]
         return torch.cat(list(self._mask), dim=-1)
 
     @classmethod
@@ -265,10 +283,10 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         """
         check_path_to_save_torch_module(path)
         state_dict: MutableMapping = self.state_dict()
+        state_dict["class_name"] = self.__class__.__name__
         state_dict["centers"] = self.get_centers()  # concatenate the centers
         state_dict["widths"] = self.get_widths()  # concatenate the widths
         state_dict["mask"] = self.get_mask()  # currently not used
-        state_dict["class_name"] = self.__class__.__name__
         torch.save(state_dict, path)
         return state_dict
 

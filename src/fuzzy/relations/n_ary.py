@@ -93,6 +93,22 @@ class NAryRelation(TorchJitModule):
             self.indices.extend(indices)
             self._rebuild(*(max_var, max_term))
 
+        # # test if the relation is well-defined & build it
+        # # the last index, -1, is the relation index; first 2 are (variable, term) indices
+        # membership_shape: torch.Size = self.grouped_links.shape[:-1]
+        # # but we also need to include a dummy batch dimension (32) for the grouped_links
+        # membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
+        # self.applied_mask = self.grouped_links(
+        #     Membership(
+        #         # elements=torch.empty(membership_shape, device=self.device),
+        #         degrees=torch.zeros(membership_shape, device=self.device),
+        #         # mask=torch.empty(membership_shape, device=self.device),
+        #     )
+        # )
+        self.applied_mask: Union[None, torch.Tensor] = (
+            None  # created later (via self.apply_mask)
+        )
+
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.indices})"
 
@@ -102,14 +118,10 @@ class NAryRelation(TorchJitModule):
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, NAryRelation) or not isinstance(self, type(other)):
             return False
-        if self.applied_mask is None:
-            return (
-                self.indices == other.indices
-                and self.nan_replacement == other.nan_replacement
-            )
+        applied_mask, other_applied_mask = self.get_mask(), other.get_mask()
         return (
-            self.applied_mask.shape == other.applied_mask.shape
-            and torch.allclose(self.applied_mask, other.applied_mask)
+            applied_mask.shape == other_applied_mask.shape
+            and torch.allclose(applied_mask, other_applied_mask)
             and self.nan_replacement == other.nan_replacement
         )
 
@@ -122,27 +134,6 @@ class NAryRelation(TorchJitModule):
             The shape of the relation's matrix.
         """
         return self.grouped_links.shape
-
-    @property
-    def applied_mask(self) -> torch.Tensor:
-        """
-        Get the applied mask.
-
-        Returns:
-            The applied mask.
-        """
-        # test if the relation is well-defined & build it
-        # the last index, -1, is the relation index; first 2 are (variable, term) indices
-        membership_shape: torch.Size = self.grouped_links.shape[:-1]
-        # but we also need to include a dummy batch dimension (32) for the grouped_links
-        membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
-        return self.grouped_links(
-            Membership(
-                # elements=torch.empty(membership_shape, device=self.device),
-                degrees=torch.empty(membership_shape, device=self.device),
-                # mask=torch.empty(membership_shape, device=self.device),
-            )
-        )
 
     @staticmethod
     def convert_indices_to_matrix(indices) -> sps._coo.coo_matrix:
@@ -158,6 +149,27 @@ class NAryRelation(TorchJitModule):
         data = np.ones(len(indices))  # a '1' indicates a relation exists
         row, col = zip(*indices)
         return sps.coo_matrix((data, (row, col)), dtype=np.int8)
+
+    def get_mask(self) -> torch.Tensor:
+        """
+        Get the applied mask.
+
+        Returns:
+            The applied mask.
+        """
+        # test if the relation is well-defined & build it
+        # the last index, -1, is the relation index; first 2 are (variable, term) indices
+        membership_shape: torch.Size = self.grouped_links.shape[:-1]
+        # but we also need to include a dummy batch dimension (32) for the grouped_links
+        membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
+        with torch.no_grad():  # disable grad checking
+            dummy_membership: Membership = Membership(
+                # elements=torch.empty(membership_shape, device=self.device),
+                degrees=torch.ones(membership_shape, device=self.device),
+                mask=torch.ones(membership_shape, device=self.device),
+            )
+            mask = self.grouped_links(dummy_membership)
+        return mask
 
     def to(self, device: torch.device, *args, **kwargs) -> "NAryRelation":
         """
@@ -177,6 +189,40 @@ class NAryRelation(TorchJitModule):
             self.grouped_links.to(device)
         return self
 
+    def _state_dict(self, path: Path) -> MutableMapping[str, Any]:
+        """
+        An internal method to get the state dictionary for the n-ary relation. A path is required
+        to save the grouped_links, as it is not saved in the state dictionary.
+
+        Allows subclasses to override the save method without having to repeat the code for saving
+        the state dictionary of the general n-ary relation.
+
+        Note: THIS WILL SAVE THE GROUPED_LINKS TO THE GIVEN PATH (AFTER SOME MODIFICATION).
+
+        Args:
+            path: The path to save the grouped_links.
+
+        Returns:
+            The state dictionary for the n-ary relation.
+        """
+        state_dict: MutableMapping[str, Any] = self.state_dict()
+        state_dict["nan_replacement"] = self.nan_replacement
+        state_dict["class_name"] = self.__class__.__name__
+
+        if len(self.indices) == 0:
+            # we will rebuild from the grouped_links, so we do not need to save the indices
+            grouped_links_dir: Path = path / "grouped_links"
+            self.grouped_links.save(path=grouped_links_dir)
+            state_dict["grouped_links"] = (
+                grouped_links_dir  # save the path to the grouped_links
+            )
+        else:
+            # we will rebuild from the indices, so we do not need to save the grouped_links
+            state_dict["indices"] = (
+                self.indices if len(self.indices) > 1 else self.indices[0]
+            )
+        return state_dict
+
     def save(self, path: Path) -> MutableMapping[str, Any]:
         """
         Save the n-ary relation to a dictionary given a path.
@@ -189,25 +235,15 @@ class NAryRelation(TorchJitModule):
             The dictionary representation of the n-ary relation.
         """
         check_path_to_save_torch_module(path)
-        state_dict: MutableMapping = self.state_dict()
-        state_dict["nan_replacement"] = self.nan_replacement
-        state_dict["class_name"] = self.__class__.__name__
+        dir_path: Path = path.parent / path.name.split(".")[0]
+        state_dict: MutableMapping[str, Any] = self._state_dict(path=dir_path)
 
-        if len(self.indices) == 0:
-            dir_path = path.parent / path.name.split(".")[0]
-            # we will rebuild from the grouped_links, so we do not need to save the indices
-            grouped_links_dir: Path = dir_path / "grouped_links"
-            self.grouped_links.save(path=grouped_links_dir)
-            state_dict["grouped_links"] = (
-                grouped_links_dir  # save the path to the grouped_links
-            )
-            torch.save(state_dict, dir_path / "state_dict.pt")
-        else:
-            # we will rebuild from the indices, so we do not need to save the grouped_links
-            state_dict["indices"] = (
-                self.indices if len(self.indices) > 1 else self.indices[0]
-            )
-            torch.save(state_dict, path)
+        # where to save the state_dict depends on whether the indices are given or not
+        save_location: Path = (
+            dir_path / "state_dict.pt" if len(self.indices) == 0 else path
+        )
+
+        torch.save(state_dict, save_location)
 
         return state_dict
 
@@ -238,11 +274,14 @@ class NAryRelation(TorchJitModule):
                 nan_replacement=nan_replacement,
             )
         grouped_links: Path = state_dict.pop("grouped_links")
-        return cls.get_subclass(class_name)(
+        obj = cls.get_subclass(class_name)(
             device=device,
             grouped_links=GroupedLinks.load(grouped_links, device=device),
             nan_replacement=nan_replacement,
         )
+        # add other attributes that may be specific to the subclass
+        obj.load_state_dict(state_dict, strict=False)
+        return obj
 
     def create_ndarray(self, max_var: int, max_term: int) -> None:
         """
@@ -338,73 +377,25 @@ class NAryRelation(TorchJitModule):
             The masked membership values (zero may or may not be a valid degree of truth).
         """
         membership_shape: torch.Size = membership.degrees.shape
-        if self.applied_mask.shape[:-1] != membership_shape[1:]:
+        if self.grouped_links.shape[:-1] != membership_shape[1:]:
             # if len(membership_shape) > 2:
             # this is for the case where masks have been stacked due to compound relations
             membership_shape = membership_shape[1:]  # get the last two dimensions
             self.resize(*membership_shape)
         del membership_shape  # free up memory
 
-        # for very large batch sizes (e.g., 1024), we can run out of memory
-        # so to avoid this, we cut the batch size by using blocks
-        result_blocks = []
-        # block_size = 64
-
-        # print(f"original membership.degrees: {membership.degrees.shape}")
-        # for i in range(0, membership.degrees.shape[0], block_size):
-        #     membership_block: Membership = Membership(degrees=membership.degrees.to_dense()[i:i + block_size])
-        membership_block = membership
         # select memberships that are not zeroed out (i.e., involved in the relation)
-        applied_mask: torch.Tensor = self.grouped_links(membership=membership_block)
-        # complement_mask = (
-        #     torch.ones_like(applied_mask, device=self.device) - applied_mask
-        # )
-        #
-        # print(f"membership.degrees: {membership_block.degrees.shape}")
-        # print(f"self.applied_mask: {applied_mask.shape}")
-
-        # einsum formula - this works, but is not efficient
-        after_mask = torch.einsum('ijk,jkl->ijkl', membership_block.degrees,
-                                      applied_mask)#.to_sparse()
-        del membership_block  # free up memory
-
-        # result_blocks.append(after_mask)
-
-        # new_after_mask = (
-        #     membership.degrees.to_dense().unsqueeze(dim=-1) * applied_mask.unsqueeze(0).to_sparse()
-        # )
-        #
-        # # original (works)
-        # after_mask = (
-        #     membership.degrees.to_dense().unsqueeze(dim=-1) * applied_mask.unsqueeze(0)
-        # ).to_sparse()
-
-        # after_mask = torch.cat(result_blocks, dim=0)
-        # print(f"after_mask: {after_mask.shape}")
-
-        # new edits for sparse; reduce from torch.float32 to torch.float16 w/ half()
-        # applied_mask = applied_mask.to_sparse()
-        # complement_mask = torch.ones_like(applied_mask.to_dense(), device=applied_mask.device) - applied_mask
-        # after_mask = membership.degrees.unsqueeze(dim=-1) * applied_mask
-        # del applied_mask  # free up memory
-
-        # applied_mask: torch.Tensor = applied_mask.unsqueeze(0)
-        # after_mask = membership.degrees.unsqueeze(dim=-1) * applied_mask.to_sparse()
+        self.applied_mask: torch.Tensor = self.grouped_links(membership=membership)
+        after_mask = membership.degrees.unsqueeze(dim=-1) * self.applied_mask.unsqueeze(
+            0
+        )
         # the complement mask adds zeros where the mask is zero, these are not part of the relation
         # nan_to_num is used to replace nan values with the nan_replacement value (often not needed)
-        torch.cuda.empty_cache()
-        result_blocks.append(
-            ((1 - applied_mask) + after_mask)  # add(dense, sparse) - NOT add(sparse, dense)
-            # (complement_mask + after_mask)
-            # (torch.ones_like(after_mask.to_dense(), device=after_mask.device) - after_mask).to_dense()
-            .prod(dim=2, keepdim=False).nan_to_num(self.nan_replacement)
-        )  # result is dense
-        del after_mask, applied_mask  # free up memory
-        return result_blocks[0]
-        # result = torch.cat(result_blocks, dim=0)
-        # del result_blocks
-        # torch.cuda.empty_cache()
-        # return result
+        return (
+            (after_mask + (1 - self.applied_mask))
+            .prod(dim=2, keepdim=False)
+            .nan_to_num(self.nan_replacement)
+        )
 
     def forward(self, membership: Membership) -> torch.Tensor:
         """

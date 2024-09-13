@@ -3,18 +3,21 @@ Implements the various versions of the defuzzification process within a fuzzy in
 """
 
 import abc
-from typing import Union
+from pathlib import Path
+from typing import Union, Any, Tuple
+from collections.abc import MutableMapping
 
 import torch
 import numpy as np
 
 from fuzzy.logic.rulebase import RuleBase
-from fuzzy.logic.control.configurations import Shape
+from fuzzy.logic.control.configurations.data import Shape
 from fuzzy.sets.membership import Membership
 from fuzzy.sets.group import FuzzySetGroup
+from fuzzy.utils import TorchJitModule
 
 
-class Defuzzification(torch.nn.Module):
+class Defuzzification(TorchJitModule):
     """
     Implements the defuzzification process for a fuzzy inference engine.
     """
@@ -34,6 +37,30 @@ class Defuzzification(torch.nn.Module):
         self.device = device
         self.rule_base: Union[None, RuleBase] = (
             rule_base  # currently only used for Mamdani
+        )
+
+    @classmethod
+    def load(cls, path: Path, device: torch.device) -> "FuzzySet":
+        """
+        Load the fuzzy set from a file and put it on the specified device.
+
+        Returns:
+            None
+        """
+        state_dict: MutableMapping = torch.load(path, weights_only=False)
+        shape: Shape = Shape(*state_dict.pop("shape"))
+        source: Union[None, np.ndarray, torch.nn.Sequential, FuzzySetGroup] = (
+            state_dict.pop("source")
+        )
+        rule_base: Union[None, RuleBase] = (
+            state_dict.pop("rule_base") if "rule_base" in state_dict else None
+        )
+        class_name: str = state_dict.pop("class_name")
+        return cls.get_subclass(class_name)(
+            shape=shape,
+            source=source,
+            device=device,
+            rule_base=rule_base,
         )
 
     def to(self, device: torch.device, *args, **kwargs) -> "Defuzzification":
@@ -94,6 +121,40 @@ class ZeroOrder(Defuzzification):
             consequences = torch.as_tensor(source, device=self.device)
         self.consequences = torch.nn.Parameter(consequences)
 
+    def save(self, path: Path) -> MutableMapping[str, Any]:
+        """
+        Save the defuzzification process to a directory.
+
+        Args:
+            path: The directory path to save the defuzzification process to.
+
+        Returns:
+            The state dictionary of the defuzzification process that was saved.
+        """
+        state_dict: MutableMapping = self.state_dict()
+        state_dict["class_name"] = self.__class__.__name__
+        state_dict["shape"] = tuple(self.shape)  # convert to tuple for serialization
+        state_dict["source"] = self.consequences.detach().cpu().numpy()
+        torch.save(state_dict, path)
+        return state_dict
+
+    @classmethod
+    def load(cls, path: Path, device: torch.device) -> "ZeroOrder":
+        """
+        Load the defuzzification process from a directory.
+
+        Args:
+            path: The directory path to load the defuzzification process from.
+            device: The device to load the defuzzification process to.
+
+        Returns:
+            The defuzzification process.
+        """
+        state_dict: MutableMapping = torch.load(path, weights_only=False)
+        shape: Shape = Shape(*state_dict.pop("shape"))
+        source: np.ndarray = state_dict.pop("source")
+        return ZeroOrder(shape=shape, source=source, device=device, **state_dict)
+
     def to(self, device: torch.device, *args, **kwargs) -> "ZeroOrder":
         """
         Move the defuzzification process to a device.
@@ -148,18 +209,14 @@ class ZeroOrder(Defuzzification):
         #     antecedents_memberships.elements.unsqueeze(dim=-1)
         #     * self.consequences_matrix
         # )
-        numerator = (
-            # rule_activations * (t.sum(dim=1).unsqueeze(dim=-1) + self.consequences)
-            rule_activations.degrees.unsqueeze(dim=-1)
-            * self.consequences
-        ).sum(dim=1)
+        return (rule_activations.degrees.unsqueeze(dim=-1) * self.consequences).sum(
+            dim=1
+        )
 
-        # pylint: disable=fixme
-        # TODO: get this to work properly
-        # if "softmax" in self.specs["defuzzification"]:
-        #     # the high-dimensional TSK trick with Softmax requires only the numerator
-        #     return numerator
 
+class NormalizedZeroOrder(ZeroOrder):
+    def forward(self, rule_activations: Membership) -> torch.Tensor:
+        numerator: torch.Tensor = self.super().forward(rule_activations)
         # unsqueeze must be there with or without confidences
         denominator = (rule_activations.degrees).sum(dim=1, keepdim=True)
         denominator += (
@@ -182,16 +239,58 @@ class TSK(Defuzzification):
     def __init__(
         self,
         shape: Shape,
+        source: Union[None, np.ndarray],
         device: torch.device,
         *args,
         **kwargs,
     ):
-        super().__init__(shape=shape, device=device, *args, **kwargs)
-        self.consequences = torch.nn.Sequential(
-            torch.nn.Linear(
-                self.shape.n_rules, self.shape.n_outputs, device=self.device
-            ),
-        )
+        super().__init__(shape=shape, source=source, device=device, *args, **kwargs)
+        if source is None:
+            consequences = torch.zeros(
+                [shape.n_outputs, shape.n_rules, shape.n_inputs + 1],
+                dtype=torch.float32,
+            )
+        else:
+            consequences = torch.as_tensor(source, device=self.device)
+
+        self.consequences = torch.nn.Parameter(consequences, requires_grad=True)
+        # self.weights = torch.nn.Parameter(
+        #     torch.ones([shape.n_rules], dtype=torch.float32), requires_grad=True
+        # )
+
+    def save(self, path: Path) -> MutableMapping[str, Any]:
+        """
+        Save the defuzzification process to a directory.
+
+        Args:
+            path: The directory path to save the defuzzification process to.
+
+        Returns:
+            The state dictionary of the defuzzification process that was saved.
+        """
+        state_dict: MutableMapping = self.state_dict()
+        state_dict["class_name"] = self.__class__.__name__
+        state_dict["shape"] = tuple(self.shape)  # convert to tuple for serialization
+        state_dict["source"] = self.consequences.detach().cpu().numpy()
+        torch.save(state_dict, path)
+        return state_dict
+
+    @classmethod
+    def load(cls, path: Path, device: torch.device) -> "TSK":
+        """
+        Load the defuzzification process from a directory.
+
+        Args:
+            path: The directory path to load the defuzzification process from.
+            device: The device to load the defuzzification process to.
+
+        Returns:
+            The defuzzification process.
+        """
+        state_dict: MutableMapping = torch.load(path, weights_only=False)
+        shape: Shape = Shape(*state_dict.pop("shape"))
+        source: np.ndarray = state_dict.pop("source")
+        return TSK(shape=shape, source=source, device=device, **state_dict)
 
     def to(self, device: torch.device, *args, **kwargs) -> "TSK":
         """
@@ -209,8 +308,24 @@ class TSK(Defuzzification):
         self.consequences.to(device)
         return self
 
-    def forward(self, rule_activations: Membership) -> torch.Tensor:
-        return self.consequences(rule_activations.degrees.squeeze(dim=-1))
+    def forward(
+        self, observations: torch.Tensor, rule_activations: Membership
+    ) -> torch.Tensor:
+        # print("w", self.consequences[0].state_dict()['weight'][0][0])
+        # print("b", self.consequences[0].state_dict()['bias'][0])
+        rule_output = (
+            self.consequences[:, :, 1:] @ observations.T
+        ).T + self.consequences[:, :, 0].T
+        fir_str_bar = rule_activations.degrees / torch.sum(
+            rule_activations.degrees, 1
+        ).unsqueeze(
+            1
+        )  # [num_sam,num_rule]
+        model_output = torch.einsum(
+            "NRC,NR->NC", rule_output, fir_str_bar  # * self.weights
+        )  # [num_sam,out_dim]
+        # print(model_output.max().item())
+        return model_output
 
 
 class Mamdani(Defuzzification):
@@ -237,7 +352,7 @@ class Mamdani(Defuzzification):
         )
         # this is used for Mamdani inference, but not for TSK inference
         self.output_links: Union[None, torch.Tensor] = torch.as_tensor(
-            self.rule_base.consequences.applied_mask.permute(dims=(2, 0, 1)),
+            self.rule_base.consequences.get_mask().permute(dims=(2, 0, 1)),
             dtype=torch.int8,
             device=self.device,
         )
