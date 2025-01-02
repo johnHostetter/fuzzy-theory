@@ -104,7 +104,7 @@ class ZeroOrder(Defuzzification):
     def __init__(
         self,
         shape: Shape,
-        source: Union[None, np.ndarray],
+        source: Union[None, np.ndarray, FuzzySetGroup],
         device: torch.device,
         *args,
         **kwargs,
@@ -117,6 +117,8 @@ class ZeroOrder(Defuzzification):
             # pylint: disable=fixme
             # TODO: Add support for different initialization methods
             torch.nn.init.xavier_normal_(consequences)
+        elif isinstance(source, FuzzySetGroup):
+            consequences = torch.as_tensor(source.centers, device=self.device)
         else:
             consequences = torch.as_tensor(source, device=self.device)
         self.consequences = torch.nn.Parameter(consequences)

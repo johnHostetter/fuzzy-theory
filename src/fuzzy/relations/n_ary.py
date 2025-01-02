@@ -350,13 +350,13 @@ class NAryRelation(TorchJitModule):
         """
         # re-create the self.matrix
         self.create_ndarray(shape[0], shape[1])
-        # re-create the self.graph
-        self.create_igraph()
         # update the self.grouped_links to reflect the new shape
         # these links are used to zero out the values that are not part of the relation
         self.grouped_links = GroupedLinks(
             modules_list=[BinaryLinks(links=self.matrix, device=self.device)]
         )
+        # re-create the self.graph (has to happen after self.grouped_links is created)
+        self.create_igraph()
 
     def resize(self, *shape) -> None:
         """
