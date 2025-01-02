@@ -2,6 +2,8 @@
 Test the fuzzy n-ary relations work as expected.
 """
 
+# import os
+# os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 import shutil
 import unittest
 from pathlib import Path
@@ -156,12 +158,16 @@ class TestNAryRelation(unittest.TestCase):
         n_ary = NAryRelation((0, 1), (1, 0), device=AVAILABLE_DEVICE)
         membership = self.test_gaussian_membership()
         # we have not used the relation yet, but it is built from dummy inputs
-        self.assertTrue(n_ary.get_mask() is not None)
+        self.assertTrue(n_ary.get_mask().to_dense() is not None)
         n_ary.apply_mask(membership=membership)
         self.assertTrue(n_ary.grouped_links is not None)
-        self.assertTrue(n_ary.get_mask() is not None)  # we have used the relation
+        self.assertTrue(n_ary.get_mask().to_dense() is not None)  # we have used the relation
+
         self.assertTrue(
-            torch.allclose(n_ary.grouped_links(membership=membership), n_ary.get_mask())
+            torch.allclose(
+                n_ary.grouped_links(membership=membership).to_dense(),
+                n_ary.get_mask().to_dense()
+            )
         )
         # we can create a new n-ary relation with a GroupedLinks object
         new_n_ary = NAryRelation(
@@ -170,7 +176,8 @@ class TestNAryRelation(unittest.TestCase):
         # the new n-ary relation should have the same applied mask as the original
         self.assertTrue(
             torch.allclose(
-                new_n_ary.grouped_links(membership=membership), n_ary.get_mask()
+                new_n_ary.grouped_links(membership=membership).to_dense(),
+                n_ary.get_mask().to_dense()
             )
         )
 
@@ -280,7 +287,7 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(n_ary.indices, loaded_n_ary.indices)
         self.assertEqual(n_ary.nan_replacement, loaded_n_ary.nan_replacement)
         # the applied_mask is the resulting output from grouped_links()
-        self.assertTrue(torch.allclose(n_ary.get_mask(), loaded_n_ary.get_mask()))
+        self.assertTrue(torch.allclose(n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense()))
         self.assertTrue(
             np.allclose(
                 n_ary._coo_matrix[0].toarray(), loaded_n_ary._coo_matrix[0].toarray()
@@ -289,6 +296,7 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(n_ary._coo_matrix[0].shape, loaded_n_ary._coo_matrix[0].shape)
         # remove the file
         Path(f"{file_name}.pt").unlink()
+
 
     def test_save_and_load_from_grouped_links(self) -> None:
         """
@@ -317,7 +325,7 @@ class TestNAryRelation(unittest.TestCase):
         self.assertTrue(actual_destination.is_dir())
         loaded_n_ary = NAryRelation.load(actual_destination, device=AVAILABLE_DEVICE)
         self.assertTrue(
-            torch.allclose(n_ary.get_mask(), loaded_n_ary.get_mask())
+            torch.allclose(n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense())
         )  # the applied_mask is the resulting output from grouped_links()
         for actual_module, loaded_module in zip(
             n_ary.grouped_links.modules_list, loaded_n_ary.grouped_links.modules_list
@@ -611,3 +619,57 @@ class TestCompound(TestNAryRelation):
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
+
+class TestComputationalAbilities(unittest.TestCase):
+    """
+    This class tests the computational abilities of the n-ary relation, particularly when dealing
+    with very large relations. It pushes the limits of the n-ary relation to see if it can handle
+    extremely large fuzzy inference systems.
+
+    Failing this test does not necessarily mean that the n-ary relation is not working as expected,
+    but it may indicate that the n-ary relation is not optimized for very large fuzzy inference
+    systems (e.g., those with thousands of features, such as in computer vision).
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.n_terms: int = 16
+        self.n_variables: int = 24000
+        self.n_relations: int = 256
+
+    def test_very_large_n_ary_relation(self) -> None:
+        """
+        Test the n-ary relation can handle very large relations involving thousands of features.
+
+        Essentially, this is to check that memory management is working as expected; particularly
+        for CUDA devices.
+
+        Returns:
+            None
+        """
+        # random indices
+        indices: np.ndarray = np.random.choice(
+            [0, 1],
+            size=(self.n_variables * self.n_terms * self.n_relations)).reshape(
+            self.n_variables, self.n_terms, self.n_relations
+        )
+        n_ary = NAryRelation(
+            grouped_links=GroupedLinks(
+                modules_list=[
+                    BinaryLinks(
+                        indices,
+                        device=AVAILABLE_DEVICE,
+                    )
+                ]
+            ),
+            device=AVAILABLE_DEVICE
+        )
+        # example membership
+        membership_function: FuzzySet = Gaussian.create(
+            self.n_variables, self.n_terms, device=AVAILABLE_DEVICE, method="random"
+        )
+        # max terms used in the above N-ary relation
+        membership: Membership = membership_function(
+            torch.randn(N_OBSERVATIONS, self.n_variables, self.n_terms, device=AVAILABLE_DEVICE)
+        )
+        # check that the apply_mask works
+        n_ary.apply_mask(membership)
