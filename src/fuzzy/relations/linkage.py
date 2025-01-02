@@ -25,14 +25,27 @@ class BinaryLinks(torch.nn.Module):
 
     def __init__(self, links: np.ndarray, device: torch.device, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.links: torch.Tensor = torch.tensor(links, dtype=torch.int8, device=device)
+        indices: torch.Tensor = torch.tensor(links.nonzero(), device=device)
+        self.links = torch.sparse_coo_tensor(
+            indices=indices, values=torch.ones(indices.shape[1], dtype=torch.bool, device=device),
+            size=links.shape,
+        )
+        # the below is VALID but NOT compatible w/ autograd
+        # store term selections as integers for major memory savings; each variable -> selected term
+        # self.original_links: np.ndarray = links
+        # cast_links = links.astype(dtype=float)
+        # cast_links[cast_links == 0] = 'nan'
+        # self.memory_efficient_links: np.ndarray = np.nanargmax(links, axis=1)  # 2D shape: (n_inputs, n_relations)
+        # self.links: torch.Tensor = torch.tensor(
+        #     self.memory_efficient_links, dtype=torch.int8, device=device
+        # )
         self.device: torch.device = device
 
     def __hash__(self) -> int:
         return hash(self.links)
 
     def __eq__(self, other: Any) -> bool:
-        return isinstance(other, BinaryLinks) and torch.equal(self.links, other.links)
+        return isinstance(other, BinaryLinks) and torch.equal(self.links.to_dense(), other.links.to_dense())
 
     @property
     def shape(self) -> Size:

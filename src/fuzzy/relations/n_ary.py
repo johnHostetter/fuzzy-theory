@@ -62,7 +62,11 @@ class NAryRelation(TorchJitModule):
         #     None  # created later (at the end of the constructor)
         # )
         self.graph = None  # will be created later (via self._rebuild)
+
+        # variables used for when the indices are given
         self.indices: List[List[Tuple[int, int]]] = []
+        self._coo_matrix: List[sps._coo.coo_matrix] = []
+        self._original_shape: List[Tuple[int, int]] = []
 
         if not indices:  # indices are not given
             if grouped_links is None:
@@ -77,8 +81,6 @@ class NAryRelation(TorchJitModule):
 
             # this scenario is for when we have multiple compound indices that use the same relation
             # this is useful for computational efficiency (i.e., not having to use a for loop)
-            self._coo_matrix: List[sps._coo.coo_matrix] = []
-            self._original_shape: List[Tuple[int, int]] = []
             for relation_indices in indices:
                 if len(set(relation_indices)) < len(relation_indices):
                     raise ValueError(
@@ -121,7 +123,7 @@ class NAryRelation(TorchJitModule):
         applied_mask, other_applied_mask = self.get_mask(), other.get_mask()
         return (
             applied_mask.shape == other_applied_mask.shape
-            and torch.allclose(applied_mask, other_applied_mask)
+            and torch.allclose(applied_mask.indices(), other_applied_mask.indices())
             and self.nan_replacement == other.nan_replacement
         )
 
@@ -161,14 +163,16 @@ class NAryRelation(TorchJitModule):
         # the last index, -1, is the relation index; first 2 are (variable, term) indices
         membership_shape: torch.Size = self.grouped_links.shape[:-1]
         # but we also need to include a dummy batch dimension (32) for the grouped_links
-        membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
+        batched_membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
         with torch.no_grad():  # disable grad checking
             dummy_membership: Membership = Membership(
                 # elements=torch.empty(membership_shape, device=self.device),
-                degrees=torch.ones(membership_shape, device=self.device),
+                degrees=torch.ones(batched_membership_shape, device=self.device),
                 mask=torch.ones(membership_shape, device=self.device),
             )
             mask = self.grouped_links(dummy_membership)
+            if mask.is_sparse and not mask.is_coalesced():
+                mask = mask.coalesce()
         return mask
 
     def to(self, device: torch.device, *args, **kwargs) -> "NAryRelation":
@@ -299,8 +303,9 @@ class NAryRelation(TorchJitModule):
             # first resize
             coo_matrix.resize(max_var, max_term)
             matrices.append(coo_matrix.toarray())
-        # make a new axis and stack long that axis
-        self.matrix: np.ndarray = np.stack(matrices).swapaxes(0, 1).swapaxes(1, 2)
+        if len(matrices) > 0:  # need at least one array to stack
+            # make a new axis and stack along that axis
+            self.matrix: np.ndarray = np.stack(matrices).swapaxes(0, 1).swapaxes(1, 2)
 
     def create_igraph(self) -> None:
         """
@@ -330,7 +335,8 @@ class NAryRelation(TorchJitModule):
                     index_pair,
                     {"anchor"},
                 )
-        self.graph = igraph.union(graphs, byname=True)
+        if len(graphs) > 0:  # need at least one graph to union
+            self.graph = igraph.union(graphs, byname=True)
 
     def _rebuild(self, *shape) -> None:
         """
@@ -384,18 +390,27 @@ class NAryRelation(TorchJitModule):
             self.resize(*membership_shape)
         del membership_shape  # free up memory
 
+        # the below is VALID but NOT compatible w/ autograd
+        # indices = self.applied_mask.to(torch.int64)
+        # indices = indices.unsqueeze(0).expand(membership.degrees.size(0), -1, -1)
+        # after_mask = torch.gather(membership.degrees, -1, indices)
+        # return after_mask.nan_to_num(self.nan_replacement)
+
         # select memberships that are not zeroed out (i.e., involved in the relation)
-        self.applied_mask: torch.Tensor = self.grouped_links(membership=membership)
+        # with torch.autograd.graph.save_on_cpu():  # save the graph on the CPU (for memory)
+        self.applied_mask: torch.Tensor = self.grouped_links(membership=membership).to_dense()
         after_mask = membership.degrees.unsqueeze(dim=-1) * self.applied_mask.unsqueeze(
             0
         )
-        # the complement mask adds zeros where the mask is zero, these are not part of the relation
-        # nan_to_num is used to replace nan values with the nan_replacement value (often not needed)
-        return (
+        # complement mask adds zeros where the mask is zero, these are not part of the relation
+        # nan_to_num replaces nan values with the nan_replacement value (often not needed)
+        result = (
             (after_mask + (1 - self.applied_mask))
             .prod(dim=2, keepdim=False)
             .nan_to_num(self.nan_replacement)
         )
+        del after_mask
+        return result
 
     def forward(self, membership: Membership) -> torch.Tensor:
         """

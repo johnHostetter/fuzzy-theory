@@ -136,7 +136,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         Returns:
             A torch.Tensor object.
         """
-        return torch.as_tensor(widths > 0.0, dtype=torch.int8, device=self.device)
+        return torch.as_tensor(widths > 0.0, dtype=torch.uint8, device=self.device)
         # return torch.nn.Parameter(
         #     torch.as_tensor(widths > 0.0, dtype=torch.int8, device=self.device),
         #     requires_grad=False,  # explicitly set to False (mask is not trainable)
@@ -183,7 +183,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             centers: np.ndarray = np.linspace(start=0.0, stop=1.0, num=n_terms)[
                 None, :
             ].repeat(repeats=n_variables, axis=0)
-            widths: np.ndarray = np.ones((n_variables, n_terms), dtype=np.float32) * 5.0
+            widths: np.ndarray = np.ones((n_variables, n_terms), dtype=np.float32) * 0.5
         else:
             raise ValueError(
                 f"The method must be either 'random' or 'linear', but got {method}"
