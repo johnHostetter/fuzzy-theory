@@ -123,7 +123,7 @@ class NAryRelation(TorchJitModule):
         applied_mask, other_applied_mask = self.get_mask(), other.get_mask()
         return (
             applied_mask.shape == other_applied_mask.shape
-            and torch.allclose(applied_mask.indices(), other_applied_mask.indices())
+            and torch.allclose(applied_mask, other_applied_mask)
             and self.nan_replacement == other.nan_replacement
         )
 

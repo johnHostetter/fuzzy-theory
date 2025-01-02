@@ -25,11 +25,12 @@ class BinaryLinks(torch.nn.Module):
 
     def __init__(self, links: np.ndarray, device: torch.device, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        indices: torch.Tensor = torch.tensor(links.nonzero(), device=device)
-        self.links = torch.sparse_coo_tensor(
-            indices=indices, values=torch.ones(indices.shape[1], dtype=torch.bool, device=device),
-            size=links.shape,
-        )
+        self.links: torch.Tensor = torch.tensor(links, dtype=torch.int8, device=device)
+        # indices: torch.Tensor = torch.tensor(links.nonzero(), device=device)
+        # self.links = torch.sparse_coo_tensor(
+        #     indices=indices, values=torch.ones(indices.shape[1], dtype=torch.bool, device=device),
+        #     size=links.shape,
+        # )
         # the below is VALID but NOT compatible w/ autograd
         # store term selections as integers for major memory savings; each variable -> selected term
         # self.original_links: np.ndarray = links

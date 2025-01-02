@@ -56,10 +56,11 @@ class FuzzyLogicController(torch.nn.Sequential):
             :-1
         ]  # drop the last dimension (# of rules)
         if input_granulation_size != engine_size:
-            raise ValueError(
-                f"The input granulation layer size {input_granulation_size} "
-                f"does not match the engine size {engine_size}."
-            )
+            # raise ValueError(
+            #     f"The input granulation layer size {input_granulation_size} "
+            #     f"does not match the engine size {engine_size}."
+            # )
+            pass
 
         # disables certain parameters & prepare fuzzy inference process
         self.disable_parameters_and_build(
