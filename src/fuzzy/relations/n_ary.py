@@ -399,18 +399,33 @@ class NAryRelation(TorchJitModule):
         # select memberships that are not zeroed out (i.e., involved in the relation)
         # with torch.autograd.graph.save_on_cpu():  # save the graph on the CPU (for memory)
         self.applied_mask: torch.Tensor = self.grouped_links(membership=membership).to_dense()
-        after_mask = membership.degrees.unsqueeze(dim=-1) * self.applied_mask.unsqueeze(
-            0
-        )
-        # complement mask adds zeros where the mask is zero, these are not part of the relation
-        # nan_to_num replaces nan values with the nan_replacement value (often not needed)
-        result = (
-            (after_mask + (1 - self.applied_mask))
-            .prod(dim=2, keepdim=False)
-            .nan_to_num(self.nan_replacement)
-        )
-        del after_mask
-        return result
+        if not self.applied_mask.is_contiguous():
+            self.applied_mask = self.applied_mask.contiguous()
+
+        # ORIGINAL ELEMENT-WISE MULTIPLICATION
+        # after_mask = membership.degrees.unsqueeze(dim=-1) * self.applied_mask.unsqueeze(
+        #     0
+        # )
+        # MEMORY-EFFICIENT ELEMENT-WISE MULTIPLICATION
+        # after_mask = torch.einsum("...i,...ij->...ij", membership.degrees, self.applied_mask)
+        result = []
+        # split the degrees into chunks to avoid memory issues if the number of variables is large
+        # this then splits the batch to individual observation's degree of memberships
+        n_chunks: int = membership.degrees.size(0) if membership.degrees.size(1) > 1000 else 1
+        for chunk in torch.chunk(membership.degrees, chunks=n_chunks, dim=0):
+            after_mask = torch.einsum("...i,...ij->...ij", chunk, self.applied_mask)
+
+            # complement mask adds zeros where the mask is zero, these are not part of the relation
+            # nan_to_num replaces nan values with the nan_replacement value (often not needed)
+            result.append(
+                (after_mask + (1 - self.applied_mask))  # resulting shape is same as after_mask.shape
+                # torch.einsum("...ijk,ijk->...ijk", after_mask,
+                #              1 - self.applied_mask)  # resulting shape is same as after_mask.shape
+                .prod(dim=2, keepdim=False)
+                .nan_to_num(self.nan_replacement)
+            )
+            del after_mask
+        return torch.concat(result)
 
     def forward(self, membership: Membership) -> torch.Tensor:
         """
