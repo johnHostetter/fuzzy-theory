@@ -46,7 +46,9 @@ class BinaryLinks(torch.nn.Module):
         return hash(self.links)
 
     def __eq__(self, other: Any) -> bool:
-        return isinstance(other, BinaryLinks) and torch.equal(self.links.to_dense(), other.links.to_dense())
+        return isinstance(other, BinaryLinks) and torch.equal(
+            self.links.to_dense(), other.links.to_dense()
+        )
 
     @property
     def shape(self) -> Size:

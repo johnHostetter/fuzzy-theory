@@ -107,8 +107,11 @@ class FuzzyLogicController(torch.nn.Sequential):
         if hasattr(self.engine, "configuration"):
             # pickle the configuration for the engine
             import pickle
+
             with open(path / "engine_config.pkl", "wb+") as f:
-                pickle.dump(self.engine.configuration, f, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(
+                    self.engine.configuration, f, protocol=pickle.HIGHEST_PROTOCOL
+                )
             # save the layer_norm weights
             torch.save(self.engine.layer_norm.state_dict(), path / "layer_norm.pt")
 
@@ -136,10 +139,13 @@ class FuzzyLogicController(torch.nn.Sequential):
         if hasattr(engine, "configuration"):
             # pickle the configuration for the engine
             import pickle
+
             with open(path / "engine_config.pkl", "rb") as f:
                 engine.configuration = pickle.load(f)
             # load the layer_norm weights
-            engine.layer_norm.load_state_dict(torch.load(path / "layer_norm.pt", map_location=device))
+            engine.layer_norm.load_state_dict(
+                torch.load(path / "layer_norm.pt", map_location=device)
+            )
 
         defuzzification = Defuzzification.load(path / "defuzzification", device=device)
 

@@ -185,7 +185,9 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             centers: np.ndarray = np.linspace(start=0.0, stop=1.0, num=n_terms)[
                 None, :
             ].repeat(repeats=n_variables, axis=0)
-            widths: np.ndarray = np.ones((n_variables, n_terms), dtype=np.float32) * init_width
+            widths: np.ndarray = (
+                np.ones((n_variables, n_terms), dtype=np.float32) * init_width
+            )
         else:
             raise ValueError(
                 f"The method must be either 'random' or 'linear', but got {method}"

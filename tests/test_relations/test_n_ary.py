@@ -161,12 +161,14 @@ class TestNAryRelation(unittest.TestCase):
         self.assertTrue(n_ary.get_mask().to_dense() is not None)
         n_ary.apply_mask(membership=membership)
         self.assertTrue(n_ary.grouped_links is not None)
-        self.assertTrue(n_ary.get_mask().to_dense() is not None)  # we have used the relation
+        self.assertTrue(
+            n_ary.get_mask().to_dense() is not None
+        )  # we have used the relation
 
         self.assertTrue(
             torch.allclose(
                 n_ary.grouped_links(membership=membership).to_dense(),
-                n_ary.get_mask().to_dense()
+                n_ary.get_mask().to_dense(),
             )
         )
         # we can create a new n-ary relation with a GroupedLinks object
@@ -177,7 +179,7 @@ class TestNAryRelation(unittest.TestCase):
         self.assertTrue(
             torch.allclose(
                 new_n_ary.grouped_links(membership=membership).to_dense(),
-                n_ary.get_mask().to_dense()
+                n_ary.get_mask().to_dense(),
             )
         )
 
@@ -287,7 +289,11 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(n_ary.indices, loaded_n_ary.indices)
         self.assertEqual(n_ary.nan_replacement, loaded_n_ary.nan_replacement)
         # the applied_mask is the resulting output from grouped_links()
-        self.assertTrue(torch.allclose(n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense()))
+        self.assertTrue(
+            torch.allclose(
+                n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense()
+            )
+        )
         self.assertTrue(
             np.allclose(
                 n_ary._coo_matrix[0].toarray(), loaded_n_ary._coo_matrix[0].toarray()
@@ -296,7 +302,6 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(n_ary._coo_matrix[0].shape, loaded_n_ary._coo_matrix[0].shape)
         # remove the file
         Path(f"{file_name}.pt").unlink()
-
 
     def test_save_and_load_from_grouped_links(self) -> None:
         """
@@ -325,7 +330,9 @@ class TestNAryRelation(unittest.TestCase):
         self.assertTrue(actual_destination.is_dir())
         loaded_n_ary = NAryRelation.load(actual_destination, device=AVAILABLE_DEVICE)
         self.assertTrue(
-            torch.allclose(n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense())
+            torch.allclose(
+                n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense()
+            )
         )  # the applied_mask is the resulting output from grouped_links()
         for actual_module, loaded_module in zip(
             n_ary.grouped_links.modules_list, loaded_n_ary.grouped_links.modules_list
@@ -620,6 +627,7 @@ class TestCompound(TestNAryRelation):
         )
         self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
 
+
 class TestComputationalAbilities(unittest.TestCase):
     """
     This class tests the computational abilities of the n-ary relation, particularly when dealing
@@ -630,6 +638,7 @@ class TestComputationalAbilities(unittest.TestCase):
     but it may indicate that the n-ary relation is not optimized for very large fuzzy inference
     systems (e.g., those with thousands of features, such as in computer vision).
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_terms: int = 16
@@ -648,10 +657,8 @@ class TestComputationalAbilities(unittest.TestCase):
         """
         # random indices
         indices: np.ndarray = np.random.choice(
-            [0, 1],
-            size=(self.n_variables * self.n_terms * self.n_relations)).reshape(
-            self.n_variables, self.n_terms, self.n_relations
-        )
+            [0, 1], size=(self.n_variables * self.n_terms * self.n_relations)
+        ).reshape(self.n_variables, self.n_terms, self.n_relations)
         n_ary = NAryRelation(
             grouped_links=GroupedLinks(
                 modules_list=[
@@ -661,7 +668,7 @@ class TestComputationalAbilities(unittest.TestCase):
                     )
                 ]
             ),
-            device=AVAILABLE_DEVICE
+            device=AVAILABLE_DEVICE,
         )
         # example membership
         membership_function: FuzzySet = Gaussian.create(
@@ -669,7 +676,9 @@ class TestComputationalAbilities(unittest.TestCase):
         )
         # max terms used in the above N-ary relation
         membership: Membership = membership_function(
-            torch.randn(N_OBSERVATIONS, self.n_variables, self.n_terms, device=AVAILABLE_DEVICE)
+            torch.randn(
+                N_OBSERVATIONS, self.n_variables, self.n_terms, device=AVAILABLE_DEVICE
+            )
         )
         # check that the apply_mask works
         n_ary.apply_mask(membership)

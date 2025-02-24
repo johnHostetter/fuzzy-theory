@@ -43,7 +43,8 @@ class DimensionDependent(FuzzySet, ABC):
         )  # count of input variables/features/dimensions
         self.rho: torch.Tensor = (
             self._calculate_rho(n_inputs=self.n_inputs.item(), device=device)
-            if rho is None else torch.tensor([rho], dtype=torch.float32, device=device)
+            if rho is None
+            else torch.tensor([rho], dtype=torch.float32, device=device)
         )
 
     @staticmethod

@@ -97,6 +97,7 @@ class GeneralizedGuassian(FuzzySet):
     """
     Implementation of the Generalized Gaussian membership function, written in PyTorch.
     """
+
     def __init__(
         self,
         centers,
@@ -112,18 +113,10 @@ class GeneralizedGuassian(FuzzySet):
             )
         else:
             self._width_multiplier = torch.nn.ParameterList(
-                [
-                    self.make_parameter(
-                        width_multiplier * np.ones_like(centers)
-                    )
-                ]
+                [self.make_parameter(width_multiplier * np.ones_like(centers))]
             )
             self._slope_multiplier = torch.nn.ParameterList(
-                [
-                    self.make_parameter(
-                        slope_multiplier * np.ones_like(centers)
-                    )
-                ]
+                [self.make_parameter(slope_multiplier * np.ones_like(centers))]
             )
 
     def get_width_multiplier(self) -> torch.Tensor:
@@ -169,12 +162,9 @@ class GeneralizedGuassian(FuzzySet):
         Returns:
             The membership degrees of the observations for the Log Gaussian fuzzy set.
         """
-        vals = (
-            -1.0 * torch.pow(
-                (
-                    torch.pow(observations - centers, 2) / torch.pow(width_multiplier, 2)
-                ),
-            slope_multiplier)
+        vals = -1.0 * torch.pow(
+            (torch.pow(observations - centers, 2) / torch.pow(width_multiplier, 2)),
+            slope_multiplier,
         )
         # this works pretty well -- but does cause NaNs later on
         # vals = (
@@ -224,6 +214,7 @@ class GeneralizedGuassian(FuzzySet):
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
             mask=self.get_mask(),
         )
+
 
 class LogGaussian(FuzzySet):
     """
