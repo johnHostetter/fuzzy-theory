@@ -149,6 +149,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         n_terms: int,
         device: torch.device,
         method: str,
+        init_width: float = 0.5,
         **kwargs,
     ) -> Union[NoReturn, "FuzzySet"]:
         """
@@ -162,6 +163,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             n_terms: The number of terms.
             device: The device to use.
             method: The method to use for creating the fuzzy set (e.g., "random" or "linear").
+            init_width: The initial width of the fuzzy set (for "linear" method).
 
         Returns:
             A FuzzySet object, or a NotImplementedError if the method is not implemented.
@@ -183,7 +185,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             centers: np.ndarray = np.linspace(start=0.0, stop=1.0, num=n_terms)[
                 None, :
             ].repeat(repeats=n_variables, axis=0)
-            widths: np.ndarray = np.ones((n_variables, n_terms), dtype=np.float32) * 0.5
+            widths: np.ndarray = np.ones((n_variables, n_terms), dtype=np.float32) * init_width
         else:
             raise ValueError(
                 f"The method must be either 'random' or 'linear', but got {method}"

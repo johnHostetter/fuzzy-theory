@@ -108,7 +108,7 @@ class GeneralizedGuassian(FuzzySet):
         super().__init__(centers=centers, widths=widths, device=device)
         if width_multiplier < 0.0:
             raise ValueError(
-                "The width multiplier must be greater than zero, but got {self.width_multiplier}."
+                f"The width multiplier must be greater than zero, but got {self.width_multiplier}."
             )
         else:
             self._width_multiplier = torch.nn.ParameterList(
@@ -303,7 +303,7 @@ class LogGaussian(FuzzySet):
                 / (width_multiplier * torch.pow(widths, 2) + 1e-32)
             )
         ).clamp(
-            min=-10, max=0
+            min=-10, max=0  # was -50 for visualization
         )  # force values very close to zero to be zero
 
     @classmethod

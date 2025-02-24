@@ -47,7 +47,13 @@ class Defuzzification(TorchJitModule):
         Returns:
             None
         """
-        state_dict: MutableMapping = torch.load(path, weights_only=False)
+        try:
+            state_dict: MutableMapping = torch.load(path, weights_only=False)
+        except UnicodeDecodeError:
+            # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xde in position 157881408:
+            # invalid continuation byte
+            state_dict = torch.load(path, weights_only=False, encoding="latin1")
+
         shape: Shape = Shape(*state_dict.pop("shape"))
         source: Union[None, np.ndarray, torch.nn.Sequential, FuzzySetGroup] = (
             state_dict.pop("source")
@@ -248,7 +254,7 @@ class TSK(Defuzzification):
     ):
         super().__init__(shape=shape, source=source, device=device, *args, **kwargs)
         if source is None:
-            consequences = torch.zeros(
+            consequences = torch.zeros(  # TODO: needs to be randn for optuna images
                 [shape.n_outputs, shape.n_rules, shape.n_inputs + 1],
                 dtype=torch.float32,
             )
