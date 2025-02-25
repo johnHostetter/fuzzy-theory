@@ -15,7 +15,7 @@ from fuzzy.logic.rule import Rule
 from fuzzy.logic.rulebase import RuleBase
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
-from fuzzy.logic.control.configurations import Shape, GranulationLayers
+from fuzzy.logic.control.configurations.data import Shape, GranulationLayers
 from fuzzy.relations.t_norm import TNorm
 from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.impl import Lorentzian
@@ -168,7 +168,7 @@ class TestKnowledgeBase(unittest.TestCase):
         # check that the engine can be retrieved (this comes from RuleBase, but it is a shortcut)
         self.assertEqual(
             expected_rule_base.premises,
-            knowledge_base.engine(device=expected_rule_base.premises.device),
+            knowledge_base.engine,
         )
 
         # check that the stacked granule representation can easily be retrieved
@@ -182,7 +182,7 @@ class TestKnowledgeBase(unittest.TestCase):
         )
         self.assertEqual(
             expected_granulation_layers,
-            knowledge_base.granulation_layers(device=AVAILABLE_DEVICE),
+            knowledge_base.granulation_layers,
         )
 
         # check individual premise granules can be retrieved (from the Knowledgebase.graph)

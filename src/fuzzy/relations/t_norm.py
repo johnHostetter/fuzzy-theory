@@ -19,6 +19,9 @@ class TNorm(NAryRelation, ABC):
     not be instantiated directly, but all fuzzy t-norm relations should inherit from this class.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def __str__(self) -> str:
         if len(self.indices) == 1:
             return " AND ".join([f"({i}, {j})" for i, j in self.indices[0]])
@@ -30,6 +33,9 @@ class Minimum(TNorm):
     This class represents the minimum n-ary fuzzy relation. This is a special case of
     the n-ary fuzzy relation where the minimum value is returned.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def forward(self, membership: Membership) -> Membership:
         """
@@ -45,7 +51,7 @@ class Minimum(TNorm):
         # first filter out the values that are not part of the relation
         # then take the minimum value of those that remain in the last dimension
         return Membership(
-            elements=membership.elements,
+            # elements=membership.elements,
             degrees=self.apply_mask(membership=membership)
             .min(dim=-2, keepdim=False)
             .values,
@@ -58,6 +64,9 @@ class Product(TNorm):
     This class represents the algebraic product n-ary fuzzy relation. This is a special case of
     the n-ary fuzzy relation where the product value is returned.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def forward(self, membership: Membership) -> Membership:
         """
@@ -73,7 +82,7 @@ class Product(TNorm):
         # first filter out the values that are not part of the relation
         # then take the minimum value of those that remain in the last dimension
         return Membership(
-            elements=membership.elements,
+            # elements=membership.elements,
             degrees=self.apply_mask(membership=membership).prod(dim=-2, keepdim=False),
             mask=self.applied_mask,
         )
@@ -85,6 +94,9 @@ class SoftmaxSum(TNorm):
     with high-dimensional TSK systems, where the softmax sum is used to leverage Gaussians'
     defuzzification relationship to the softmax function.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def forward(self, membership: Membership) -> Membership:
         """
@@ -104,7 +116,7 @@ class SoftmaxSum(TNorm):
         firing_strengths = intermediate_values.sum(dim=1)
         max_values, _ = firing_strengths.max(dim=-1, keepdim=True)
         return Membership(
-            elements=membership.elements,
+            # elements=membership.elements,
             degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
             mask=self.applied_mask,
         )
@@ -116,13 +128,16 @@ class GeneralizedLukasiewicz(TNorm):
     of the n-ary fuzzy relation where the generalized Lukasiewicz value is returned.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def forward(self, membership: Membership) -> Membership:
         intermediate_values: torch.Tensor = self.apply_mask(membership=membership)
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be fixed/tested
         firing_strengths = intermediate_values.sum(dim=1)
         return Membership(
-            elements=membership.elements,
+            # elements=membership.elements,
             degrees=torch.nn.functional.relu(
                 firing_strengths
                 - (membership.elements.shape[-1] - 1)  # subtract # of inputs - 1
@@ -150,6 +165,9 @@ class SoftmaxMean(TNorm):
         "Curse of Dimensionality for TSK Fuzzy Neural Networks: Explanation and Solution".
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def forward(self, membership: Membership) -> Membership:
         """
         Calculates the fuzzy compound's applicability using the softmax mean inference engine.
@@ -172,7 +190,7 @@ class SoftmaxMean(TNorm):
             dim=-1, keepdim=True
         )  # add this to prevent overflow
         return Membership(
-            elements=membership.elements,
+            # elements=membership.elements,
             degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
             mask=self.applied_mask,
         )

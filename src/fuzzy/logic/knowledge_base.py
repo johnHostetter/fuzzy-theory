@@ -14,12 +14,14 @@ import numpy as np
 import pandas as pd
 import igraph as ig
 
+from fuzzy.logic.control.defuzzification import Defuzzification
 from rough.decisions import RoughDecisions
 
 from fuzzy.logic.rule import Rule
 from fuzzy.logic.rulebase import RuleBase
 from fuzzy.logic.variables import LinguisticVariables
-from fuzzy.logic.control.configurations import Shape, GranulationLayers, FuzzySystem
+from fuzzy.logic.control.configurations.abstract import FuzzySystem
+from fuzzy.logic.control.configurations.data import Shape, GranulationLayers
 from fuzzy.relations.t_norm import TNorm
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.sets.group import FuzzySetGroup
@@ -66,6 +68,31 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         return self.rule_base.shape
 
     @property
+    def granulation_layers(self) -> GranulationLayers:
+        layers = {"input": None, "output": None}
+        for attr, layer in zip(["input", "output"], ["premise", "consequence"]):
+            group_vertices: ig.VertexSeq = self.select_by_tags(tags={layer, "group"})
+            layer: Union[None, FuzzySetGroup] = None  # default to None if no granules
+            if len(group_vertices) == 1:
+                layer: FuzzySetGroup = group_vertices[0]["item"]
+            elif len(group_vertices) > 1:
+                raise ValueError(f"Ambiguous selection of {layer} group.")
+
+            layers[attr] = layer
+
+        return GranulationLayers(**layers)
+
+    @property
+    def engine(self) -> TNorm:
+        """
+        Fetch the fuzzy logic inference engine from the KnowledgeBase.
+
+        Returns:
+            The fuzzy logic inference engine.
+        """
+        return self.rule_base.premises
+
+    @property
     def rules(self) -> List[Rule]:
         """
         Get a list of fuzzy logic rules, where each element in the list is a Rule object.
@@ -92,32 +119,6 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
             A RuleBase object.
         """
         return RuleBase(rules=self.rules, device=None)
-
-    def granulation_layers(self, device: torch.device) -> GranulationLayers:
-        layers = {"input": None, "output": None}
-        for attr, layer in zip(["input", "output"], ["premise", "consequence"]):
-            group_vertices: ig.VertexSeq = self.select_by_tags(tags={layer, "group"})
-            layer: Union[None, FuzzySetGroup] = None  # default to None if no granules
-            if len(group_vertices) == 1:
-                layer: FuzzySetGroup = group_vertices[0]["item"].to(device)
-            elif len(group_vertices) > 1:
-                raise ValueError(f"Ambiguous selection of {layer} group.")
-
-            layers[attr] = layer
-
-        return GranulationLayers(**layers)
-
-    def engine(self, device: torch.device) -> TNorm:
-        """
-        Create the fuzzy logic inference engine from the KnowledgeBase.
-
-        Args:
-            device: The device to use.
-
-        Returns:
-            The fuzzy logic inference engine.
-        """
-        return self.rule_base.premises
 
     def get_granules(self, tags: Union[str, Set[str]]) -> ig.VertexSeq:
         """

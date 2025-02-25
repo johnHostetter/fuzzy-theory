@@ -15,15 +15,14 @@ from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.logic.control.defuzzification import ZeroOrder
 from fuzzy.logic.control.controller import FuzzyLogicController
 from fuzzy.relations.t_norm import Minimum, Product, TNorm
-
-from examples.demo_flcs import toy_tsk
+from .demo_flcs import toy_tsk
 
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def make_test_scenario(t_norm: Type[TNorm]) -> Tuple[
-    torch.Tensor,
+    Membership,
     KnowledgeBase,
 ]:
     """
@@ -46,7 +45,7 @@ def make_test_scenario(t_norm: Type[TNorm]) -> Tuple[
     _, _, rules = toy_tsk(t_norm=t_norm, device=AVAILABLE_DEVICE)
     antecedents = [
         Gaussian(
-            centers=np.array([-1, 0.0, 1.0]),
+            centers=np.array([-1.0, 0.0, 1.0]),
             widths=np.array([1.0, 1.0, 1.0]),
             device=AVAILABLE_DEVICE,
         ),
@@ -85,12 +84,14 @@ class TestFuzzyInference(unittest.TestCase):
             None
         """
         antecedents_memberships, knowledge_base = make_test_scenario(t_norm=Product)
+        self.assertIsNotNone(antecedents_memberships.degrees.grad_fn)
         product_inference = FuzzyLogicController(
             source=knowledge_base,
             inference=ZeroOrder,
             device=AVAILABLE_DEVICE,
         )
         actual_output: Membership = product_inference.engine(antecedents_memberships)
+        self.assertIsNotNone(actual_output.degrees.grad_fn)
         expected_output = torch.tensor(
             [
                 [
@@ -134,12 +135,14 @@ class TestFuzzyInference(unittest.TestCase):
             None
         """
         antecedents_memberships, knowledge_base = make_test_scenario(t_norm=Minimum)
+        self.assertIsNotNone(antecedents_memberships.degrees.grad_fn)
         minimum_inference = FuzzyLogicController(
             source=knowledge_base,
             inference=ZeroOrder,
             device=AVAILABLE_DEVICE,
         )
         actual_output: Membership = minimum_inference.engine(antecedents_memberships)
+        self.assertIsNotNone(actual_output.degrees.grad_fn)
         expected_output = torch.tensor(
             [
                 [0.00157003, 0.00157003, 0.09304529, 0.09304529, 0.09304529],

@@ -10,7 +10,7 @@ import torch
 from natsort import natsorted
 
 from fuzzy.logic.rule import Rule
-from fuzzy.logic.control.configurations import Shape
+from fuzzy.logic.control.configurations.data import Shape
 from fuzzy.sets.membership import Membership
 from fuzzy.relations.t_norm import TNorm
 
@@ -68,7 +68,7 @@ class RuleBase(torch.nn.Module):
         return Shape(
             n_inputs=self.premises.shape[0],
             n_input_terms=self.premises.shape[1],
-            n_rules=self.premises.shape[2],
+            n_rules=len(self.rules),
             n_outputs=self.consequences.shape[0],
             n_output_terms=self.consequences.shape[1],
         )

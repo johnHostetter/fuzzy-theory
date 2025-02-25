@@ -4,6 +4,7 @@ Gaussian fuzzy set (i.e., membership function), and the Triangular fuzzy set (i.
 function).
 """
 
+import inspect
 import os
 import unittest
 from pathlib import Path
@@ -34,7 +35,9 @@ class TestFuzzySet(unittest.TestCase):
             None
         """
         with self.assertRaises(NotImplementedError):
-            FuzzySet.create(n_variables=4, n_terms=2, device=torch.device("cpu"))
+            FuzzySet.create(
+                n_variables=4, n_terms=2, device=torch.device("cpu"), method="linear"
+            )
 
     def test_save_and_load(self) -> None:
         """
@@ -44,8 +47,10 @@ class TestFuzzySet(unittest.TestCase):
             None
         """
         for subclass in FuzzySet.__subclasses__():
+            if inspect.isabstract(subclass):
+                continue
             membership_func = subclass.create(
-                n_variables=4, n_terms=4, device=AVAILABLE_DEVICE
+                n_variables=4, n_terms=4, device=AVAILABLE_DEVICE, method="linear"
             )
             state_dict: MutableMapping = membership_func.state_dict()
 

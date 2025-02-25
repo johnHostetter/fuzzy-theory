@@ -246,7 +246,7 @@ class TestTriangular(unittest.TestCase):
             None
         """
         triangular_mf = Triangular.create(
-            n_variables=4, n_terms=4, device=AVAILABLE_DEVICE
+            n_variables=4, n_terms=4, device=AVAILABLE_DEVICE, method="random"
         )
         element = np.array([[0.0001712, 0.00393354, -0.03641258, -0.01936134]])
         target_membership_degrees = triangular_numpy(

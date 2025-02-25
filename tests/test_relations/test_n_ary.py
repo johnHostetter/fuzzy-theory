@@ -2,6 +2,8 @@
 Test the fuzzy n-ary relations work as expected.
 """
 
+# import os
+# os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 import shutil
 import unittest
 from pathlib import Path
@@ -90,7 +92,9 @@ class TestNAryRelation(unittest.TestCase):
             ],
             device=AVAILABLE_DEVICE,
         )
-        self.assertTrue(torch.allclose(membership.degrees, expected_membership_degrees))
+        self.assertTrue(
+            torch.allclose(membership.degrees.to_dense(), expected_membership_degrees)
+        )
         return membership
 
     def test_invalid_use_of_n_ary_relation(self) -> None:
@@ -154,13 +158,17 @@ class TestNAryRelation(unittest.TestCase):
         n_ary = NAryRelation((0, 1), (1, 0), device=AVAILABLE_DEVICE)
         membership = self.test_gaussian_membership()
         # we have not used the relation yet, but it is built from dummy inputs
-        self.assertTrue(n_ary.applied_mask is not None)
+        self.assertTrue(n_ary.get_mask().to_dense() is not None)
         n_ary.apply_mask(membership=membership)
         self.assertTrue(n_ary.grouped_links is not None)
-        self.assertTrue(n_ary.applied_mask is not None)  # we have used the relation
+        self.assertTrue(
+            n_ary.get_mask().to_dense() is not None
+        )  # we have used the relation
+
         self.assertTrue(
             torch.allclose(
-                n_ary.grouped_links(membership=membership), n_ary.applied_mask
+                n_ary.grouped_links(membership=membership).to_dense(),
+                n_ary.get_mask().to_dense(),
             )
         )
         # we can create a new n-ary relation with a GroupedLinks object
@@ -170,7 +178,8 @@ class TestNAryRelation(unittest.TestCase):
         # the new n-ary relation should have the same applied mask as the original
         self.assertTrue(
             torch.allclose(
-                new_n_ary.grouped_links(membership=membership), n_ary.applied_mask
+                new_n_ary.grouped_links(membership=membership).to_dense(),
+                n_ary.get_mask().to_dense(),
             )
         )
 
@@ -280,7 +289,11 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(n_ary.indices, loaded_n_ary.indices)
         self.assertEqual(n_ary.nan_replacement, loaded_n_ary.nan_replacement)
         # the applied_mask is the resulting output from grouped_links()
-        self.assertTrue(torch.allclose(n_ary.applied_mask, loaded_n_ary.applied_mask))
+        self.assertTrue(
+            torch.allclose(
+                n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense()
+            )
+        )
         self.assertTrue(
             np.allclose(
                 n_ary._coo_matrix[0].toarray(), loaded_n_ary._coo_matrix[0].toarray()
@@ -317,7 +330,9 @@ class TestNAryRelation(unittest.TestCase):
         self.assertTrue(actual_destination.is_dir())
         loaded_n_ary = NAryRelation.load(actual_destination, device=AVAILABLE_DEVICE)
         self.assertTrue(
-            torch.allclose(n_ary.applied_mask, loaded_n_ary.applied_mask)
+            torch.allclose(
+                n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense()
+            )
         )  # the applied_mask is the resulting output from grouped_links()
         for actual_module, loaded_module in zip(
             n_ary.grouped_links.modules_list, loaded_n_ary.grouped_links.modules_list
@@ -353,6 +368,7 @@ class TestProduct(TestNAryRelation):
                 [[9.6005607e-01], [8.4526926e-01], [1.0000000e00], [1.0000000e00]],
                 [[5.7408627e-04], [9.9679035e-01], [1.0000000e00], [1.0000000e00]],
             ],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(after_mask, expected_after_mask))
@@ -365,6 +381,7 @@ class TestProduct(TestNAryRelation):
                 [8.4526926e-01 * 9.6005607e-01],
                 [9.9679035e-01 * 5.7408627e-04],
             ],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(prod_membership.degrees, expected_prod_values))
@@ -436,12 +453,15 @@ class TestProduct(TestNAryRelation):
                     * membership.degrees[2][0][1].item(),
                 ],
             ],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
         self.assertEqual(prod_membership.degrees.shape[0], N_OBSERVATIONS)
         self.assertEqual(prod_membership.degrees.shape[1], N_COMPOUNDS)
         self.assertEqual(prod_membership.degrees.shape, expected_prod_values.shape)
-        self.assertTrue(torch.allclose(prod_membership.degrees, expected_prod_values))
+        self.assertTrue(
+            torch.allclose(prod_membership.degrees.to_dense(), expected_prod_values)
+        )
 
 
 class TestMinimum(TestNAryRelation):
@@ -488,6 +508,7 @@ class TestMinimum(TestNAryRelation):
                 [[9.6005607e-01], [8.4526926e-01], [1.0000000e00], [1.0000000e00]],
                 [[5.7408627e-04], [9.9679035e-01], [1.0000000e00], [1.0000000e00]],
             ],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(after_mask, expected_after_mask))
@@ -496,6 +517,7 @@ class TestMinimum(TestNAryRelation):
         min_membership: Membership = n_ary.forward(membership)
         expected_min_values = torch.tensor(
             [[2.5514542e-04], [8.4526926e-01], [5.7408627e-04]],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
@@ -551,10 +573,13 @@ class TestMinimum(TestNAryRelation):
                 [0.8531001, 0.14141318, 0.3084521, 0.14141318, 0.00317242],
                 [0.034104, 0.13954304, 0.034104, 0.49545035, 0.8498557],
             ],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
 
-        self.assertTrue(torch.allclose(min_membership.degrees, expected_degrees))
+        self.assertTrue(
+            torch.allclose(min_membership.degrees.to_dense(), expected_degrees)
+        )
 
 
 class TestCompound(TestNAryRelation):
@@ -597,6 +622,63 @@ class TestCompound(TestNAryRelation):
                 [8.4526926e-01 * 9.6005607e-01],
                 [9.9679035e-01 * 5.7408627e-04],
             ],
+            dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
+
+
+class TestComputationalAbilities(unittest.TestCase):
+    """
+    This class tests the computational abilities of the n-ary relation, particularly when dealing
+    with very large relations. It pushes the limits of the n-ary relation to see if it can handle
+    extremely large fuzzy inference systems.
+
+    Failing this test does not necessarily mean that the n-ary relation is not working as expected,
+    but it may indicate that the n-ary relation is not optimized for very large fuzzy inference
+    systems (e.g., those with thousands of features, such as in computer vision).
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.n_terms: int = 16
+        self.n_variables: int = 24000
+        self.n_relations: int = 256
+
+    def test_very_large_n_ary_relation(self) -> None:
+        """
+        Test the n-ary relation can handle very large relations involving thousands of features.
+
+        Essentially, this is to check that memory management is working as expected; particularly
+        for CUDA devices.
+
+        Returns:
+            None
+        """
+        # random indices
+        indices: np.ndarray = np.random.choice(
+            [0, 1], size=(self.n_variables * self.n_terms * self.n_relations)
+        ).reshape(self.n_variables, self.n_terms, self.n_relations)
+        n_ary = NAryRelation(
+            grouped_links=GroupedLinks(
+                modules_list=[
+                    BinaryLinks(
+                        indices,
+                        device=AVAILABLE_DEVICE,
+                    )
+                ]
+            ),
+            device=AVAILABLE_DEVICE,
+        )
+        # example membership
+        membership_function: FuzzySet = Gaussian.create(
+            self.n_variables, self.n_terms, device=AVAILABLE_DEVICE, method="random"
+        )
+        # max terms used in the above N-ary relation
+        membership: Membership = membership_function(
+            torch.randn(
+                N_OBSERVATIONS, self.n_variables, self.n_terms, device=AVAILABLE_DEVICE
+            )
+        )
+        # check that the apply_mask works
+        n_ary.apply_mask(membership)

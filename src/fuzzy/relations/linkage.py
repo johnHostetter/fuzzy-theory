@@ -26,13 +26,29 @@ class BinaryLinks(torch.nn.Module):
     def __init__(self, links: np.ndarray, device: torch.device, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.links: torch.Tensor = torch.tensor(links, dtype=torch.int8, device=device)
+        # indices: torch.Tensor = torch.tensor(links.nonzero(), device=device)
+        # self.links = torch.sparse_coo_tensor(
+        #     indices=indices, values=torch.ones(indices.shape[1], dtype=torch.bool, device=device),
+        #     size=links.shape,
+        # )
+        # the below is VALID but NOT compatible w/ autograd
+        # store term selections as integers for major memory savings; each variable -> selected term
+        # self.original_links: np.ndarray = links
+        # cast_links = links.astype(dtype=float)
+        # cast_links[cast_links == 0] = 'nan'
+        # self.memory_efficient_links: np.ndarray = np.nanargmax(links, axis=1)  # 2D shape: (n_inputs, n_relations)
+        # self.links: torch.Tensor = torch.tensor(
+        #     self.memory_efficient_links, dtype=torch.int8, device=device
+        # )
         self.device: torch.device = device
 
     def __hash__(self) -> int:
         return hash(self.links)
 
     def __eq__(self, other: Any) -> bool:
-        return isinstance(other, BinaryLinks) and torch.equal(self.links, other.links)
+        return isinstance(other, BinaryLinks) and torch.equal(
+            self.links.to_dense(), other.links.to_dense()
+        )
 
     @property
     def shape(self) -> Size:
@@ -114,7 +130,7 @@ class GroupedLinks(NestedTorchJitModule):
         if modules_list is None:
             modules_list = []
         self.modules_list = torch.nn.ModuleList(modules_list)
-        self.membership_dimension = -1
+        self.membership_dimension: int = 1
 
     @property
     def shape(self) -> Size:
@@ -226,6 +242,10 @@ class GroupedLinks(NestedTorchJitModule):
         """
         Fetch the links for later use.
         """
+        if torch.is_grad_enabled():
+            assert (
+                membership.degrees.grad_fn is not None
+            ), "The membership degrees must have a grad_fn."
         all_links: List[Union[torch.Tensor, torch.nn.Parameter]] = []
         for links in self.modules_list:
             all_links.append(links(membership))
