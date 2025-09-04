@@ -570,7 +570,8 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
 
             # Pad the saved area by 20% in the x-direction and 10% in the y-direction
             fig.savefig(
-                output_dir / "ax2_figure_expanded.png", bbox_inches=extent.expanded(1.2, 1.2)
+                output_dir / "ax2_figure_expanded.png",
+                bbox_inches=extent.expanded(1.2, 1.2),
             )
             expanded_bbox = mpl.transforms.Bbox(
                 [
@@ -578,7 +579,10 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                     (extent.x1 + 0.15 * extent.width, extent.y1 + 0.05 * extent.height),
                 ]
             )
-            fig.savefig(output_dir / f"mu_{variable_idx}_expanded.png", bbox_inches=expanded_bbox)
+            fig.savefig(
+                output_dir / f"mu_{variable_idx}_expanded.png",
+                bbox_inches=expanded_bbox,
+            )
 
         return figures, axes
 
