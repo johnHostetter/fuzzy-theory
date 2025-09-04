@@ -30,6 +30,14 @@ from ..membership import Membership
 
 
 class DimensionDependent(FuzzySet, ABC):
+    """
+    This class represents a Dimension-Dependent fuzzy set. It is an abstract base class that
+    provides the basic structure for Dimension-Dependent fuzzy sets, such as Gaussian DMF and
+    Gaussian No-Exp DMF. It inherits from the FuzzySet class and implements the
+    calculate_membership method, which is used to calculate the membership of observations
+    to the fuzzy set based on the centers, widths, and rho parameters.
+    """
+
     def __init__(
         self,
         centers: np.ndarray,
@@ -59,8 +67,8 @@ class DimensionDependent(FuzzySet, ABC):
 
 class GaussianNoExpDMF(DimensionDependent):
     """
-    This class represents the Gaussian w/ No-Exp Dimension-Dependent fuzzy set. This is a special case of the
-    Dimension-Dependent fuzzy set where the Gaussian membership function is assumed.
+    This class represents the Gaussian w/ No-Exp Dimension-Dependent fuzzy set. This is a special
+    case of the Dimension-Dependent fuzzy set where the Gaussian membership function is assumed.
     """
 
     @staticmethod
@@ -108,7 +116,8 @@ class GaussianNoExpDMF(DimensionDependent):
         dim_symbol = sympy.Symbol("N")
         rho_symbol = sympy.Symbol("rho")
         return sympy.sympify(
-            f"-1.0 * pow(({input_symbol} - {center_symbol}), 2) / (pow({dim_symbol}, {rho_symbol}) + pow({width_symbol}, 2))"
+            f"-1.0 * pow(({input_symbol} - {center_symbol}), 2) "
+            f"/ (pow({dim_symbol}, {rho_symbol}) + pow({width_symbol}, 2))"
         )
 
     def calculate_membership(self, observations: torch.Tensor) -> torch.Tensor:

@@ -34,9 +34,6 @@ class Minimum(TNorm):
     the n-ary fuzzy relation where the minimum value is returned.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def forward(self, membership: Membership) -> Membership:
         """
         Apply the minimum n-ary relation to the given memberships.
@@ -65,9 +62,6 @@ class Product(TNorm):
     the n-ary fuzzy relation where the product value is returned.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def forward(self, membership: Membership) -> Membership:
         """
         Apply the algebraic product n-ary relation to the given memberships.
@@ -94,9 +88,6 @@ class SoftmaxSum(TNorm):
     with high-dimensional TSK systems, where the softmax sum is used to leverage Gaussians'
     defuzzification relationship to the softmax function.
     """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def forward(self, membership: Membership) -> Membership:
         """
@@ -127,9 +118,6 @@ class GeneralizedLukasiewicz(TNorm):
     This class represents the generalized Lukasiewicz n-ary fuzzy relation. This is a special case
     of the n-ary fuzzy relation where the generalized Lukasiewicz value is returned.
     """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def forward(self, membership: Membership) -> Membership:
         intermediate_values: torch.Tensor = self.apply_mask(membership=membership)
@@ -164,9 +152,6 @@ class SoftmaxMean(TNorm):
 
         "Curse of Dimensionality for TSK Fuzzy Neural Networks: Explanation and Solution".
     """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def forward(self, membership: Membership) -> Membership:
         """

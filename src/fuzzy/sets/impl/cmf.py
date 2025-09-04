@@ -111,17 +111,17 @@ class GeneralizedGuassian(FuzzySet):
             raise ValueError(
                 f"The width multiplier must be greater than zero, but got {self.width_multiplier}."
             )
-        else:
-            self._width_multiplier = torch.nn.ParameterList(
-                [self.make_parameter(width_multiplier * np.ones_like(centers))]
-            )
-            self._slope_multiplier = torch.nn.ParameterList(
-                [self.make_parameter(slope_multiplier * np.ones_like(centers))]
-            )
+        self._width_multiplier = torch.nn.ParameterList(
+            [self.make_parameter(width_multiplier * np.ones_like(centers))]
+        )
+        self._slope_multiplier = torch.nn.ParameterList(
+            [self.make_parameter(slope_multiplier * np.ones_like(centers))]
+        )
 
     def get_width_multiplier(self) -> torch.Tensor:
         """
-        Get the concatenated width multipliers of the fuzzy set from its corresponding ParameterList.
+        Get the concatenated width multipliers of the fuzzy set
+        from its corresponding ParameterList.
 
         Returns:
             The concatenated width multipliers of the fuzzy set.
@@ -130,7 +130,8 @@ class GeneralizedGuassian(FuzzySet):
 
     def get_slope_multiplier(self) -> torch.Tensor:
         """
-        Get the concatenated slope multipliers of the fuzzy set from its corresponding ParameterList.
+        Get the concatenated slope multipliers of the fuzzy set
+        from its corresponding ParameterList.
 
         Returns:
             The concatenated slope multipliers of the fuzzy set.

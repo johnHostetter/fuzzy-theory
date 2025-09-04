@@ -4,7 +4,7 @@ Implements the various versions of the defuzzification process within a fuzzy in
 
 import abc
 from pathlib import Path
-from typing import Union, Any, Tuple
+from typing import Union, Any
 from collections.abc import MutableMapping
 
 import torch
@@ -223,6 +223,15 @@ class ZeroOrder(Defuzzification):
 
 
 class NormalizedZeroOrder(ZeroOrder):
+    """
+    Implements the normalized zero-order (TSK) fuzzy inference; this is also Mamdani fuzzy inference
+    but with fuzzy singleton values as the consequences, and the output is normalized by the sum of
+    the rule activations.
+
+    This is useful for cases where the sum of the rule activations is not equal to
+    one, and we want to ensure that the output is normalized.
+    """
+
     def forward(self, rule_activations: Membership) -> torch.Tensor:
         numerator: torch.Tensor = self.super().forward(rule_activations)
         # unsqueeze must be there with or without confidences
@@ -365,6 +374,20 @@ class Mamdani(Defuzzification):
             device=self.device,
         )
         self.consequences: FuzzySetGroup = source
+
+    def save(self, path: Path) -> MutableMapping[str, Any]:
+        """
+        Save the defuzzification process to a directory.
+
+        Args:
+            path: The directory path to save the defuzzification process to.
+
+        Returns:
+            The state dictionary of the defuzzification process that was saved.
+        """
+        raise NotImplementedError(
+            "Mamdani defuzzification does not support saving yet."
+        )
 
     def to(self, device: torch.device, *args, **kwargs) -> "Mamdani":
         """

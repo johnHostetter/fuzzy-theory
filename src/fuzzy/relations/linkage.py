@@ -36,7 +36,8 @@ class BinaryLinks(torch.nn.Module):
         # self.original_links: np.ndarray = links
         # cast_links = links.astype(dtype=float)
         # cast_links[cast_links == 0] = 'nan'
-        # self.memory_efficient_links: np.ndarray = np.nanargmax(links, axis=1)  # 2D shape: (n_inputs, n_relations)
+        # self.memory_efficient_links: np.ndarray = np.nanargmax(
+        #     links, axis=1)  # 2D shape: (n_inputs, n_relations)
         # self.links: torch.Tensor = torch.tensor(
         #     self.memory_efficient_links, dtype=torch.int8, device=device
         # )
