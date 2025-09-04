@@ -7,6 +7,7 @@ This Python module also contains functions for extracting information from a kno
 and fuzzy logic rule matrices. These components may then be used to create a fuzzy inference system.
 """
 
+import pickle
 from pathlib import Path
 from collections import OrderedDict
 from typing import Union, List, Type, MutableMapping, Any
@@ -106,7 +107,6 @@ class FuzzyLogicController(torch.nn.Sequential):
         # TODO: figure out a better way to handle the configuration
         if hasattr(self.engine, "configuration"):
             # pickle the configuration for the engine
-            import pickle
 
             with open(path / "engine_config.pkl", "wb+") as f:
                 pickle.dump(
@@ -133,12 +133,11 @@ class FuzzyLogicController(torch.nn.Sequential):
             The FLC object.
         """
         # load the components from their respective directories
-        input = FuzzySetGroup.load(path / "input", device=device)
+        input_granules = FuzzySetGroup.load(path / "input", device=device)
         engine = TNorm.load(path / "engine", device=device)
         # TODO: figure out a better way to handle the configuration
         if hasattr(engine, "configuration"):
             # pickle the configuration for the engine
-            import pickle
 
             with open(path / "engine_config.pkl", "rb") as f:
                 engine.configuration = pickle.load(f)
@@ -157,7 +156,7 @@ class FuzzyLogicController(torch.nn.Sequential):
 
         defined_fuzzy_system = Defined(
             shape=shape,
-            granulation=GranulationLayers(input=input, output=None),
+            granulation=GranulationLayers(input=input_granules, output=None),
             engine=engine,
             defuzzification=defuzzification,
         )
@@ -208,9 +207,10 @@ class FuzzyLogicController(torch.nn.Sequential):
             if module is not None:
                 # for param_name, param in module.named_parameters():
                 #     if "mask" not in param_name and hasattr(param, "requires_grad"):
-                #         # ignore attribute with "mask" in it; assume it's a non-learnable parameter,
-                #         # or cannot enable this parameter; this is by design - do not raise an error
-                #         # examples of such a case are mask parameters, links, and offsets
+                #         # ignore attribute with "mask" in it; assume it's a non-learnable
+                #         # parameter, or cannot enable this parameter; this is by design
+                #         # - do not raise an error examples of such a case are
+                #         # mask parameters, links, and offsets
                 #         param.requires_grad = param_name not in self.disabled_parameters
                 self.add_module(module_name, module)
 
@@ -262,26 +262,26 @@ class FuzzyLogicController(torch.nn.Sequential):
             targets=None if len(results_lst) < 2 else results_lst[1],
         )
 
-    def forward(self, observations: torch.Tensor) -> torch.Tensor:
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
         """
         Forward pass for the FLC. This is the main method that will be called when the FLC is used
         in a forward pass. This method will perform the fuzzy inference process, which includes
         fuzzification, rule evaluation, and defuzzification.
 
         Args:
-            observations: The observations to perform the fuzzy inference on.
+            input: The input (observations) to perform the fuzzy inference on.
 
         Returns:
             The defuzzified output of the FLC.
         """
         # fuzzification
-        granulated_input = self.input(observations)
+        granulated_input = self.input(input)
 
         # rule evaluation
         rule_strengths = self.engine(granulated_input)
 
         # defuzzification
         try:  # TSK
-            return self.defuzzification(observations, rule_strengths)
-        except TypeError as e:  # Mamdani, ZeroOrder, etc.
+            return self.defuzzification(input, rule_strengths)
+        except TypeError:  # Mamdani, ZeroOrder, etc.
             return self.defuzzification(rule_strengths)

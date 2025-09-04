@@ -14,7 +14,6 @@ import numpy as np
 import pandas as pd
 import igraph as ig
 
-from fuzzy.logic.control.defuzzification import Defuzzification
 from rough.decisions import RoughDecisions
 
 from fuzzy.logic.rule import Rule

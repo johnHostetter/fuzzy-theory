@@ -542,9 +542,9 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                     bbox_to_anchor=(0.5, -0.2),
                     loc="upper center",
                     ncol=len(real_centers),
-                    handletextpad=0.1,  # reduce the spacing between legend markers and its label (default is 0.8)
-                    columnspacing=0.5,  # reduce spacing between legend entries
-                    borderaxespad=-0.5,  # reduce the spacing between the legend and the plot
+                    handletextpad=0.1,  # reduce spacing b/w legend markers & label (default=0.8)
+                    columnspacing=0.5,  # reduce spacing b/w legend entries
+                    borderaxespad=-0.5,  # reduce the spacing b/w the legend and the plot
                 )
                 plt.subplots_adjust(bottom=0.3, wspace=0.33)
                 output_dir.mkdir(parents=True, exist_ok=True)
@@ -554,7 +554,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                 # figures.append(fig)
                 # axes.append(ax)
 
-            plt.savefig(output_dir / f"mu.png")
+            plt.savefig(output_dir / "mu.png")
 
         # Save just the portion _inside_ the second axis's boundaries
         # Why do I do it this way? Because the axis is not always the same size if each plot is
