@@ -5,18 +5,18 @@ Tests the fuzzy logic inference engines.
 import unittest
 from typing import Tuple, Type
 
-import torch
 import numpy as np
+import torch
 
-from fuzzy.sets.impl import Gaussian
-from fuzzy.sets.membership import Membership
+from fuzzy.logic.control.controller import FuzzyLogicController
+from fuzzy.logic.control.defuzzification import ZeroOrder
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
-from fuzzy.logic.control.defuzzification import ZeroOrder
-from fuzzy.logic.control.controller import FuzzyLogicController
 from fuzzy.relations.t_norm import Minimum, Product, TNorm
-from .demo_flcs import toy_tsk
+from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.membership import Membership
 
+from .demo_flcs import toy_tsk
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

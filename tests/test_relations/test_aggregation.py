@@ -30,7 +30,8 @@ class TestOrderedWeightedAggregation(unittest.TestCase):
             OWA(in_features, weights)
             assert False
         except AttributeError:
-            # an AttributeError exception should be thrown when the weights vector != in_features
+            # an AttributeError exception should be thrown when the weights
+            # vector != in_features
             assert True
 
     def test_weight_vector_sums_to_one(self) -> None:
@@ -61,7 +62,8 @@ class TestOrderedWeightedAggregation(unittest.TestCase):
             OWA(in_features, weights)
             assert False
         except AttributeError:
-            # an AttributeError exception should be thrown when the weights do not sum to 1
+            # an AttributeError exception should be thrown when the weights do
+            # not sum to 1
             assert True
 
     def test_owa_calculation_1(self) -> None:

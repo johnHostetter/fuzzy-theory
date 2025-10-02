@@ -4,8 +4,8 @@ Test the RuleBase class.
 
 import shutil
 import unittest
-from typing import List
 from pathlib import Path
+from typing import List
 
 import torch
 
@@ -13,6 +13,7 @@ from fuzzy.logic.rule import Rule
 from fuzzy.logic.rulebase import RuleBase
 from fuzzy.relations.t_norm import Product
 from fuzzy.sets.membership import Membership
+
 from .test_n_ary import TestNAryRelation
 
 N_RULES: int = 5
@@ -64,13 +65,15 @@ class TestRuleBase(unittest.TestCase):
                 self.assertEqual(
                     expected_rule.consequence.device, actual_rule.consequence.device
                 )
-        # the premises should be a Product T-Norm (it aggregates all across the rules' premises)
+        # the premises should be a Product T-Norm (it aggregates all across the
+        # rules' premises)
         self.assertIsInstance(rule_base.premises, Product)
 
         # check we can interact with it given an index
         self.assertEqual(self.rules[0].id, rule_base[0].id)
 
-        # we can also use the equality operator == to compare two RuleBase objects (or !=)
+        # we can also use the equality operator == to compare two RuleBase
+        # objects (or !=)
         self.assertEqual(rule_base, RuleBase(self.rules, device=AVAILABLE_DEVICE))
         self.assertNotEqual(
             rule_base, RuleBase(self.rules[:-1], device=AVAILABLE_DEVICE)
@@ -78,7 +81,8 @@ class TestRuleBase(unittest.TestCase):
         # and can compare it to non-RuleBase objects
         self.assertNotEqual(rule_base, None)
 
-        # check that _combine_t_norms only works for recognized attribute references
+        # check that _combine_t_norms only works for recognized attribute
+        # references
         self.assertRaises(ValueError, rule_base._combine_t_norms, "unknown_attribute")
 
     def test_rule_base_output(self) -> None:
@@ -136,7 +140,8 @@ class TestRuleBase(unittest.TestCase):
                 self.assertEqual(
                     expected_rule.consequence.device, actual_rule.consequence.device
                 )
-        # the premises should be a Product T-Norm (it aggregates all across the rules' premises)
+        # the premises should be a Product T-Norm (it aggregates all across the
+        # rules' premises)
         self.assertIsInstance(loaded_rule_base.premises, Product)
         # remove the directory
         shutil.rmtree("test_rule_base")

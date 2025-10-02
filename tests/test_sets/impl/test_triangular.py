@@ -4,13 +4,12 @@ Test the Triangular fuzzy set (i.e., membership function).
 
 import unittest
 
-import torch
 import numpy as np
+import torch
 
 from fuzzy.sets.impl import Triangular
 
 from .common import get_test_elements
-
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

@@ -7,21 +7,20 @@ Test the fuzzy n-ary relations work as expected.
 import shutil
 import unittest
 from pathlib import Path
-from typing import List, Tuple, MutableMapping, Any
+from typing import Any, List, MutableMapping, Tuple
 
-import torch
 import igraph
 import numpy as np
+import torch
 
-from fuzzy.sets.impl import Gaussian
-from fuzzy.sets.abstract import FuzzySet
-from fuzzy.sets.membership import Membership
-from fuzzy.sets.group import FuzzySetGroup
-from fuzzy.relations.linkage import GroupedLinks, BinaryLinks
-from fuzzy.relations.t_norm import Minimum, Product
-from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.relations.compound import Compound
-
+from fuzzy.relations.linkage import BinaryLinks, GroupedLinks
+from fuzzy.relations.n_ary import NAryRelation
+from fuzzy.relations.t_norm import Minimum, Product
+from fuzzy.sets.abstract import FuzzySet
+from fuzzy.sets.group import FuzzySetGroup
+from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.membership import Membership
 
 N_TERMS: int = 2
 N_VARIABLES: int = 4
@@ -125,7 +124,8 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(n_ary._coo_matrix[0].shape, (2, 2))
         # check that the original shape is stored
         self.assertEqual(n_ary._original_shape[0], (2, 2))
-        # matrix size can increase (in-place) for more potential rows (vars) and columns (terms)
+        # matrix size can increase (in-place) for more potential rows (vars)
+        # and columns (terms)
         n_ary._coo_matrix[0].resize(3, 3)
         self.assertEqual(n_ary._coo_matrix[0].shape, (3, 3))
         # check that the original shape is still kept after resizing
@@ -175,7 +175,8 @@ class TestNAryRelation(unittest.TestCase):
         new_n_ary = NAryRelation(
             grouped_links=n_ary.grouped_links, device=AVAILABLE_DEVICE
         )
-        # the new n-ary relation should have the same applied mask as the original
+        # the new n-ary relation should have the same applied mask as the
+        # original
         self.assertTrue(
             torch.allclose(
                 new_n_ary.grouped_links(membership=membership).to_dense(),
@@ -234,7 +235,8 @@ class TestNAryRelation(unittest.TestCase):
                 # self.assertEqual(predecessor["item"], indices[relation_index][index])
             relation_index += 1
 
-        # check that relations involving the same index references share the same vertex
+        # check that relations involving the same index references share the
+        # same vertex
 
         multiple_n_ary = NAryRelation(
             [(0, 1), (1, 0)], [(1, 1), (0, 1)], device=AVAILABLE_DEVICE
@@ -339,7 +341,8 @@ class TestNAryRelation(unittest.TestCase):
         ):
             # modules are expected to have the shape property
             self.assertEqual(actual_module.shape, loaded_module.shape)
-            # the loaded module should be the same as the original per __eq__ method
+            # the loaded module should be the same as the original per __eq__
+            # method
             self.assertEqual(actual_module, loaded_module)
         # remove the directory and its contents
         shutil.rmtree(actual_destination)

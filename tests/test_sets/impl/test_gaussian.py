@@ -4,13 +4,12 @@ Test the Gaussian fuzzy set (i.e., membership function).
 
 import unittest
 
-import torch
 import numpy as np
+import torch
 
 from fuzzy.sets.impl import Gaussian
 
 from .common import get_test_elements
-
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -106,7 +105,8 @@ class TestGaussian(unittest.TestCase):
             torch.tensor(centers, device=AVAILABLE_DEVICE).float(),
         )
         # the outputs of the PyTorch and Numpy versions should be approx. equal
-        # note that the PyTorch version has an extra dimension (4, 1, 1) compared to Numpy's (4, 1)
+        # note that the PyTorch version has an extra dimension (4, 1, 1)
+        # compared to Numpy's (4, 1)
         assert np.allclose(
             mu_pytorch.cpu().detach().numpy().flatten(), mu_numpy.flatten()
         )
@@ -267,7 +267,8 @@ class TestGaussian(unittest.TestCase):
                 ],
             ]
         )
-        sigmas = np.array([[[0.1, 0.25, 0.5]]])  # negative widths are missing sets
+        # negative widths are missing sets
+        sigmas = np.array([[[0.1, 0.25, 0.5]]])
         gaussian_mf = Gaussian(
             centers=centers,
             widths=sigmas,
