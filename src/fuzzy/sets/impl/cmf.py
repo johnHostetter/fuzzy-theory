@@ -4,9 +4,9 @@ Implements various conventional membership functions (CMFs) by inheriting from F
 
 from typing import Union
 
+import numpy as np
 import sympy
 import torch
-import numpy as np
 
 from ..abstract import FuzzySet
 from ..membership import Membership
@@ -16,6 +16,7 @@ class NoOp(FuzzySet):
     """
     Implementation of the NoOp membership function, written in PyTorch.
     """
+
     def __init__(self, n_elements, membership: float, device: torch.device):
         centers = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         widths = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
@@ -27,7 +28,7 @@ class NoOp(FuzzySet):
         observations: torch.Tensor,
         centers: torch.Tensor,
         widths: torch.Tensor,
-        membership_degree: float
+        membership_degree: float,
     ) -> torch.Tensor:
         """
         Calculate the membership of the observations to the NoOp fuzzy set.
@@ -47,8 +48,10 @@ class NoOp(FuzzySet):
             The membership degrees of the observations for the NoOp fuzzy set.
         """
         return (
-                torch.ones_like(centers) * membership_degree
-        ).unsqueeze(0).repeat(observations.shape[0], 1, 1)  # repeat for each observation
+            (torch.ones_like(centers) * membership_degree)
+            .unsqueeze(0)
+            .repeat(observations.shape[0], 1, 1)
+        )  # repeat for each observation
 
     @classmethod
     @torch.jit.ignore
@@ -87,7 +90,8 @@ class NoOp(FuzzySet):
         # ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            # elements=observations.squeeze(dim=-1),  # remove the last dimension
+            # elements=observations.squeeze(dim=-1),  # remove the last
+            # dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
             mask=self.get_mask(),
         )
@@ -111,17 +115,17 @@ class GeneralizedGuassian(FuzzySet):
             raise ValueError(
                 f"The width multiplier must be greater than zero, but got {self.width_multiplier}."
             )
-        else:
-            self._width_multiplier = torch.nn.ParameterList(
-                [self.make_parameter(width_multiplier * np.ones_like(centers))]
-            )
-            self._slope_multiplier = torch.nn.ParameterList(
-                [self.make_parameter(slope_multiplier * np.ones_like(centers))]
-            )
+        self._width_multiplier = torch.nn.ParameterList(
+            [self.make_parameter(width_multiplier * np.ones_like(centers))]
+        )
+        self._slope_multiplier = torch.nn.ParameterList(
+            [self.make_parameter(slope_multiplier * np.ones_like(centers))]
+        )
 
     def get_width_multiplier(self) -> torch.Tensor:
         """
-        Get the concatenated width multipliers of the fuzzy set from its corresponding ParameterList.
+        Get the concatenated width multipliers of the fuzzy set from its
+        corresponding ParameterList.
 
         Returns:
             The concatenated width multipliers of the fuzzy set.
@@ -130,7 +134,8 @@ class GeneralizedGuassian(FuzzySet):
 
     def get_slope_multiplier(self) -> torch.Tensor:
         """
-        Get the concatenated slope multipliers of the fuzzy set from its corresponding ParameterList.
+        Get the concatenated slope multipliers of the fuzzy set from its
+        corresponding ParameterList.
 
         Returns:
             The concatenated slope multipliers of the fuzzy set.
@@ -210,7 +215,8 @@ class GeneralizedGuassian(FuzzySet):
         # ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            # elements=observations.squeeze(dim=-1),  # remove the last dimension
+            # elements=observations.squeeze(dim=-1),  # remove the last
+            # dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
             mask=self.get_mask(),
         )
@@ -339,7 +345,8 @@ class LogGaussian(FuzzySet):
         # ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            # elements=observations.squeeze(dim=-1),  # remove the last dimension
+            # elements=observations.squeeze(dim=-1),  # remove the last
+            # dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
             mask=self.get_mask(),
         )
@@ -355,7 +362,8 @@ class Gaussian(LogGaussian):
         observations: torch.Tensor,
         centers: torch.Tensor,
         widths: torch.Tensor,
-        width_multiplier: float = 1.0,  # in fuzzy logic, convention is usually 1.0, but can be 2.0
+        width_multiplier: float = 1.0,
+        # in fuzzy logic, convention is usually 1.0, but can be 2.0
     ) -> torch.Tensor:
         """
         Calculate the membership of the observations to the Gaussian fuzzy set.
@@ -418,7 +426,8 @@ class Gaussian(LogGaussian):
         # ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            # elements=observations.squeeze(dim=-1),  # remove the last dimension
+            # elements=observations.squeeze(dim=-1),  # remove the last
+            # dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
             mask=self.get_mask(),
         )
@@ -514,7 +523,8 @@ class Lorentzian(FuzzySet):
         ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            # elements=observations.squeeze(dim=-1),  # remove the last dimension
+            # elements=observations.squeeze(dim=-1),  # remove the last
+            # dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
             mask=self.get_mask(),
         )
@@ -647,7 +657,8 @@ class Triangular(FuzzySet):
         ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            # elements=observations.squeeze(dim=-1),  # remove the last dimension
+            # elements=observations.squeeze(dim=-1),  # remove the last
+            # dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
             mask=self.get_mask(),
         )

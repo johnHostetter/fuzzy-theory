@@ -7,9 +7,10 @@ import abc
 
 import torch
 
-from fuzzy.relations.t_norm import TNorm
 from fuzzy.logic.control.defuzzification import Defuzzification
-from .data import Shape, GranulationLayers
+from fuzzy.relations.t_norm import TNorm
+
+from .data import GranulationLayers, Shape
 
 
 class FuzzySystem(abc.ABC):

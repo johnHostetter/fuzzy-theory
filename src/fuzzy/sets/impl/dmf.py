@@ -21,15 +21,19 @@ to make it compatible with this fuzzy-theory library.
 from abc import ABC
 from typing import Union
 
+import numpy as np
 import sympy
 import torch
-import numpy as np
 
 from ..abstract import FuzzySet
 from ..membership import Membership
 
 
 class DimensionDependent(FuzzySet, ABC):
+    """
+    An abstract class for dimension-dependent membership functions.
+    """
+
     def __init__(
         self,
         centers: np.ndarray,
@@ -59,8 +63,8 @@ class DimensionDependent(FuzzySet, ABC):
 
 class GaussianNoExpDMF(DimensionDependent):
     """
-    This class represents the Gaussian w/ No-Exp Dimension-Dependent fuzzy set. This is a special case of the
-    Dimension-Dependent fuzzy set where the Gaussian membership function is assumed.
+    This class represents the Gaussian w/ No-Exp Dimension-Dependent fuzzy set. This is a special
+    case of the Dimension-Dependent fuzzy set where the Gaussian membership function is assumed.
     """
 
     @staticmethod
@@ -108,7 +112,8 @@ class GaussianNoExpDMF(DimensionDependent):
         dim_symbol = sympy.Symbol("N")
         rho_symbol = sympy.Symbol("rho")
         return sympy.sympify(
-            f"-1.0 * pow(({input_symbol} - {center_symbol}), 2) / (pow({dim_symbol}, {rho_symbol}) + pow({width_symbol}, 2))"
+            f"-1.0 * pow(({input_symbol} - {center_symbol}), 2) / "
+            f"(pow({dim_symbol}, {rho_symbol}) + pow({width_symbol}, 2))"
         )
 
     def calculate_membership(self, observations: torch.Tensor) -> torch.Tensor:
@@ -143,7 +148,8 @@ class GaussianNoExpDMF(DimensionDependent):
         # ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            # elements=observations.squeeze(dim=-1),  # remove the last dimension
+            # elements=observations.squeeze(dim=-1),  # remove the last
+            # dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
             mask=self.get_mask(),
         )
@@ -230,7 +236,8 @@ class GaussianDMF(DimensionDependent):
         # ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            # elements=observations.squeeze(dim=-1),  # remove the last dimension
+            # elements=observations.squeeze(dim=-1),  # remove the last
+            # dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
             mask=self.get_mask(),
         )

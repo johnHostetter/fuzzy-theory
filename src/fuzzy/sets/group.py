@@ -7,12 +7,12 @@ defined fuzzy sets with no difficulty. Further, this class was specifically desi
 dynamic addition of new fuzzy sets in the construction of neuro-fuzzy networks via network morphism.
 """
 
-from typing import Union, List, Any
+from typing import Any, List, Union
 
 import torch
 
-from .membership import Membership
 from ..utils import NestedTorchJitModule
+from .membership import Membership
 
 
 class FuzzySetGroup(NestedTorchJitModule):

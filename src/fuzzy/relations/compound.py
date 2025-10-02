@@ -8,8 +8,8 @@ from typing import List
 
 import torch
 
-from fuzzy.sets.membership import Membership
 from fuzzy.relations.n_ary import NAryRelation
+from fuzzy.sets.membership import Membership
 
 
 class Compound(torch.nn.Module):
@@ -46,7 +46,9 @@ class Compound(torch.nn.Module):
         degrees: torch.Tensor = torch.cat(
             [membership.degrees for membership in memberships], dim=-1
         ).unsqueeze(dim=-1)
-        # create a new mask that accounts for the different masks for each relation
+        # create a new mask that accounts for the different masks for each
+        # relation
         mask = torch.stack([relation.applied_mask for relation in self.relations])
         return Membership(degrees=degrees, mask=mask)
-        # return Membership(elements=membership.elements, degrees=degrees)#, mask=mask)
+        # return Membership(elements=membership.elements, degrees=degrees)#,
+        # mask=mask)

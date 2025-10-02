@@ -1,5 +1,5 @@
+from .cmf import Gaussian, LogGaussian, LogisticCurve, Lorentzian, NoOp, Triangular
 from .dmf import GaussianDMF
-from .cmf import NoOp, Triangular, LogGaussian, Gaussian, Lorentzian, LogisticCurve
 
 __all__ = [
     "GaussianDMF",

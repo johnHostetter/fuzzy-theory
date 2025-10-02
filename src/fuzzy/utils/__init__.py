@@ -2,8 +2,8 @@
 Re-exporting functions and classes from .functions and .classes modules.
 """
 
-from .functions import check_path_to_save_torch_module, all_subclasses
-from .classes import TimeDistributed, TorchJitModule, NestedTorchJitModule
+from .classes import NestedTorchJitModule, TimeDistributed, TorchJitModule
+from .functions import all_subclasses, check_path_to_save_torch_module
 
 __all__ = [
     "check_path_to_save_torch_module",

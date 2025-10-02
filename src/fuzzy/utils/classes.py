@@ -4,9 +4,9 @@ This module contains classes that are reserved more for the internal use of the 
 
 import inspect
 import pickle
-from pathlib import Path
 from abc import abstractmethod
-from typing import Set, Any, MutableMapping, List, Tuple, Dict, Callable
+from pathlib import Path
+from typing import Any, Callable, Dict, List, MutableMapping, Set, Tuple
 
 import torch
 from natsort import natsorted
@@ -95,13 +95,15 @@ class NestedTorchJitModule(torch.nn.Module):
                 f"The path to save the {self.__class__} must not have a file extension, "
                 f"but got {path.name}"
             )
-        # get the attributes that are local to the class, but not inherited from the super class
+        # get the attributes that are local to the class, but not inherited
+        # from the super class
         local_attributes_only = get_object_attributes(self)
 
         # save a reference to the attributes (and their values) so that when iterating over them,
         # we do not modify the dictionary while iterating over it (which would cause an error)
         # we modify the dictionary by removing attributes that have a value of torch.nn.ModuleList
-        # because we want to save the modules in the torch.nn.ModuleList separately
+        # because we want to save the modules in the torch.nn.ModuleList
+        # separately
         local_attributes_only_items: List[Tuple[str, Any]] = list(
             local_attributes_only.items()
         )
@@ -113,12 +115,14 @@ class NestedTorchJitModule(torch.nn.Module):
                     subdirectory = path / attr / str(idx)
                     subdirectory.mkdir(parents=True, exist_ok=True)
                     if isinstance(module, TorchJitModule):
-                        # save the fuzzy set using the fuzzy set's special protocol
+                        # save the fuzzy set using the fuzzy set's special
+                        # protocol
                         module.save(
                             path / attr / str(idx) / f"{module.__class__.__name__}.pt"
                         )
                     else:
-                        # unknown and unrecognized module, but attempt to save the module
+                        # unknown and unrecognized module, but attempt to save
+                        # the module
                         torch.save(
                             module,
                             path / attr / str(idx) / f"{module.__class__.__name__}.pt",
@@ -153,7 +157,8 @@ class NestedTorchJitModule(torch.nn.Module):
                 for subdirectory in natsorted(file_path.iterdir()):
                     if subdirectory.is_dir():
                         module_path: Path = list(subdirectory.glob("*.pt"))[0]
-                        # load the fuzzy set using the fuzzy set's special protocol
+                        # load the fuzzy set using the fuzzy set's special
+                        # protocol
                         class_name: str = module_path.name.split(".pt")[0]
                         try:
                             modules_list.append(
@@ -162,7 +167,8 @@ class NestedTorchJitModule(torch.nn.Module):
                                 )
                             )
                         except ValueError:
-                            # unknown and unrecognized module, but attempt to load the module
+                            # unknown and unrecognized module, but attempt to
+                            # load the module
                             modules_list.append(
                                 torch.load(module_path, weights_only=False)
                             )
@@ -203,7 +209,9 @@ class NestedTorchJitModule(torch.nn.Module):
             try:
                 setattr(grouped_fuzzy_set, attr, value)
             except AttributeError:
-                continue  # the attribute is not a valid attribute of the class (e.g., property)
+                # the attribute is not a valid attribute of the class (e.g.,
+                # property)
+                continue
         return grouped_fuzzy_set
 
 

@@ -1,4 +1,4 @@
-from typing import TypedDict, NamedTuple, Union
+from typing import NamedTuple, TypedDict, Union
 
 from fuzzy.sets.group import FuzzySetGroup
 

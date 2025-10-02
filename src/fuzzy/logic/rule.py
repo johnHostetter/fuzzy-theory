@@ -3,9 +3,9 @@ This directory contains the implementation of the Rule class, which is used to r
 fuzzy logic rules.
 """
 
-from pathlib import Path
 from dataclasses import dataclass
-from typing import Union, Type, Any
+from pathlib import Path
+from typing import Any, Type, Union
 
 import torch
 

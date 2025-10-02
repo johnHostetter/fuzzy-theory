@@ -4,15 +4,15 @@ used to perform fuzzy logic inference more efficiently than using a list of rule
 """
 
 from pathlib import Path
-from typing import List, Union, Set, Any
+from typing import Any, List, Set, Union
 
 import torch
 from natsort import natsorted
 
-from fuzzy.logic.rule import Rule
 from fuzzy.logic.control.configurations.data import Shape
-from fuzzy.sets.membership import Membership
+from fuzzy.logic.rule import Rule
 from fuzzy.relations.t_norm import TNorm
+from fuzzy.sets.membership import Membership
 
 
 class RuleBase(torch.nn.Module):

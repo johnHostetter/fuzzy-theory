@@ -3,17 +3,17 @@ Implements the various versions of the defuzzification process within a fuzzy in
 """
 
 import abc
-from pathlib import Path
-from typing import Union, Any, Tuple
 from collections.abc import MutableMapping
+from pathlib import Path
+from typing import Any, Union
 
-import torch
 import numpy as np
+import torch
 
-from fuzzy.logic.rulebase import RuleBase
 from fuzzy.logic.control.configurations.data import Shape
-from fuzzy.sets.membership import Membership
+from fuzzy.logic.rulebase import RuleBase
 from fuzzy.sets.group import FuzzySetGroup
+from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule
 
 
@@ -141,7 +141,8 @@ class ZeroOrder(Defuzzification):
         """
         state_dict: MutableMapping = self.state_dict()
         state_dict["class_name"] = self.__class__.__name__
-        state_dict["shape"] = tuple(self.shape)  # convert to tuple for serialization
+        # convert to tuple for serialization
+        state_dict["shape"] = tuple(self.shape)
         state_dict["source"] = self.consequences.detach().cpu().numpy()
         torch.save(state_dict, path)
         return state_dict
@@ -278,7 +279,8 @@ class TSK(Defuzzification):
         """
         state_dict: MutableMapping = self.state_dict()
         state_dict["class_name"] = self.__class__.__name__
-        state_dict["shape"] = tuple(self.shape)  # convert to tuple for serialization
+        # convert to tuple for serialization
+        state_dict["shape"] = tuple(self.shape)
         state_dict["source"] = self.consequences.detach().cpu().numpy()
         torch.save(state_dict, path)
         return state_dict
