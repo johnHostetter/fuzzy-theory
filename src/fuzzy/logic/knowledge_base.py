@@ -3,28 +3,27 @@ Implements the vital KnowledgeBase class.
 """
 
 import ast
+import importlib.util
 import pickle
 import warnings
-import importlib.util
 from pathlib import Path
-from typing import Union, Set, List, Any
+from typing import Any, List, Set, Union
 
-import torch
 import numpy as np
 import pandas as pd
+import torch
 import igraph as ig
-
 from rough.decisions import RoughDecisions
 
+from fuzzy.logic.control.configurations.abstract import FuzzySystem
+from fuzzy.logic.control.configurations.data import GranulationLayers, Shape
 from fuzzy.logic.rule import Rule
 from fuzzy.logic.rulebase import RuleBase
 from fuzzy.logic.variables import LinguisticVariables
-from fuzzy.logic.control.configurations.abstract import FuzzySystem
-from fuzzy.logic.control.configurations.data import Shape, GranulationLayers
-from fuzzy.relations.t_norm import TNorm
 from fuzzy.relations.n_ary import NAryRelation
-from fuzzy.sets.group import FuzzySetGroup
+from fuzzy.relations.t_norm import TNorm
 from fuzzy.sets.abstract import FuzzySet
+from fuzzy.sets.group import FuzzySetGroup
 
 
 class KnowledgeBase(RoughDecisions, FuzzySystem):
@@ -71,7 +70,8 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         layers = {"input": None, "output": None}
         for attr, layer in zip(["input", "output"], ["premise", "consequence"]):
             group_vertices: ig.VertexSeq = self.select_by_tags(tags={layer, "group"})
-            layer: Union[None, FuzzySetGroup] = None  # default to None if no granules
+            # default to None if no granules
+            layer: Union[None, FuzzySetGroup] = None
             if len(group_vertices) == 1:
                 layer: FuzzySetGroup = group_vertices[0]["item"]
             elif len(group_vertices) > 1:
@@ -185,7 +185,8 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
             (or unique auto-generated id for relations).
         """
         equivalence_classes = self[element]
-        # dictionary to store the attribute (key) to its value (values) for element
+        # dictionary to store the attribute (key) to its value (values) for
+        # element
         attributes_values = {}
         for attribute_name, equivalences in equivalence_classes.items():
             attributes_values[attribute_name] = self.attribute_table[
@@ -287,7 +288,8 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         # get the granules from the KnowledgeBase
         granule_vertices: ig.seq.VertexSeq = self.select_by_tags(tags)
         if len(granule_vertices) > 0:
-            # from the igraph.VertexSeq object, extract the granules, stored in the "type" attribute
+            # from the igraph.VertexSeq object, extract the granules, stored in
+            # the "type" attribute
             granules: List[FuzzySet] = granule_vertices["item"]
             # create the efficient granule module
             stacked_granules: FuzzySet = FuzzySet.stack(granules)
@@ -296,11 +298,14 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
             target_vertex: Union[None, ig.Vertex] = self.graph.add_vertex(
                 # source=add_stacked_granule,
                 item=hypercube,
-                tags=tags | {"group"},  # add the same tags as the granules w/ "group"
-                # input=list(granule_vertices.indices),  # store the vertex indices
+                tags=tags | {"group"},
+                # add the same tags as the granules w/ "group"
+                # input=list(granule_vertices.indices),  # store the vertex
+                # indices
             )
             if target_vertex is not None:
-                # add edges that point from the granules to the stacked granule representation
+                # add edges that point from the granules to the stacked granule
+                # representation
                 edges = set()
                 for granule in granule_vertices:
                     edges.add((granule.index, target_vertex.index))
@@ -345,7 +350,8 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
                         component,
                         tag,
                     }
-                # avoid duplicate names in the graph to prevent igraph from merging vertices
+                # avoid duplicate names in the graph to prevent igraph from
+                # merging vertices
                 rule_component.graph.vs["name"] = [
                     f"{component}:{name}" for name in rule_component.graph.vs["name"]
                 ]
@@ -371,7 +377,8 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
             )
 
         knowledge_base = KnowledgeBase()
-        # add premises' graphs to KnowledgeBase (order matters, must occur before .set_granules())
+        # add premises' graphs to KnowledgeBase (order matters, must occur
+        # before .set_granules())
         if len(rule_graphs) > 0:
             knowledge_base.graph = ig.union(rule_graphs, byname=True)
             # drop the name attribute to avoid malformed name identifiers
@@ -403,7 +410,8 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
             KnowledgeBase
         """
         # the path_to_graph stores the directory that contains the graph + additional files
-        # Note: path_to_graph / 'network' stores the actual graph file, but is not required here
+        # Note: path_to_graph / 'network' stores the actual graph file, but is
+        # not required here
         path_to_graph: Path = path / "graph"
 
         vertices_df: pd.DataFrame = pd.read_csv(f"{path_to_graph / 'vertices'}.csv")
@@ -423,7 +431,8 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         # remove the 'file' column from the DataFrame
         vertices_df.drop(columns=["file"], inplace=True)
         knowledge_base.graph = ig.Graph.DataFrame(
-            # convert np.nan to None since igraph uses None and return the DataFrame
+            # convert np.nan to None since igraph uses None and return the
+            # DataFrame
             pd.read_csv(f"{path_to_graph / 'edges'}.csv").replace(np.nan, None),
             directed=True,
             vertices=vertices_df,
@@ -466,4 +475,6 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
                     try:
                         vertex_row[attribute] = ast.literal_eval(attr_val)
                     except ValueError:
-                        continue  # unrecognized value - malformed node or string (e.g., 'A0')
+                        # unrecognized value - malformed node or string (e.g.,
+                        # 'A0')
+                        continue

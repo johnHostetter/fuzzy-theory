@@ -5,22 +5,22 @@ Test the ZeroOrderTSK is working as intended, such as its output is correctly ca
 import unittest
 from typing import List, Tuple
 
-import torch
 import numpy as np
+import torch
 
-from fuzzy.sets.impl import Gaussian
-from fuzzy.sets.abstract import FuzzySet
-from fuzzy.sets.membership import Membership
+from fuzzy.logic.control.controller import FuzzyLogicController as FLC
+from fuzzy.logic.control.defuzzification import Mamdani, ZeroOrder
+from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.rule import Rule
 from fuzzy.logic.variables import LinguisticVariables
-from fuzzy.logic.knowledge_base import KnowledgeBase
-from fuzzy.logic.control.defuzzification import ZeroOrder, Mamdani
-from fuzzy.logic.control.controller import FuzzyLogicController as FLC
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.relations.t_norm import Product
+from fuzzy.sets.abstract import FuzzySet
+from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.membership import Membership
 from fuzzy.utils.classes import TimeDistributed
-from .demo_flcs import toy_mamdani
 
+from .demo_flcs import toy_mamdani
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -350,7 +350,8 @@ class TestTSK(unittest.TestCase):
         self.assertEqual(
             rule_vertex["item"], rules[0]
         )  # it is the correct relation we wanted
-        self.assertIn("item", rule_vertex.attributes())  # it has 'item' attribute
+        # it has 'item' attribute
+        self.assertIn("item", rule_vertex.attributes())
         rule_vertices = knowledge_base.select_by_tags("rule")
         self.assertEqual(
             len(rule_vertices), len(rules)
@@ -381,7 +382,8 @@ class TestTSK(unittest.TestCase):
         #     consequences=torch.zeros(len(rules) - 1),
         # )
 
-        # check that the zero-order TSK neuro-fuzzy network was correctly created
+        # check that the zero-order TSK neuro-fuzzy network was correctly
+        # created
         flc = FLC(
             source=knowledge_base,
             inference=ZeroOrder,
@@ -697,7 +699,8 @@ class TestMamdani(unittest.TestCase):
         )
         # check that the consequence of the Mamdani FLC inference engine refers to the output
         # granulation layer (i.e., the fuzzy sets defined in the output space)
-        # specifically, the centers are used in the Mamdani FLC inference prediction
+        # specifically, the centers are used in the Mamdani FLC inference
+        # prediction
         assert torch.equal(
             self.fuzzy_logic_controller.defuzzification.consequences.centers,
             torch.tensor(
@@ -724,7 +727,8 @@ class TestMamdani(unittest.TestCase):
         Returns:
             None
         """
-        # check the intra-dimensionality of the input & output spaces are correctly calculated
+        # check the intra-dimensionality of the input & output spaces are
+        # correctly calculated
         assert np.allclose(
             self.knowledge_base.intra_dimensions(tags="premise"),
             np.array([4, 4]),  # number of terms in each antecedent variable
@@ -734,10 +738,12 @@ class TestMamdani(unittest.TestCase):
             np.array([2, 3]),  # number of terms in each consequent variable
         )
         # the above is required to generate the correct links shape for fuzzy inference
-        # check the variable dimensionality of the input & output spaces is correctly calculated
+        # check the variable dimensionality of the input & output spaces is
+        # correctly calculated
         assert self.knowledge_base.shape.n_inputs == len(self.antecedents)
         assert self.knowledge_base.shape.n_outputs == len(self.consequents)
-        # the above is required to generate the correct links shape for fuzzy inference
+        # the above is required to generate the correct links shape for fuzzy
+        # inference
 
     def test_rules_are_added_correctly(self) -> None:
         """
@@ -788,7 +794,8 @@ class TestMamdani(unittest.TestCase):
 
         # the following checks that the links between antecedents' memberships (input_links)
         # and the links between rules' activations (output_links) to the consequence layer
-        # is correctly constructed and stored in the Mamdani FLC inference engine
+        # is correctly constructed and stored in the Mamdani FLC inference
+        # engine
         assert torch.allclose(
             expected_input_links,
             self.fuzzy_logic_controller.engine.get_mask(),

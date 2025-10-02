@@ -8,20 +8,21 @@ and fuzzy logic rule matrices. These components may then be used to create a fuz
 """
 
 import pickle
-from pathlib import Path
 from collections import OrderedDict
-from typing import Union, List, Type, MutableMapping, Any
+from pathlib import Path
+from typing import Any, List, MutableMapping, Type, Union
 
 import torch
-from fuzzy.sets.abstract import FuzzySet
-from fuzzy.logic.variables import LinguisticVariables
 
-from .defuzzification import Defuzzification
-from .configurations.data import Shape, GranulationLayers
-from .configurations.abstract import FuzzySystem
-from .configurations.impl import Defined
+from fuzzy.logic.variables import LinguisticVariables
+from fuzzy.sets.abstract import FuzzySet
+
 from ...relations.t_norm import TNorm
 from ...sets import FuzzySetGroup
+from .configurations.abstract import FuzzySystem
+from .configurations.data import GranulationLayers, Shape
+from .configurations.impl import Defined
+from .defuzzification import Defuzzification
 
 
 class FuzzyLogicController(torch.nn.Sequential):
@@ -98,8 +99,10 @@ class FuzzyLogicController(torch.nn.Sequential):
         # each component is given its own directory to save to for easier access
         # and to avoid the risk of overwriting files
         state_dict: MutableMapping[str, Any] = self.state_dict()
-        state_dict["shape"] = tuple(self.shape)  # cast to tuple for serialization
-        torch.save(state_dict, path / "flc.pt")  # save the FLC state dictionary
+        # cast to tuple for serialization
+        state_dict["shape"] = tuple(self.shape)
+        # save the FLC state dictionary
+        torch.save(state_dict, path / "flc.pt")
         self.input.save(
             path / "input"
         )  # save the input granulation layer (drop the extension)
@@ -107,7 +110,6 @@ class FuzzyLogicController(torch.nn.Sequential):
         # TODO: figure out a better way to handle the configuration
         if hasattr(self.engine, "configuration"):
             # pickle the configuration for the engine
-
             with open(path / "engine_config.pkl", "wb+") as f:
                 pickle.dump(
                     self.engine.configuration, f, protocol=pickle.HIGHEST_PROTOCOL
@@ -138,7 +140,6 @@ class FuzzyLogicController(torch.nn.Sequential):
         # TODO: figure out a better way to handle the configuration
         if hasattr(engine, "configuration"):
             # pickle the configuration for the engine
-
             with open(path / "engine_config.pkl", "rb") as f:
                 engine.configuration = pickle.load(f)
             # load the layer_norm weights
@@ -181,10 +182,12 @@ class FuzzyLogicController(torch.nn.Sequential):
         Returns:
 
         """
-        # Call the parent class's `to` method to handle parameters and submodules
+        # Call the parent class's `to` method to handle parameters and
+        # submodules
         super().to(*args, **kwargs)
 
-        # special handling for the modules with non-parameter tensors, such as mask or links
+        # special handling for the modules with non-parameter tensors, such as
+        # mask or links
         for module in self.children():
             if hasattr(module, "to"):
                 module.to(*args, **kwargs)
@@ -233,7 +236,8 @@ class FuzzyLogicController(torch.nn.Sequential):
         """
         results: {str: List[FuzzySet]} = OrderedDict()
 
-        # at each variable index, it is possible to have more than 1 type of module
+        # at each variable index, it is possible to have more than 1 type of
+        # module
         for module_name, module in self.named_modules():
             if hasattr(module, "split_by_variables"):
                 results[module_name] = module.split_by_variables()

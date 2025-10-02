@@ -5,11 +5,12 @@ It includes Gaussian DMF, Triangular, LogGaussian, Gaussian, Lorentzian, and
 LogisticCurve fuzzy sets.
 """
 
+from .cmf import Gaussian, LogGaussian, LogisticCurve, Lorentzian, NoOp, Triangular
 from .dmf import GaussianDMF
-from .cmf import Triangular, LogGaussian, Gaussian, Lorentzian, LogisticCurve
 
 __all__ = [
     "GaussianDMF",
+    "NoOp",
     "Triangular",
     "LogGaussian",
     "Gaussian",

@@ -4,22 +4,21 @@ Test properties of KnowledgeBase, such as how attributes of observations or gran
 
 import shutil
 import unittest
-from typing import List
 from pathlib import Path
+from typing import List
 
 import igraph
-import torch
 import numpy as np
+import torch
 
+from fuzzy.logic.control.configurations.data import GranulationLayers, Shape
+from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.rule import Rule
 from fuzzy.logic.rulebase import RuleBase
-from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
-from fuzzy.logic.control.configurations.data import Shape, GranulationLayers
 from fuzzy.relations.t_norm import TNorm
 from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.impl import Lorentzian
-
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -87,9 +86,11 @@ class TestKnowledgeBase(unittest.TestCase):
         universe = [f"x{i}" for i in range(1, 11)]
         knowledge_base = KnowledgeBase()
         knowledge_base.set_granules(universe, tags="element")
-        # group up data points that share the same value for the respective attribute
+        # group up data points that share the same value for the respective
+        # attribute
         attribute_groupings = {
-            # for example, 'x1', 'x2', 'x10' have the same value for attribute 'a'
+            # for example, 'x1', 'x2', 'x10' have the same value for attribute
+            # 'a'
             "a": (
                 {"x1", "x2", "x10"},
                 {"x4", "x6", "x8"},
@@ -157,7 +158,8 @@ class TestKnowledgeBase(unittest.TestCase):
         )
         self.assertEqual(expected_shape, knowledge_base.shape)
 
-        # check that the rules can easily be retrieved (in the same order as they were added)
+        # check that the rules can easily be retrieved (in the same order as
+        # they were added)
         self.assertEqual(self.rules, knowledge_base.rules)
 
         expected_rule_base = RuleBase(
@@ -165,7 +167,8 @@ class TestKnowledgeBase(unittest.TestCase):
         )  # # use the same behavior as KnowledgeBase does when device is None
         self.assertEqual(expected_rule_base, knowledge_base.rule_base)
 
-        # check that the engine can be retrieved (this comes from RuleBase, but it is a shortcut)
+        # check that the engine can be retrieved (this comes from RuleBase, but
+        # it is a shortcut)
         self.assertEqual(
             expected_rule_base.premises,
             knowledge_base.engine,
@@ -185,11 +188,13 @@ class TestKnowledgeBase(unittest.TestCase):
             knowledge_base.granulation_layers,
         )
 
-        # check individual premise granules can be retrieved (from the Knowledgebase.graph)
+        # check individual premise granules can be retrieved (from the
+        # Knowledgebase.graph)
         actual_granules: igraph.VertexSeq = knowledge_base.get_granules(tags="premise")
         self.assertEqual(self.linguistic_variables.inputs, actual_granules["item"])
 
-        # check individual consequence granules can be retrieved (from the Knowledgebase.graph)
+        # check individual consequence granules can be retrieved (from the
+        # Knowledgebase.graph)
         actual_granules: igraph.VertexSeq = knowledge_base.get_granules(
             tags="consequence"
         )

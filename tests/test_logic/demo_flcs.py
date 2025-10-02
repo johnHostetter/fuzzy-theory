@@ -4,18 +4,19 @@ Demo of the ZeroOrderTSK or Mamdani FLC and how to use it when doing 'expert des
 """
 
 from copy import deepcopy
-from typing import Tuple, List, Any, Type
-import torch
-import numpy as np
-from fuzzy.logic.rule import Rule
-from fuzzy.logic.knowledge_base import KnowledgeBase
-from fuzzy.logic.variables import LinguisticVariables
-from fuzzy.logic.control.defuzzification import ZeroOrder, Mamdani
-from fuzzy.logic.control.controller import FuzzyLogicController as FLC
-from fuzzy.relations.t_norm import TNorm, Product
-from fuzzy.relations.n_ary import NAryRelation
-from fuzzy.sets.impl import Gaussian
+from typing import Any, List, Tuple, Type
 
+import numpy as np
+import torch
+
+from fuzzy.logic.control.controller import FuzzyLogicController as FLC
+from fuzzy.logic.control.defuzzification import Mamdani, ZeroOrder
+from fuzzy.logic.knowledge_base import KnowledgeBase
+from fuzzy.logic.rule import Rule
+from fuzzy.logic.variables import LinguisticVariables
+from fuzzy.relations.n_ary import NAryRelation
+from fuzzy.relations.t_norm import Product, TNorm
+from fuzzy.sets.impl import Gaussian
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -167,7 +168,8 @@ def train_model(model, input_x, target_y):
     # initialize optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    # run training and print the loss to make sure that we are actually fitting to the training set
+    # run training and print the loss to make sure that we are actually
+    # fitting to the training set
     print("Training the model. Make sure that loss decreases after each epoch.\n")
 
     losses = []

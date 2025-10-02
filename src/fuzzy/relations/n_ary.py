@@ -5,16 +5,17 @@ differing types) can then be combined into a compound relation.
 """
 
 from pathlib import Path
-from typing import Union, Tuple, List, MutableMapping, Any
+from typing import Any, List, MutableMapping, Tuple, Union
 
 import igraph
-import torch
 import numpy as np
 import scipy.sparse as sps
+import torch
 
 from fuzzy.sets.membership import Membership
-from fuzzy.utils import check_path_to_save_torch_module, TorchJitModule
-from .linkage import GroupedLinks, BinaryLinks
+from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
+
+from .linkage import BinaryLinks, GroupedLinks
 
 
 class NAryRelation(TorchJitModule):
@@ -73,14 +74,16 @@ class NAryRelation(TorchJitModule):
                 raise ValueError(
                     "At least one set of indices must be provided, or GroupedLinks must be given."
                 )
-            # note that many features are not available when using grouped_links
+            # note that many features are not available when using
+            # grouped_links
             self.grouped_links = grouped_links
         else:  # indices are given
             if not isinstance(indices[0], list):
                 indices = [indices]
 
             # this scenario is for when we have multiple compound indices that use the same relation
-            # this is useful for computational efficiency (i.e., not having to use a for loop)
+            # this is useful for computational efficiency (i.e., not having to
+            # use a for loop)
             for relation_indices in indices:
                 if len(set(relation_indices)) < len(relation_indices):
                     raise ValueError(
@@ -160,9 +163,11 @@ class NAryRelation(TorchJitModule):
             The applied mask.
         """
         # test if the relation is well-defined & build it
-        # the last index, -1, is the relation index; first 2 are (variable, term) indices
+        # the last index, -1, is the relation index; first 2 are (variable,
+        # term) indices
         membership_shape: torch.Size = self.grouped_links.shape[:-1]
-        # but we also need to include a dummy batch dimension (32) for the grouped_links
+        # but we also need to include a dummy batch dimension (32) for the
+        # grouped_links
         batched_membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
         with torch.no_grad():  # disable grad checking
             dummy_membership: Membership = Membership(
@@ -214,14 +219,16 @@ class NAryRelation(TorchJitModule):
         state_dict["class_name"] = self.__class__.__name__
 
         if len(self.indices) == 0:
-            # we will rebuild from the grouped_links, so we do not need to save the indices
+            # we will rebuild from the grouped_links, so we do not need to save
+            # the indices
             grouped_links_dir: Path = path / "grouped_links"
             self.grouped_links.save(path=grouped_links_dir)
             state_dict["grouped_links"] = (
                 grouped_links_dir  # save the path to the grouped_links
             )
         else:
-            # we will rebuild from the indices, so we do not need to save the grouped_links
+            # we will rebuild from the indices, so we do not need to save the
+            # grouped_links
             state_dict["indices"] = (
                 self.indices if len(self.indices) > 1 else self.indices[0]
             )
@@ -242,7 +249,8 @@ class NAryRelation(TorchJitModule):
         dir_path: Path = path.parent / path.name.split(".")[0]
         state_dict: MutableMapping[str, Any] = self._state_dict(path=dir_path)
 
-        # where to save the state_dict depends on whether the indices are given or not
+        # where to save the state_dict depends on whether the indices are given
+        # or not
         save_location: Path = (
             dir_path / "state_dict.pt" if len(self.indices) == 0 else path
         )
@@ -316,19 +324,24 @@ class NAryRelation(TorchJitModule):
         """
         graphs: List[igraph.Graph] = []
         for relation in self.indices:
-            # create a directed (mode="in") star graph with the relation as the center (vertex 0)
+            # create a directed (mode="in") star graph with the relation as the
+            # center (vertex 0)
             graphs.append(igraph.Graph.Star(n=len(relation) + 1, mode="in", center=0))
             # relation vertices are the first vertices in the graph
-            relation_vertex: igraph.Vertex = graphs[-1].vs.find(0)  # located at index 0
-            # set item and tags for the relation vertex for easy retrieval; name is for graph union
+            # located at index 0
+            relation_vertex: igraph.Vertex = graphs[-1].vs.find(0)
+            # set item and tags for the relation vertex for easy retrieval;
+            # name is for graph union
             (
                 relation_vertex["name"],
                 relation_vertex["item"],
                 relation_vertex["tags"],
             ) = (hash(self) + hash(tuple(relation)), self, {"relation"})
-            # anchor vertices are the var-term pairs that are involved in the relation vertex
+            # anchor vertices are the var-term pairs that are involved in the
+            # relation vertex
             anchor_vertices: List[igraph.Vertex] = relation_vertex.predecessors()
-            # set anchor vertices' item and tags for easy retrieval; name is for graph union
+            # set anchor vertices' item and tags for easy retrieval; name is
+            # for graph union
             for anchor_vertex, index_pair in zip(anchor_vertices, relation):
                 anchor_vertex["name"], anchor_vertex["item"], anchor_vertex["tags"] = (
                     index_pair,
@@ -351,11 +364,13 @@ class NAryRelation(TorchJitModule):
         # re-create the self.matrix
         self.create_ndarray(shape[0], shape[1])
         # update the self.grouped_links to reflect the new shape
-        # these links are used to zero out the values that are not part of the relation
+        # these links are used to zero out the values that are not part of the
+        # relation
         self.grouped_links = GroupedLinks(
             modules_list=[BinaryLinks(links=self.matrix, device=self.device)]
         )
-        # re-create the self.graph (has to happen after self.grouped_links is created)
+        # re-create the self.graph (has to happen after self.grouped_links is
+        # created)
         self.create_igraph()
 
     def resize(self, *shape) -> None:
@@ -385,8 +400,10 @@ class NAryRelation(TorchJitModule):
         membership_shape: torch.Size = membership.degrees.shape
         if self.grouped_links.shape[:-1] != membership_shape[1:]:
             # if len(membership_shape) > 2:
-            # this is for the case where masks have been stacked due to compound relations
-            membership_shape = membership_shape[1:]  # get the last two dimensions
+            # this is for the case where masks have been stacked due to
+            # compound relations
+            # get the last two dimensions
+            membership_shape = membership_shape[1:]
             self.resize(*membership_shape)
         del membership_shape  # free up memory
 
@@ -397,7 +414,8 @@ class NAryRelation(TorchJitModule):
         # return after_mask.nan_to_num(self.nan_replacement)
 
         # select memberships that are not zeroed out (i.e., involved in the relation)
-        # with torch.autograd.graph.save_on_cpu():  # save the graph on the CPU (for memory)
+        # with torch.autograd.graph.save_on_cpu():  # save the graph on the CPU
+        # (for memory)
         self.applied_mask: torch.Tensor = self.grouped_links(
             membership=membership
         ).to_dense()
@@ -412,7 +430,8 @@ class NAryRelation(TorchJitModule):
         # after_mask = torch.einsum("...i,...ij->...ij", membership.degrees, self.applied_mask)
         result = []
         # split the degrees into chunks to avoid memory issues if the number of variables is large
-        # this then splits the batch to individual observation's degree of memberships
+        # this then splits the batch to individual observation's degree of
+        # memberships
         n_chunks: int = (
             membership.degrees.size(0) if membership.degrees.size(1) > 1000 else 1
         )
@@ -420,13 +439,15 @@ class NAryRelation(TorchJitModule):
             after_mask = torch.einsum("...i,...ij->...ij", chunk, self.applied_mask)
 
             # complement mask adds zeros where the mask is zero, these are not part of the relation
-            # nan_to_num replaces nan values with the nan_replacement value (often not needed)
+            # nan_to_num replaces nan values with the nan_replacement value
+            # (often not needed)
             result.append(
                 (
                     after_mask + (1 - self.applied_mask)
                 )  # resulting shape is same as after_mask.shape
                 # torch.einsum("...ijk,ijk->...ijk", after_mask,
-                #              1 - self.applied_mask)  # resulting shape is same as after_mask.shape
+                # 1 - self.applied_mask)  # resulting shape is same as
+                # after_mask.shape
                 .prod(dim=2, keepdim=False).nan_to_num(self.nan_replacement)
             )
             del after_mask

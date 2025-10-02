@@ -9,10 +9,9 @@ from pathlib import Path
 import torch
 
 from fuzzy.sets import Membership
-from fuzzy.sets.impl import Gaussian
 from fuzzy.sets.group import FuzzySetGroup
+from fuzzy.sets.impl import Gaussian
 from fuzzy.utils.functions import get_object_attributes
-
 
 AVAILABLE_DEVICE: torch.device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"

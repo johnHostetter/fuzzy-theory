@@ -7,15 +7,14 @@ function).
 import inspect
 import os
 import unittest
+from collections import OrderedDict
 from pathlib import Path
 from typing import MutableMapping
-from collections import OrderedDict
 
 import torch
 
-from fuzzy.sets.impl import Gaussian
 from fuzzy.sets.abstract import FuzzySet
-
+from fuzzy.sets.impl.cmf import NoOp, Gaussian
 
 AVAILABLE_DEVICE: torch.device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
@@ -47,7 +46,7 @@ class TestFuzzySet(unittest.TestCase):
             None
         """
         for subclass in FuzzySet.__subclasses__():
-            if inspect.isabstract(subclass):
+            if inspect.isabstract(subclass) or subclass == NoOp:
                 continue
             membership_func = subclass.create(
                 n_variables=4, n_terms=4, device=AVAILABLE_DEVICE, method="linear"
@@ -60,16 +59,17 @@ class TestFuzzySet(unittest.TestCase):
             with self.assertRaises(ValueError):
                 membership_func.save(Path("test"))
             with self.assertRaises(ValueError):
-                membership_func.save(
-                    Path("test.pth")
-                )  # this file extension is not supported; see error message to learn why
+                # this file extension is not supported; see error message to
+                # learn why
+                membership_func.save(Path("test.pth"))
 
             # test that saving the state dict works
             saved_state_dict: OrderedDict = membership_func.save(
                 Path("membership_func.pt")
             )
 
-            # check that the saved state dict is the same as the original state dict
+            # check that the saved state dict is the same as the original state
+            # dict
             for key in state_dict.keys():
                 assert key in saved_state_dict and torch.allclose(
                     state_dict[key], saved_state_dict[key]
@@ -109,3 +109,6 @@ class TestFuzzySet(unittest.TestCase):
             )
             # delete the file
             os.remove("membership_func.pt")
+
+    def test_save_and_load_of_no_op(self):
+        pass  # TODO: implement the save and load of NoOp

@@ -6,11 +6,10 @@ import shutil
 import unittest
 from pathlib import Path
 
-import torch
 import numpy as np
+import torch
 
 from fuzzy.relations.linkage import BinaryLinks, GroupedLinks
-
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

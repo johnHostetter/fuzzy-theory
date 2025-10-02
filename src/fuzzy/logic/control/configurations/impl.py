@@ -6,9 +6,10 @@ about the Fuzzy Logic Controller (FLC) or Neuro-Fuzzy Network (NFN) to build.
 import torch
 
 from fuzzy.relations.t_norm import TNorm
-from .data import Shape, GranulationLayers
-from .abstract import FuzzySystem
+
 from ..defuzzification import Defuzzification
+from .abstract import FuzzySystem
+from .data import GranulationLayers, Shape
 
 
 class Defined(FuzzySystem):

@@ -6,23 +6,24 @@ which contains a helpful interface understanding membership degrees.
 
 import abc
 import inspect
-from pathlib import Path
 from abc import abstractmethod
-from typing import List, NoReturn, Union, MutableMapping, Any, Type, Tuple
+from pathlib import Path
+from typing import Any, List, MutableMapping, NoReturn, Tuple, Type, Union
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+
+# import scienceplots is used via plt.style.context(["science",
+# "no-latex", "high-contrast"])
+import scienceplots  # noqa # pylint: disable=unused-import
 import sympy
 import torch
 import torchquad
-import numpy as np
-
-# import scienceplots is used via plt.style.context(["science", "no-latex", "high-contrast"])
-import scienceplots  # noqa # pylint: disable=unused-import
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 from torchquad.utils.set_up_backend import set_up_backend
 
+from ..utils import TorchJitModule, check_path_to_save_torch_module
 from .membership import Membership
-from ..utils import check_path_to_save_torch_module, TorchJitModule
 
 
 class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
@@ -53,14 +54,16 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         self.device = device
         if not isinstance(centers, np.ndarray):
             # ensure that the centers are a numpy array (done for consistency)
-            # specifically, we want to internally control the dtype and device of the centers
+            # specifically, we want to internally control the dtype and device
+            # of the centers
             raise ValueError(
                 f"The centers of a FuzzySet must be a numpy array, "
                 f"but got {type(centers)}"
             )
         if not isinstance(widths, np.ndarray):
             # ensure that the widths are a numpy array (done for consistency)
-            # specifically, we want to internally control the dtype and device of the widths
+            # specifically, we want to internally control the dtype and device
+            # of the widths
             raise ValueError(
                 f"The widths of a FuzzySet must be a numpy array, but got {type(widths)}"
             )
@@ -100,7 +103,8 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
         Returns:
             None
         """
-        # Call the parent class's `to` method to handle parameters and submodules
+        # Call the parent class's `to` method to handle parameters and
+        # submodules
         super().to(*args, **kwargs)
 
         # special handling for the non-parameter tensors, such as mask
@@ -366,7 +370,8 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                     device=self.device,
                 )
 
-                # Enable GPU support if available and set the floating point precision
+                # Enable GPU support if available and set the floating point
+                # precision
                 set_up_backend("torch", data_type="float32")
 
                 simpson_method = torchquad.Simpson()
@@ -388,7 +393,8 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                     # if the width of a fuzzy set is negative or zero, it is a special flag that
                     # the fuzzy set does not exist; thus, the calculated area of a fuzzy set w/ a
                     # width <= 0 should be zero. However, in the case this does not occur,
-                    # a zero will substitute to be sure that this issue does not affect results
+                    # a zero will substitute to be sure that this issue does
+                    # not affect results
                     area = 0.0
                 variable_areas.append(area)
             all_areas.append(variable_areas)
@@ -427,7 +433,8 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             centers = centers.cpu().detach().tolist()
             widths = widths.cpu().detach().tolist()
 
-            # the centers and widths must be trimmed to remove missing fuzzy set placeholders
+            # the centers and widths must be trimmed to remove missing fuzzy
+            # set placeholders
             trimmed_centers, trimmed_widths = [], []
             for center, width in zip(centers, widths):
                 if width > 0:
@@ -530,6 +537,8 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                         + "}$"
                     )
                     if (variable_idx, term_idx) in selected_terms:
+                        # edgecolor="#0bafa9"  # beautiful with facecolor=None
+                        # (AAMAS 2023)
                         # edgecolor="#0bafa9"  # beautiful with facecolor=None  (AAMAS 2023)
                         axes[variable_idx].fill_between(
                             x_values, y_values, alpha=0.5, hatch="///", label=label

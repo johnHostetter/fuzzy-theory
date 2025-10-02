@@ -8,8 +8,8 @@ from abc import ABC
 
 import torch
 
-from fuzzy.sets.membership import Membership
 from fuzzy.relations.n_ary import NAryRelation
+from fuzzy.sets.membership import Membership
 
 
 class TNorm(NAryRelation, ABC):
@@ -46,7 +46,8 @@ class Minimum(TNorm):
             to actually consider).
         """
         # first filter out the values that are not part of the relation
-        # then take the minimum value of those that remain in the last dimension
+        # then take the minimum value of those that remain in the last
+        # dimension
         return Membership(
             # elements=membership.elements,
             degrees=self.apply_mask(membership=membership)
@@ -74,7 +75,8 @@ class Product(TNorm):
             (i.e., which truth values to actually consider).
         """
         # first filter out the values that are not part of the relation
-        # then take the minimum value of those that remain in the last dimension
+        # then take the minimum value of those that remain in the last
+        # dimension
         return Membership(
             # elements=membership.elements,
             degrees=self.apply_mask(membership=membership).prod(dim=-2, keepdim=False),
@@ -103,7 +105,8 @@ class SoftmaxSum(TNorm):
         """
         intermediate_values: torch.Tensor = self.apply_mask(membership=membership)
         # pylint: disable=fixme
-        # TODO: these dimensions are possibly not correct, need to be fixed/tested
+        # TODO: these dimensions are possibly not correct, need to be
+        # fixed/tested
         firing_strengths = intermediate_values.sum(dim=1)
         max_values, _ = firing_strengths.max(dim=-1, keepdim=True)
         return Membership(
@@ -122,13 +125,15 @@ class GeneralizedLukasiewicz(TNorm):
     def forward(self, membership: Membership) -> Membership:
         intermediate_values: torch.Tensor = self.apply_mask(membership=membership)
         # pylint: disable=fixme
-        # TODO: these dimensions are possibly not correct, need to be fixed/tested
+        # TODO: these dimensions are possibly not correct, need to be
+        # fixed/tested
         firing_strengths = intermediate_values.sum(dim=1)
         return Membership(
             # elements=membership.elements,
             degrees=torch.nn.functional.relu(
                 firing_strengths
-                - (membership.elements.shape[-1] - 1)  # subtract # of inputs - 1
+                # subtract # of inputs - 1
+                - (membership.elements.shape[-1] - 1)
             ),
             mask=self.applied_mask,
         )
@@ -167,7 +172,8 @@ class SoftmaxMean(TNorm):
         """
         intermediate_values: torch.Tensor = self.apply_mask(membership=membership)
         # pylint: disable=fixme
-        # TODO: these dimensions are possibly not correct, need to be fixed/tested
+        # TODO: these dimensions are possibly not correct, need to be
+        # fixed/tested
         firing_strengths = intermediate_values.mean(
             dim=1
         )  # we take the mean instead of the sum

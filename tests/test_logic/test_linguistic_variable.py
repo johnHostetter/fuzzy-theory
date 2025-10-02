@@ -4,12 +4,11 @@ Tests for the linguistic variable class.
 
 import unittest
 
-import torch
 import numpy as np
+import torch
 
-from fuzzy.sets.impl import Gaussian
 from fuzzy.logic.variables import LinguisticVariables
-
+from fuzzy.sets.impl import Gaussian
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

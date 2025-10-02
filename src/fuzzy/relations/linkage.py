@@ -3,14 +3,14 @@ This file helps support the linkage between relations necessary for fuzzy logic 
 """
 
 from pathlib import Path
-from typing import List, Union, MutableMapping, Any
+from typing import Any, List, MutableMapping, Union
 
-import torch
 import numpy as np
+import torch
 from torch._C import Size
 
 from fuzzy.sets.membership import Membership
-from fuzzy.utils import check_path_to_save_torch_module, NestedTorchJitModule
+from fuzzy.utils import NestedTorchJitModule, check_path_to_save_torch_module
 
 
 class BinaryLinks(torch.nn.Module):
@@ -37,7 +37,8 @@ class BinaryLinks(torch.nn.Module):
         # cast_links = links.astype(dtype=float)
         # cast_links[cast_links == 0] = 'nan'
         # self.memory_efficient_links: np.ndarray = np.nanargmax(
-        #     links, axis=1)  # 2D shape: (n_inputs, n_relations)
+        #     links, axis=1
+        # )  # 2D shape: (n_inputs, n_relations)
         # self.links: torch.Tensor = torch.tensor(
         #     self.memory_efficient_links, dtype=torch.int8, device=device
         # )
@@ -93,7 +94,8 @@ class BinaryLinks(torch.nn.Module):
         Returns:
             The BinaryLinks object.
         """
-        # Call the parent class's `to` method to handle parameters and submodules
+        # Call the parent class's `to` method to handle parameters and
+        # submodules
         super().to(*args, **kwargs)
 
         # special handling for the non-parameter tensors, such as mask
@@ -150,7 +152,8 @@ class GroupedLinks(NestedTorchJitModule):
         Returns:
             None
         """
-        # Call the parent class's `to` method to handle parameters and submodules
+        # Call the parent class's `to` method to handle parameters and
+        # submodules
         super().to(*args, **kwargs)
 
         # special handling for the non-parameter tensors, such as mask
