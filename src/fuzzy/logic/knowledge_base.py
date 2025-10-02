@@ -9,10 +9,10 @@ import warnings
 from pathlib import Path
 from typing import Any, List, Set, Union
 
-import igraph as ig
 import numpy as np
 import pandas as pd
 import torch
+import igraph as ig
 from rough.decisions import RoughDecisions
 
 from fuzzy.logic.control.configurations.abstract import FuzzySystem

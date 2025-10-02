@@ -31,7 +31,11 @@ from ..membership import Membership
 
 class DimensionDependent(FuzzySet, ABC):
     """
-    An abstract class for dimension-dependent membership functions.
+    This class represents a Dimension-Dependent fuzzy set. It is an abstract base class that
+    provides the basic structure for Dimension-Dependent fuzzy sets, such as Gaussian DMF and
+    Gaussian No-Exp DMF. It inherits from the FuzzySet class and implements the
+    calculate_membership method, which is used to calculate the membership of observations
+    to the fuzzy set based on the centers, widths, and rho parameters.
     """
 
     def __init__(

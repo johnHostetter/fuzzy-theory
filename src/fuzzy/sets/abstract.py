@@ -539,6 +539,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                     if (variable_idx, term_idx) in selected_terms:
                         # edgecolor="#0bafa9"  # beautiful with facecolor=None
                         # (AAMAS 2023)
+                        # edgecolor="#0bafa9"  # beautiful with facecolor=None  (AAMAS 2023)
                         axes[variable_idx].fill_between(
                             x_values, y_values, alpha=0.5, hatch="///", label=label
                         )
@@ -550,11 +551,9 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                     bbox_to_anchor=(0.5, -0.2),
                     loc="upper center",
                     ncol=len(real_centers),
-                    handletextpad=0.1,
-                    # reduce the spacing between legend markers and its label
-                    # (default is 0.8)
-                    columnspacing=0.5,  # reduce spacing between legend entries
-                    borderaxespad=-0.5,  # reduce the spacing between the legend and the plot
+                    handletextpad=0.1,  # reduce spacing b/w legend markers & label (default=0.8)
+                    columnspacing=0.5,  # reduce spacing b/w legend entries
+                    borderaxespad=-0.5,  # reduce the spacing b/w the legend and the plot
                 )
                 plt.subplots_adjust(bottom=0.3, wspace=0.33)
                 output_dir.mkdir(parents=True, exist_ok=True)
@@ -564,7 +563,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
                 # figures.append(fig)
                 # axes.append(ax)
 
-            plt.savefig(output_dir / f"mu.png")
+            plt.savefig(output_dir / "mu.png")
 
         # Save just the portion _inside_ the second axis's boundaries
         # Why do I do it this way? Because the axis is not always the same size if each plot is
@@ -578,8 +577,7 @@ class FuzzySet(TorchJitModule, metaclass=abc.ABCMeta):
             )
             fig.savefig(output_dir / f"mu_{variable_idx}.png", bbox_inches=extent)
 
-            # Pad the saved area by 20% in the x-direction and 10% in the
-            # y-direction
+            # Pad the saved area by 20% in the x-direction and 10% in the y-direction
             fig.savefig(
                 output_dir / "ax2_figure_expanded.png",
                 bbox_inches=extent.expanded(1.2, 1.2),
