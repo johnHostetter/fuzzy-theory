@@ -12,85 +12,85 @@ from ..abstract import FuzzySet
 from ..membership import Membership
 
 
-# class NoOp(FuzzySet):
-#     """
-#     Implementation of the NoOp membership function, written in PyTorch.
-#     """
-#     def __init__(self, n_elements, membership: float, device: torch.device):
-#         centers = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
-#         widths = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
-#         self.membership = membership  # the flat membership degree of the NoOp fuzzy set
-#         super().__init__(centers=centers, widths=widths, device=device)
-#
-#     @staticmethod
-#     def internal_calculate_membership(
-#         observations: torch.Tensor,
-#         centers: torch.Tensor,
-#         widths: torch.Tensor,
-#         membership_degree: float
-#     ) -> torch.Tensor:
-#         """
-#         Calculate the membership of the observations to the NoOp fuzzy set.
-#         This is a static method, so it can be called without instantiating the class.
-#         This static method is particularly useful when animating the membership function.
-#
-#         Warning: This method is not meant to be called directly, as it does not take into account
-#         the mask that likely should exist. Use the calculate_membership method instead.
-#
-#         Args:
-#             observations: The observations to calculate the membership for.
-#             centers: The centers of the NoOp fuzzy set.
-#             widths: The widths of the NoOp fuzzy set.
-#             membership_degree: The membership degree of the NoOp fuzzy set.
-#
-#         Returns:
-#             The membership degrees of the observations for the NoOp fuzzy set.
-#         """
-#         return (
-#                 torch.ones_like(centers) * membership_degree
-#         ).unsqueeze(0).repeat(observations.shape[0], 1, 1)  # repeat for each observation
-#
-#     @classmethod
-#     @torch.jit.ignore
-#     def sympy_formula(cls) -> sympy.Expr:
-#         # centers (c), widths (sigma) and observations (x)
-#         pass
-#
-#     def calculate_membership(self, observations: torch.Tensor) -> torch.Tensor:
-#         """
-#         Calculate the membership of the observations to the NoOp fuzzy set.
-#
-#         Args:
-#             observations: The observations to calculate the membership for.
-#
-#         Returns:
-#             The membership degrees of the observations for the NoOp fuzzy set.
-#         """
-#         return NoOp.internal_calculate_membership(
-#             observations=observations,
-#             centers=self.get_centers(),
-#             widths=self.get_widths(),
-#             membership_degree=self.membership,
-#         )
-#
-#     def forward(self, observations) -> Membership:
-#         if observations.ndim == self.get_centers().ndim:
-#             observations = observations.unsqueeze(dim=-1)
-#         # we do not need torch.float64 for observations
-#         degrees: torch.Tensor = self.calculate_membership(observations.float())
-#
-#         # assert (
-#         #     not degrees.isnan().any()
-#         # ), "NaN values detected in the membership degrees."
-#         # assert (
-#         #     not degrees.isinf().any()
-#         # ), "Infinite values detected in the membership degrees."
-#
-#         return Membership(
-#             # elements=observations.squeeze(dim=-1),  # remove the last dimension
-#             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-#             mask=self.get_mask(),
-#         )
+class NoOp(FuzzySet):
+    """
+    Implementation of the NoOp membership function, written in PyTorch.
+    """
+    def __init__(self, n_elements, membership: float, device: torch.device):
+        centers = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
+        widths = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
+        self.membership = membership  # the flat membership degree of the NoOp fuzzy set
+        super().__init__(centers=centers, widths=widths, device=device)
+
+    @staticmethod
+    def internal_calculate_membership(
+        observations: torch.Tensor,
+        centers: torch.Tensor,
+        widths: torch.Tensor,
+        membership_degree: float
+    ) -> torch.Tensor:
+        """
+        Calculate the membership of the observations to the NoOp fuzzy set.
+        This is a static method, so it can be called without instantiating the class.
+        This static method is particularly useful when animating the membership function.
+
+        Warning: This method is not meant to be called directly, as it does not take into account
+        the mask that likely should exist. Use the calculate_membership method instead.
+
+        Args:
+            observations: The observations to calculate the membership for.
+            centers: The centers of the NoOp fuzzy set.
+            widths: The widths of the NoOp fuzzy set.
+            membership_degree: The membership degree of the NoOp fuzzy set.
+
+        Returns:
+            The membership degrees of the observations for the NoOp fuzzy set.
+        """
+        return (
+                torch.ones_like(centers) * membership_degree
+        ).unsqueeze(0).repeat(observations.shape[0], 1, 1)  # repeat for each observation
+
+    @classmethod
+    @torch.jit.ignore
+    def sympy_formula(cls) -> sympy.Expr:
+        # centers (c), widths (sigma) and observations (x)
+        pass
+
+    def calculate_membership(self, observations: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate the membership of the observations to the NoOp fuzzy set.
+
+        Args:
+            observations: The observations to calculate the membership for.
+
+        Returns:
+            The membership degrees of the observations for the NoOp fuzzy set.
+        """
+        return NoOp.internal_calculate_membership(
+            observations=observations,
+            centers=self.get_centers(),
+            widths=self.get_widths(),
+            membership_degree=self.membership,
+        )
+
+    def forward(self, observations) -> Membership:
+        if observations.ndim == self.get_centers().ndim:
+            observations = observations.unsqueeze(dim=-1)
+        # we do not need torch.float64 for observations
+        degrees: torch.Tensor = self.calculate_membership(observations.float())
+
+        # assert (
+        #     not degrees.isnan().any()
+        # ), "NaN values detected in the membership degrees."
+        # assert (
+        #     not degrees.isinf().any()
+        # ), "Infinite values detected in the membership degrees."
+
+        return Membership(
+            # elements=observations.squeeze(dim=-1),  # remove the last dimension
+            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
+            mask=self.get_mask(),
+        )
 
 
 class GeneralizedGuassian(FuzzySet):
