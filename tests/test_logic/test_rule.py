@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import List, Type
 
 import torch
-
 from fuzzy.logic.rule import Rule
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.relations.t_norm import Minimum, Product, SoftmaxSum, TNorm

@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Any, List, MutableMapping, Type, Union
 
 import torch
-
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.sets.abstract import FuzzySet
 

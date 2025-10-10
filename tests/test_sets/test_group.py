@@ -7,7 +7,6 @@ import unittest
 from pathlib import Path
 
 import torch
-
 from fuzzy.sets import Membership
 from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.impl import Gaussian

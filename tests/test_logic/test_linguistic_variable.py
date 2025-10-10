@@ -6,7 +6,6 @@ import unittest
 
 import numpy as np
 import torch
-
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.sets.impl import Gaussian
 

@@ -5,7 +5,6 @@ Test the LogisticCurve class.
 import unittest
 
 import torch
-
 from fuzzy.sets.impl import LogisticCurve
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

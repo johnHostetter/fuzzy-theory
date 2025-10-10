@@ -12,10 +12,12 @@ from typing import Any, List, Union
 import torch
 
 from ..utils import NestedTorchJitModule
+from ..utils.classes import Loggable
+from ..utils.functions import log_method
 from .membership import Membership
 
 
-class FuzzySetGroup(NestedTorchJitModule):
+class FuzzySetGroup(NestedTorchJitModule, Loggable):
     """
     A generic and abstract torch.nn.Module class that contains a torch.nn.ModuleList
     of FuzzySet objects. The expectation here is that each FuzzySet may define fuzzy sets of
@@ -50,6 +52,7 @@ class FuzzySetGroup(NestedTorchJitModule):
         super().__init__(*args, **kwargs)
         if modules_list is None:
             modules_list = []
+        self.create_logger(self.__class__.__name__, debug=False)
         self.modules_list = torch.nn.ModuleList(modules_list)
         self.device = device
 
@@ -71,12 +74,14 @@ class FuzzySetGroup(NestedTorchJitModule):
         except AttributeError:
             return self.__getattr__(item)
 
+    @log_method
     def __hash__(self) -> int:
         _hash: str = ""
         for module in self.modules_list:
             _hash += str(hash(module))
         return hash(_hash)
 
+    @log_method
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, FuzzySetGroup):
             return False
@@ -87,6 +92,7 @@ class FuzzySetGroup(NestedTorchJitModule):
                 return False
         return True
 
+    @log_method
     def to(self, device: torch.device, *args, **kwargs) -> "FuzzySetGroup":
         """
         Move the FuzzySetGroup to a different device.
@@ -105,6 +111,7 @@ class FuzzySetGroup(NestedTorchJitModule):
             module.to(device)
         return self
 
+    @log_method
     def forward(self, observations) -> Membership:
         """
         Calculate the responses from the modules in the torch.nn.ModuleList of FuzzySetGroup.

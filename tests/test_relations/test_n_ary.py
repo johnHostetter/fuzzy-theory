@@ -12,7 +12,6 @@ from typing import Any, List, MutableMapping, Tuple
 import igraph
 import numpy as np
 import torch
-
 from fuzzy.relations.compound import Compound
 from fuzzy.relations.linkage import BinaryLinks, GroupedLinks
 from fuzzy.relations.n_ary import NAryRelation

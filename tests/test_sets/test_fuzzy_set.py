@@ -12,9 +12,8 @@ from pathlib import Path
 from typing import MutableMapping
 
 import torch
-
 from fuzzy.sets.abstract import FuzzySet
-from fuzzy.sets.impl.cmf import NoOp, Gaussian
+from fuzzy.sets.impl.cmf import Gaussian, NoOp
 
 AVAILABLE_DEVICE: torch.device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"

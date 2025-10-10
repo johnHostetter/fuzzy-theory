@@ -6,7 +6,6 @@ import unittest
 
 import numpy as np
 import torch
-
 from fuzzy.sets.impl import Gaussian
 
 from .common import get_test_elements

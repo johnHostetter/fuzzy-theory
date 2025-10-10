@@ -2,7 +2,6 @@ import unittest
 
 import numpy as np
 import torch
-
 from fuzzy.sets.impl import LogGaussian
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

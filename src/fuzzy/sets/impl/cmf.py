@@ -8,6 +8,7 @@ import numpy as np
 import sympy
 import torch
 
+from ...utils.classes import Loggable
 from ..abstract import FuzzySet
 from ..membership import Membership
 
@@ -17,11 +18,11 @@ class NoOp(FuzzySet):
     Implementation of the NoOp membership function, written in PyTorch.
     """
 
-    def __init__(self, n_elements, membership: float, device: torch.device):
+    def __init__(self, n_elements, membership: float, device: torch.device, **kwargs):
         centers = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         widths = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         self.membership = membership  # the flat membership degree of the NoOp fuzzy set
-        super().__init__(centers=centers, widths=widths, device=device)
+        super().__init__(centers=centers, widths=widths, device=device, **kwargs)
 
     @staticmethod
     def internal_calculate_membership(
@@ -109,8 +110,9 @@ class GeneralizedGuassian(FuzzySet):
         device: torch.device,
         width_multiplier: float = 2.0,
         slope_multiplier: float = 1.0,
+        **kwargs
     ):
-        super().__init__(centers=centers, widths=widths, device=device)
+        super().__init__(centers=centers, widths=widths, device=device, **kwargs)
         if width_multiplier < 0.0:
             raise ValueError(
                 f"The width multiplier must be greater than zero, but got {self.width_multiplier}."
@@ -236,8 +238,9 @@ class LogGaussian(FuzzySet):
         device: torch.device,
         width_multiplier: float = 2.0,
         # in fuzzy logic, convention is usually 1.0, but can be 2.0
+        **kwargs
     ):
-        super().__init__(centers=centers, widths=widths, device=device)
+        super().__init__(centers=centers, widths=widths, device=device, **kwargs)
         self.width_multiplier = width_multiplier
         if int(self.width_multiplier) not in [1, 2]:
             raise ValueError(
@@ -336,6 +339,14 @@ class LogGaussian(FuzzySet):
             observations = observations.unsqueeze(dim=-1)
         # we do not need torch.float64 for observations
         degrees: torch.Tensor = self.calculate_membership(observations.float())
+
+        # if True:
+        #     print(
+        #         f"Min: {degrees.min().item()}, "
+        #         f"Mean: {degrees.mean().item()}, "
+        #         f"Std. Dev.: {degrees.std().item()}, "
+        #         f"Max: {degrees.max().item()}"
+        #     )
 
         # assert (
         #     not degrees.isnan().any()
@@ -530,7 +541,7 @@ class Lorentzian(FuzzySet):
         )
 
 
-class LogisticCurve(torch.nn.Module):
+class LogisticCurve(torch.nn.Module, Loggable):
     """
     A generic torch.nn.Module class that implements a logistic curve, which allows us to
     tune the midpoint, and growth of the curve, with a fixed supremum (the supremum is
@@ -586,8 +597,9 @@ class Triangular(FuzzySet):
         centers=None,
         widths=None,
         device: Union[str, torch.device] = torch.device("cpu"),
+        **kwargs
     ):
-        super().__init__(centers=centers, widths=widths, device=device)
+        super().__init__(centers=centers, widths=widths, device=device, **kwargs)
 
     @staticmethod
     def internal_calculate_membership(

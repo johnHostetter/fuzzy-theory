@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import List
 
 import torch
-
 from fuzzy.logic.rule import Rule
 from fuzzy.logic.rulebase import RuleBase
 from fuzzy.relations.t_norm import Product

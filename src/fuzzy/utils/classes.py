@@ -3,16 +3,29 @@ This module contains classes that are reserved more for the internal use of the 
 """
 
 import inspect
+import logging
 import pickle
 from abc import abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, List, MutableMapping, Set, Tuple
 
 import torch
+from fuzzy.utils.functions import all_subclasses, get_object_attributes
 from natsort import natsorted
 from torch.nn.modules.module import _forward_unimplemented
 
-from fuzzy.utils.functions import all_subclasses, get_object_attributes
+
+class Loggable:
+    def __init__(self, logger = None):
+        self.logger = logger
+
+    def create_logger(self, name: str, debug: bool=False):
+        self.logger = logging.getLogger(name=name)
+        if debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
+        logging.disable(logging.CRITICAL)
 
 
 class TimeDistributed(torch.nn.Module):

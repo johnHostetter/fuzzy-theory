@@ -7,9 +7,9 @@ relations are implemented here.
 from abc import ABC
 
 import torch
-
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.sets.membership import Membership
+from fuzzy.utils.functions import log_method
 
 
 class TNorm(NAryRelation, ABC):
@@ -22,6 +22,7 @@ class TNorm(NAryRelation, ABC):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    @log_method
     def __str__(self) -> str:
         if len(self.indices) == 1:
             return " AND ".join([f"({i}, {j})" for i, j in self.indices[0]])

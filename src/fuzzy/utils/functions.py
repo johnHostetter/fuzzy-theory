@@ -3,9 +3,81 @@ Utility functions for fuzzy-theory.
 """
 
 import inspect
+import logging
+import time
+from functools import wraps
 from pathlib import Path
 from typing import Any, Dict, Set
 
+
+def log_method(method):
+    """
+    Log the call and completion of an object's method.
+
+    Args:
+        method: The method to be logged.
+
+    Returns:
+        The wrapped method.
+    """
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        return method(self, *args, **kwargs)
+        called_method: str = f"{self.__class__.__name__}.{method.__name__}"
+        self.logger.debug(f"<{called_method}>")
+        start_time = time.perf_counter()
+        result = method(self, *args, **kwargs)
+        end_time = time.perf_counter()
+        self.logger.debug(f"<perf_counter>{end_time - start_time}</perf_counter>")
+        self.logger.debug(f"</{called_method}>")
+        return result
+    return wrapper
+
+def log_classmethod(classmethod):
+    """
+    Log the call and completion of a class method using the root logger.
+
+    Args:
+        classmethod: The class method to be logged.
+
+    Returns:
+        The wrapped class method.
+    """
+    @wraps(classmethod)
+    def wrapper(cls, *args, **kwargs):
+        return classmethod(cls, *args, **kwargs)
+        called_method: str = f"{cls.__name__}.{classmethod.__name__}"
+        logging.debug(f"<{called_method}>")
+        start_time = time.perf_counter()
+        result = classmethod(cls, *args, **kwargs)
+        end_time = time.perf_counter()
+        logging.debug(f"<perf_counter>{end_time - start_time}</perf_counter>")
+        logging.debug(f"</{called_method}>")
+        return result
+    return wrapper
+
+def log_func(func):
+    """
+    Log the call and completion of a function using the root logger.
+
+    Args:
+        func: The function to be logged.
+
+    Returns:
+        The wrapped function.
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+        called_func: str = f"{func.__name__}"
+        logging.debug(f"<{called_func}>")
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        logging.debug(f"</{called_func}>")
+        logging.debug(f"<perf_counter>{end_time - start_time}</perf_counter>")
+        return result
+    return wrapper
 
 def check_path_to_save_torch_module(path: Path) -> None:
     """
@@ -52,8 +124,7 @@ def get_object_attributes(obj_instance) -> Dict[str, Any]:
         obj_instance,
         lambda attr: not (inspect.ismethod(attr)) and not (inspect.isfunction(attr)),
     )
-    # get the attributes that are inherited from (or found within) the super
-    # class
+    # get the attributes that are inherited from (or found within) the super class
     super_attributes = inspect.getmembers(
         obj_instance.__class__.__bases__[0],
         lambda attr: not (inspect.ismethod(attr)) and not (inspect.isfunction(attr)),

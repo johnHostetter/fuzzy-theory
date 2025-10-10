@@ -9,7 +9,6 @@ from typing import Any, Union
 
 import numpy as np
 import torch
-
 from fuzzy.logic.control.configurations.data import Shape
 from fuzzy.logic.rulebase import RuleBase
 from fuzzy.sets.group import FuzzySetGroup

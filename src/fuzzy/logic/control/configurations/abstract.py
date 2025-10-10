@@ -6,7 +6,6 @@ about the Fuzzy Logic Controller (FLC) or Neuro-Fuzzy Network (NFN) to build.
 import abc
 
 import torch
-
 from fuzzy.logic.control.defuzzification import Defuzzification
 from fuzzy.relations.t_norm import TNorm
 
