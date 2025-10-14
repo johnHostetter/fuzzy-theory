@@ -55,11 +55,11 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     ):
         super().__init__()
         self.device = device
-        self.create_logger(self.__class__.__name__, debug=debug)
+        # self.create_logger(self.__class__.__name__, debug=debug)
         self.__check_args(centers, widths)
         self.__alloc_members(centers, use_sparse_tensor, widths)
 
-    @log_method
+    #@log_method
     def __check_args(self, centers: np.ndarray, widths: np.ndarray) -> None:
         """
         Check that the provided argument values are accepted variable types and that their
@@ -101,7 +101,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                 f"Centers has {centers.ndim} dimensions and widths has {widths.ndim} dimensions."
             )
 
-    @log_method
+    #@log_method
     def __alloc_members(
             self, centers: np.ndarray, use_sparse_tensor: bool, widths: np.ndarray) -> None:
         if centers.ndim == 1 and widths.ndim == 1:
@@ -120,7 +120,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # )
         self._mask = [self.make_mask(widths)]
 
-    @log_method
+    #@log_method
     def to(self, *args, **kwargs):
         """
         Move the FuzzySet to a new device.
@@ -135,10 +135,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # special handling for the non-parameter tensors, such as mask
         self._mask = [mask.to(*args, **kwargs) for mask in self._mask]
         self.device = self._centers[0].device
-        self.logger.debug(f"Moved {self.__class__.__name__} to {self.device} device")
+        # self.logger.debug(f"Moved {self.__class__.__name__} to {self.device} device")
         return self
 
-    @log_method
+    #@log_method
     def make_parameter(self, parameter: np.ndarray) -> torch.nn.Parameter:
         """
         Create a torch.nn.Parameter from a numpy array, with the appropriate dtype and device.
@@ -154,7 +154,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             # requires_grad=True,  # explicitly set to True
         )
 
-    @log_method
+    #@log_method
     def make_mask(self, widths: np.ndarray) -> torch.Tensor:
         """
         Create a mask for the fuzzy set, where the mask is used to filter out fuzzy sets that are
@@ -175,7 +175,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # )
 
     @classmethod
-    @log_classmethod
+    #@log_classmethod
     def create(
         cls,
         n_variables: int,
@@ -227,10 +227,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                 f"The method must be either 'random' or 'linear', but got {method}"
             )
         fuzzy_sets = cls(centers=centers, widths=widths, device=device, **kwargs)
-        logging.debug(f"New fuzzy set(s) created with the '{method}' method.")
+        logging.debug(f"New fuzzy set(s) created with the %s method.", method)
         return fuzzy_sets
 
-    @log_method
+    #@log_method
     def __hash__(self):
         """
         Hash the fuzzy set.
@@ -240,7 +240,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         """
         return hash((type(self), self.get_centers(), self.get_widths()))
 
-    @log_method
+    #@log_method
     def __eq__(self, other: Any) -> bool:
         """
         Check if the fuzzy set is equal to another fuzzy set.
@@ -257,7 +257,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             and torch.equal(self.get_widths(), other.get_widths())
         )
 
-    @log_method
+    #@log_method
     def get_centers(self) -> torch.Tensor:
         """
         Get the concatenated centers of the fuzzy set from its corresponding ParameterList.
@@ -268,7 +268,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # return self._centers[0]
         return torch.cat(list(self._centers), dim=-1)
 
-    @log_method
+    #@log_method
     def get_widths(self) -> torch.Tensor:
         """
         Get the concatenated widths of the fuzzy set from its corresponding ParameterList.
@@ -280,7 +280,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
 
         return torch.cat(list(self._widths), dim=-1)
 
-    @log_method
+    #@log_method
     def get_mask(self) -> torch.Tensor:
         """
         Get the concatenated mask of the fuzzy set from its corresponding ParameterList.
@@ -292,7 +292,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         return torch.cat(list(self._mask), dim=-1)
 
     @classmethod
-    @log_classmethod
+    #@log_classmethod
     def render_formula(cls) -> sympy.Expr:
         """
         Render of the fuzzy set's membership function.
@@ -306,7 +306,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         return cls.sympy_formula()
 
     @classmethod
-    @log_classmethod
+    #@log_classmethod
     def latex_formula(cls) -> str:
         """
         String LaTeX representation of the fuzzy set's membership function.
@@ -318,7 +318,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         """
         return sympy.latex(cls.sympy_formula())
 
-    @log_method
+    #@log_method
     def save(self, path: Path) -> MutableMapping[str, Any]:
         """
         Save the fuzzy set to a file.
@@ -339,7 +339,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         return state_dict
 
     @classmethod
-    @log_classmethod
+    #@log_classmethod
     def load(cls, path: Path, device: torch.device) -> "FuzzySet":
         """
         Load the fuzzy set from a file and put it on the specified device.
@@ -357,7 +357,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             device=device,
         )
 
-    @log_method
+    #@log_method
     def extend(self, centers: torch.Tensor, widths: torch.Tensor, mode: str):
         """
         Given additional parameters, centers and widths, extend the existing self.centers and
@@ -386,7 +386,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                 method_of_extension([self._widths[0], widths])
             )
 
-    @log_method
+    #@log_method
     def _area_helper(self, fuzzy_sets) -> List[List[float]]:
         """
         Splits the fuzzy set (if representing a fuzzy variable) into individual fuzzy sets (the
@@ -443,7 +443,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             all_areas.append(variable_areas)
         return all_areas
 
-    @log_method
+    #@log_method
     def area(self) -> torch.Tensor:
         """
         Calculate the area beneath the fuzzy curve (i.e., membership function) using torchquad.
@@ -460,7 +460,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             self._area_helper(self), device=self.device, dtype=torch.float32
         )
 
-    @log_method
+    #@log_method
     def split_by_variables(self) -> Union[list, List[Type["FuzzySet"]]]:
         """
         This operation takes the FuzzySet and converts it to a list of FuzzySet
@@ -499,7 +499,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
 
         return variables
 
-    @log_method
+    #@log_method
     def plot(
         self, output_dir: Path, selected_terms: List[Tuple[int, int]] = None
     ) -> Tuple[list, list]:
@@ -642,7 +642,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         return figures, axes
 
     @staticmethod
-    @log_func
+    #@log_func
     def count_granule_terms(granules: List["FuzzySet"]) -> np.ndarray:
         """
         Count the number of granules that occur in each dimension.
@@ -666,7 +666,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         )
 
     @staticmethod
-    @log_func
+    #@log_func
     def stack(
         granules: List["FuzzySet"],
     ) -> "FuzzySet":
@@ -736,7 +736,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         )
 
     @classmethod
-    @log_classmethod
+    #@log_classmethod
     @abstractmethod
     def sympy_formula(cls) -> sympy.Expr:
         """
@@ -746,7 +746,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             A sympy.Expr object that represents the membership function of the fuzzy set.
         """
 
-    @log_method
+    #@log_method
     @abc.abstractmethod
     def forward(self, observations) -> Membership:
         """

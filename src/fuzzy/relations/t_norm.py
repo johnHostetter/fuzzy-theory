@@ -22,7 +22,7 @@ class TNorm(NAryRelation, ABC):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @log_method
+    #@log_method
     def __str__(self) -> str:
         if len(self.indices) == 1:
             return " AND ".join([f"({i}, {j})" for i, j in self.indices[0]])

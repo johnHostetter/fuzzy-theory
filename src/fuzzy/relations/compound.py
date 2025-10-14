@@ -30,7 +30,7 @@ class Compound(torch.nn.Module, Loggable):
         # store the relations as a module list (as they are also modules)
         self.relations = torch.nn.ModuleList(relations)
 
-    @log_method
+    #@log_method
     def forward(self, membership: Membership) -> Membership:
         """
         Apply the compound n-ary relation to the given membership values.
