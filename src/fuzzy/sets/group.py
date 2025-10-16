@@ -68,7 +68,10 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
                         # get the method for the module and then call it
                         item_method: callable = getattr(module, f"get_{item}")
                         module_attributes.append(item_method())
-                    return torch.cat(module_attributes, dim=-1)
+                    if len(module_attributes) == 1:
+                        return module_attributes[0]
+                    else:
+                        return torch.cat(module_attributes, dim=-1)
                 raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
             return object.__getattribute__(self, item)
         except AttributeError:
@@ -117,33 +120,34 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         Calculate the responses from the modules in the torch.nn.ModuleList of FuzzySetGroup.
         Expand the FuzzySetGroup if necessary.
         """
-        if len(self.modules_list) > 0:
-            # modules' responses are membership degrees when modules are FuzzySet
-            # if len(self.modules_list) == 1:
-            #     # for computational efficiency, return the response from the only module
-            #     return self.modules_list[0](observations)
+        if len(self.modules_list) == 0:
+            raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
 
-            # this can be computationally expensive, but it is necessary to calculate the responses
-            # from all the modules in the torch.nn.ModuleList of FuzzySetGroup
-            # ideally this should be done in parallel, but it is not possible with the current
-            # implementation; only use this if the torch.nn.Module objects are different
-            # module_elements: List[torch.Tensor] = []
-            module_memberships: List[torch.Tensor] = (
-                []
-            )  # the primary response from the module
-            module_masks: List[torch.Tensor] = (
-                []
-            )  # the secondary response denoting module filter
-            for module in self.modules_list:
-                membership: Membership = module(observations)
-                # module_elements.append(membership.elements)
-                module_memberships.append(membership.degrees)
-                module_masks.append(membership.mask)
+        # modules' responses are membership degrees when modules are FuzzySet
 
-            # return Membership(degrees=torch.cat(module_memberships, dim=-1))
-            return Membership(
-                # elements=torch.cat(module_elements, dim=-1),
-                degrees=torch.cat(module_memberships, dim=-1),
-                mask=torch.cat(module_masks, dim=-1),
-            )
-        raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
+        if len(self.modules_list) == 1:
+            # for computational efficiency, return the response from the only module
+            return self.modules_list[0](observations)
+
+        # this can be computationally expensive, but it is necessary to calculate the responses
+        # from all the modules in the torch.nn.ModuleList of FuzzySetGroup
+        # ideally this should be done in parallel, but it is not possible with the current
+        # implementation; only use this if the torch.nn.Module objects are different
+        # module_elements: List[torch.Tensor] = []
+        module_memberships: List[torch.Tensor] = (
+            []
+        )  # the primary response from the module
+        module_masks: List[torch.Tensor] = (
+            []
+        )  # the secondary response denoting module filter
+        for module in self.modules_list:
+            membership: Membership = module(observations)
+            # module_elements.append(membership.elements)
+            module_memberships.append(membership.degrees)
+            module_masks.append(membership.mask)
+
+        return Membership(
+            # elements=torch.cat(module_elements, dim=-1),
+            degrees=torch.cat(module_memberships, dim=-1),
+            mask=torch.cat(module_masks, dim=-1),
+        )
