@@ -112,6 +112,9 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # use torch.float32 to save memory and speed up computations
         self._centers = torch.nn.ParameterList([self.make_parameter(centers)])
         self._widths = torch.nn.ParameterList([self.make_parameter(widths)])
+        self._cached_centers: Union[None, torch.Tensor] = None # will be created later
+        self._cached_widths: Union[None, torch.Tensor] = None  # will be created later
+        self._cached__mask: Union[None, torch.Tensor] = None  # will be created later
         self.use_sparse_tensor = use_sparse_tensor
         # self._mask = torch.nn.ParameterList(
         #     [
@@ -266,7 +269,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             The concatenated centers of the fuzzy set.
         """
         # return self._centers[0]
-        return torch.cat(list(self._centers), dim=-1)
+        # return torch.cat(list(self._centers), dim=-1)
+        if self.training or self._cached_centers is None:
+            self._cached_centers = torch.cat(list(self._centers), dim=-1)
+        return self._cached_centers
 
     #@log_method
     def get_widths(self) -> torch.Tensor:
@@ -277,8 +283,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             The concatenated widths of the fuzzy set.
         """
         # return self._widths[0]
-
-        return torch.cat(list(self._widths), dim=-1)
+        # return torch.cat(list(self._widths), dim=-1)
+        if self.training or self._cached_widths is None:
+            self._cached_widths = torch.cat(list(self._widths), dim=-1)
+        return self._cached_widths
 
     #@log_method
     def get_mask(self) -> torch.Tensor:
@@ -289,7 +297,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             The concatenated mask of the fuzzy set.
         """
         # return self._mask[0]
-        return torch.cat(list(self._mask), dim=-1)
+        # return torch.cat(list(self._mask), dim=-1)
+        if self.training or self._cached__mask is None:
+            self._cached_mask = torch.cat(list(self._mask), dim=-1)
+        return self._cached_mask
 
     @classmethod
     #@log_classmethod
