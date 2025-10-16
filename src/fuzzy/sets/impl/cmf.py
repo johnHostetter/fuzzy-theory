@@ -48,11 +48,9 @@ class NoOp(FuzzySet):
         Returns:
             The membership degrees of the observations for the NoOp fuzzy set.
         """
-        return (
-            (torch.ones_like(centers) * membership_degree)
-            .unsqueeze(0)
-            .repeat(observations.shape[0], 1, 1)
-        )  # repeat for each observation
+        return torch.ones(
+            1, device=observations.device, dtype=observations.dtype
+        ).expand_as(observations) * membership_degree
 
     @classmethod
     @torch.jit.ignore
