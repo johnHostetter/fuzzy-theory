@@ -46,6 +46,17 @@ class FuzzyLogicController(torch.nn.Sequential):
         self.device: torch.device = device
         self.disabled_parameters: List[str] = disabled_parameters
 
+        # A = torch.ones((self.source.configuration["algorithm"].learning.batch.selection,
+        #                 self.shape.n_outputs),
+        #                device=self.device)
+        # self.A = torch.nn.Parameter(A, requires_grad=True)
+
+        self.net = torch.nn.Sequential(
+            torch.nn.Linear(self.shape.n_inputs, 512),
+            getattr(torch.nn, "ReLU")(),
+            torch.nn.Linear(512, self.shape.n_outputs),
+        )
+
         # build or extract the necessary components for the FLC from the source
         granulation_layers: GranulationLayers = source.granulation_layers
         engine: TNorm = source.engine
@@ -277,8 +288,11 @@ class FuzzyLogicController(torch.nn.Sequential):
         Returns:
             The defuzzified output of the FLC.
         """
+        # return self.net(input)
         # fuzzification
         granulated_input = self.input(input)
+        # A = torch.ones((self.shape.n_inputs, self.shape.n_outputs), device=input.device)
+        # return torch.mm(granulated_input.degrees.mean(dim=-1), A)
 
         # rule evaluation
         rule_strengths = self.engine(granulated_input)
