@@ -274,6 +274,9 @@ class TSK(Defuzzification):
         # self.weights = torch.nn.Parameter(
         #     torch.ones([shape.n_rules], dtype=torch.float32), requires_grad=True
         # )
+        # Split weights and bias once (outside hot loop if possible)
+        self.weights = self.consequences[:, :, 1:].contiguous()  # (N_rules, N_outputs, N_features)
+        self.bias = self.consequences[:, :, 0].contiguous()  # (N_rules, N_outputs)
 
     def save(self, path: Path) -> MutableMapping[str, Any]:
         """
@@ -323,7 +326,9 @@ class TSK(Defuzzification):
             The defuzzification process.
         """
         super().to(device, *args, **kwargs)
-        self.consequences.to(device)
+        self.consequences = self.consequences.to(device)
+        self.weights = self.weights.to(device)
+        self.bias = self.bias.to(device)
         return self
 
     def forward(
@@ -331,9 +336,25 @@ class TSK(Defuzzification):
     ) -> torch.Tensor:
         # print("w", self.consequences[0].state_dict()['weight'][0][0])
         # print("b", self.consequences[0].state_dict()['bias'][0])
-        rule_output = (
-            self.consequences[:, :, 1:] @ observations.T
-        ).T + self.consequences[:, :, 0].T
+        # old_rule_output = (
+        #     self.consequences[:, :, 1:] @ observations.T
+        # ).T + self.consequences[:, :, 0].T
+
+        # Compute batch matrix multiplication without transposes
+        # Using einsum: 'r o f, b f -> b r o'
+        if self.weights.device != observations.device:
+            self.weights = self.weights.to(observations.device)
+        rule_output = torch.einsum('r o f, b f -> b r o', self.weights, observations)
+
+        # Add bias with broadcasting
+        if self.bias.device != observations.device:
+            self.bias = self.bias.to(observations.device)
+        rule_output = rule_output + self.bias.unsqueeze(0)  # shape: (batch_size, n_rules,
+        # n_outputs)
+        rule_output = rule_output.transpose(1, 2).float()
+
+        # assert torch.allclose(rule_output.float(), old_rule_output)
+
         fir_str_bar = rule_activations.degrees / torch.sum(
             rule_activations.degrees, 1
         ).unsqueeze(
