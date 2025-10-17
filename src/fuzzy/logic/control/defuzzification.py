@@ -270,13 +270,16 @@ class TSK(Defuzzification):
         else:
             consequences = torch.as_tensor(source, device=self.device)
 
-        self.consequences = torch.nn.Parameter(consequences, requires_grad=True)
         # self.weights = torch.nn.Parameter(
         #     torch.ones([shape.n_rules], dtype=torch.float32), requires_grad=True
         # )
         # Split weights and bias once (outside hot loop if possible)
-        self.weights = self.consequences[:, :, 1:].contiguous()  # (N_rules, N_outputs, N_features)
-        self.bias = self.consequences[:, :, 0].contiguous()  # (N_rules, N_outputs)
+        self.weights = torch.nn.Parameter(consequences[:, :, 1:].contiguous(), requires_grad=True)
+        self.bias = torch.nn.Parameter(consequences[:, :, 0].contiguous(), requires_grad=True)
+
+    @property
+    def consequences(self):
+        return torch.cat([self.bias, self.weights])
 
     def save(self, path: Path) -> MutableMapping[str, Any]:
         """
@@ -326,7 +329,6 @@ class TSK(Defuzzification):
             The defuzzification process.
         """
         super().to(device, *args, **kwargs)
-        self.consequences = self.consequences.to(device)
         self.weights = self.weights.to(device)
         self.bias = self.bias.to(device)
         return self
