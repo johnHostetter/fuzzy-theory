@@ -51,11 +51,11 @@ class FuzzyLogicController(torch.nn.Sequential):
         #                device=self.device)
         # self.A = torch.nn.Parameter(A, requires_grad=True)
 
-        self.net = torch.nn.Sequential(
-            torch.nn.Linear(self.shape.n_inputs, 512),
-            getattr(torch.nn, "ReLU")(),
-            torch.nn.Linear(512, self.shape.n_outputs),
-        )
+        # self.net = torch.nn.Sequential(
+        #     torch.nn.Linear(self.shape.n_inputs, 512),
+        #     getattr(torch.nn, "ReLU")(),
+        #     torch.nn.Linear(512, self.shape.n_outputs),
+        # )
 
         # build or extract the necessary components for the FLC from the source
         granulation_layers: GranulationLayers = source.granulation_layers
@@ -297,8 +297,12 @@ class FuzzyLogicController(torch.nn.Sequential):
         # rule evaluation
         rule_strengths = self.engine(granulated_input)
 
+        # return self.net(input)
+
         # defuzzification
         try:  # TSK
             return self.defuzzification(input, rule_strengths)
         except TypeError:  # Mamdani, ZeroOrder, etc.
             return self.defuzzification(rule_strengths)
+
+        # return self.net(input)
