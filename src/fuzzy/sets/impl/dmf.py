@@ -44,7 +44,7 @@ class DimensionDependent(FuzzySet, ABC):
         widths: np.ndarray,
         device: torch.device,
         rho: Union[None, torch.Tensor] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(centers=centers, widths=widths, device=device, **kwargs)
         self.n_inputs: torch.Tensor = torch.tensor(

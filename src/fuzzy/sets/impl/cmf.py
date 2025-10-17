@@ -48,9 +48,12 @@ class NoOp(FuzzySet):
         Returns:
             The membership degrees of the observations for the NoOp fuzzy set.
         """
-        return torch.ones(
-            1, device=observations.device, dtype=observations.dtype
-        ).expand_as(observations) * membership_degree
+        return (
+            torch.ones(
+                1, device=observations.device, dtype=observations.dtype
+            ).expand_as(observations)
+            * membership_degree
+        )
 
     @classmethod
     @torch.jit.ignore
@@ -108,7 +111,7 @@ class GeneralizedGuassian(FuzzySet):
         device: torch.device,
         width_multiplier: float = 2.0,
         slope_multiplier: float = 1.0,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(centers=centers, widths=widths, device=device, **kwargs)
         if width_multiplier < 0.0:
@@ -236,7 +239,7 @@ class LogGaussian(FuzzySet):
         device: torch.device,
         width_multiplier: float = 2.0,
         # in fuzzy logic, convention is usually 1.0, but can be 2.0
-        **kwargs
+        **kwargs,
     ):
         super().__init__(centers=centers, widths=widths, device=device, **kwargs)
         self.width_multiplier = width_multiplier
@@ -595,7 +598,7 @@ class Triangular(FuzzySet):
         centers=None,
         widths=None,
         device: Union[str, torch.device] = torch.device("cpu"),
-        **kwargs
+        **kwargs,
     ):
         super().__init__(centers=centers, widths=widths, device=device, **kwargs)
 

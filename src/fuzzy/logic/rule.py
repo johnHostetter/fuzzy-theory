@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Type, Union
 
 import torch
+
 from fuzzy.relations.n_ary import NAryRelation
 
 

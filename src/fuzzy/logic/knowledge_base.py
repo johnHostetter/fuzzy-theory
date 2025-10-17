@@ -13,6 +13,8 @@ import igraph as ig
 import numpy as np
 import pandas as pd
 import torch
+from rough.decisions import RoughDecisions
+
 from fuzzy.logic.control.configurations.abstract import FuzzySystem
 from fuzzy.logic.control.configurations.data import GranulationLayers, Shape
 from fuzzy.logic.rule import Rule
@@ -22,7 +24,6 @@ from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.relations.t_norm import TNorm
 from fuzzy.sets.abstract import FuzzySet
 from fuzzy.sets.group import FuzzySetGroup
-from rough.decisions import RoughDecisions
 
 
 class KnowledgeBase(RoughDecisions, FuzzySystem):

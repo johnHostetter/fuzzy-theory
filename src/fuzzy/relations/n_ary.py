@@ -11,6 +11,7 @@ import igraph
 import numpy as np
 import scipy.sparse as sps
 import torch
+
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
 
@@ -115,15 +116,15 @@ class NAryRelation(TorchJitModule, Loggable):
             None  # created later (via self.apply_mask)
         )
 
-    #@log_method
+    # @log_method
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.indices})"
 
-    #@log_method
+    # @log_method
     def __hash__(self) -> int:
         return hash(self.nan_replacement) + hash(self.device)
 
-    #@log_method
+    # @log_method
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, NAryRelation) or not isinstance(self, type(other)):
             return False
@@ -145,7 +146,7 @@ class NAryRelation(TorchJitModule, Loggable):
         return self.grouped_links.shape
 
     @staticmethod
-    #@log_func
+    # @log_func
     def convert_indices_to_matrix(indices) -> sps._coo.coo_matrix:
         """
         Convert the given indices to a COO matrix.
@@ -160,7 +161,7 @@ class NAryRelation(TorchJitModule, Loggable):
         row, col = zip(*indices)
         return sps.coo_matrix((data, (row, col)), dtype=np.int8)
 
-    #@log_method
+    # @log_method
     def get_mask(self) -> torch.Tensor:
         """
         Get the applied mask.
@@ -186,7 +187,7 @@ class NAryRelation(TorchJitModule, Loggable):
                 mask = mask.coalesce()
         return mask
 
-    #@log_method
+    # @log_method
     def to(self, device: torch.device, *args, **kwargs) -> "NAryRelation":
         """
         Move the n-ary relation to the specified device.
@@ -205,7 +206,7 @@ class NAryRelation(TorchJitModule, Loggable):
             self.grouped_links.to(device)
         return self
 
-    #@log_method
+    # @log_method
     def _state_dict(self, path: Path) -> MutableMapping[str, Any]:
         """
         An internal method to get the state dictionary for the n-ary relation. A path is required
@@ -242,7 +243,7 @@ class NAryRelation(TorchJitModule, Loggable):
             )
         return state_dict
 
-    #@log_method
+    # @log_method
     def save(self, path: Path) -> MutableMapping[str, Any]:
         """
         Save the n-ary relation to a dictionary given a path.
@@ -269,7 +270,7 @@ class NAryRelation(TorchJitModule, Loggable):
         return state_dict
 
     @classmethod
-    #@log_classmethod
+    # @log_classmethod
     def load(cls, path: Path, device: torch.device) -> "NAryRelation":
         """
         Load the n-ary relation from a file and put it on the specified device.
@@ -305,7 +306,7 @@ class NAryRelation(TorchJitModule, Loggable):
         obj.load_state_dict(state_dict, strict=False)
         return obj
 
-    #@log_method
+    # @log_method
     def create_ndarray(self, max_var: int, max_term: int) -> None:
         """
         Make (or update) the numpy matrix from the COO matrices.
@@ -326,7 +327,7 @@ class NAryRelation(TorchJitModule, Loggable):
             # make a new axis and stack along that axis
             self.matrix: np.ndarray = np.stack(matrices).swapaxes(0, 1).swapaxes(1, 2)
 
-    #@log_method
+    # @log_method
     def create_igraph(self) -> None:
         """
         Create the graph representation of the relation(s).
@@ -363,7 +364,7 @@ class NAryRelation(TorchJitModule, Loggable):
         if len(graphs) > 0:  # need at least one graph to union
             self.graph = igraph.union(graphs, byname=True)
 
-    #@log_method
+    # @log_method
     def _rebuild(self, *shape) -> None:
         """
         Rebuild the relation's matrix and graph.
@@ -386,7 +387,7 @@ class NAryRelation(TorchJitModule, Loggable):
         # created)
         self.create_igraph()
 
-    #@log_method
+    # @log_method
     def resize(self, *shape) -> None:
         """
         Resize the matrix in-place to the given shape, and then rebuild the relations' members.
@@ -401,7 +402,7 @@ class NAryRelation(TorchJitModule, Loggable):
             coo_matrix.resize(*shape)
         self._rebuild(*shape)
 
-    #@log_method
+    # @log_method
     def apply_mask(self, membership: Membership) -> torch.Tensor:
         """
         Apply the n-ary relation's mask to the given memberships.
@@ -468,7 +469,7 @@ class NAryRelation(TorchJitModule, Loggable):
             del after_mask
         return torch.concat(result)
 
-    #@log_method
+    # @log_method
     def forward(self, membership: Membership) -> torch.Tensor:
         """
         Apply the n-ary relation to the given memberships.

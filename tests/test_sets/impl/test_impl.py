@@ -3,9 +3,10 @@ import shutil
 import unittest
 from pathlib import Path
 
-import fuzzy.sets.impl  # to make all subclasses available via all_subclasses
 import numpy as np
 import torch
+
+import fuzzy.sets.impl  # to make all subclasses available via all_subclasses
 from fuzzy.sets.abstract import FuzzySet
 from fuzzy.sets.impl.cmf import NoOp
 from fuzzy.utils import all_subclasses

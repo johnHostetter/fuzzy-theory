@@ -5,6 +5,7 @@ Test the aggregation operator called the ordered weighted averaging operator.
 import unittest
 
 import torch
+
 from fuzzy.relations.aggregation import OrderedWeightedAveraging as OWA
 
 

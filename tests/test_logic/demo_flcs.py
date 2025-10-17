@@ -8,6 +8,7 @@ from typing import Any, List, Tuple, Type
 
 import numpy as np
 import torch
+
 from fuzzy.logic.control.controller import FuzzyLogicController as FLC
 from fuzzy.logic.control.defuzzification import Mamdani, ZeroOrder
 from fuzzy.logic.knowledge_base import KnowledgeBase

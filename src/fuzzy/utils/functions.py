@@ -20,6 +20,7 @@ def log_method(method):
     Returns:
         The wrapped method.
     """
+
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         return method(self, *args, **kwargs)
@@ -31,7 +32,9 @@ def log_method(method):
         self.logger.debug(f"<perf_counter>{end_time - start_time}</perf_counter>")
         self.logger.debug(f"</{called_method}>")
         return result
+
     return wrapper
+
 
 def log_classmethod(classmethod):
     """
@@ -43,6 +46,7 @@ def log_classmethod(classmethod):
     Returns:
         The wrapped class method.
     """
+
     @wraps(classmethod)
     def wrapper(cls, *args, **kwargs):
         return classmethod(cls, *args, **kwargs)
@@ -54,7 +58,9 @@ def log_classmethod(classmethod):
         logging.debug(f"<perf_counter>{end_time - start_time}</perf_counter>")
         logging.debug(f"</{called_method}>")
         return result
+
     return wrapper
+
 
 def log_func(func):
     """
@@ -66,6 +72,7 @@ def log_func(func):
     Returns:
         The wrapped function.
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
@@ -77,7 +84,9 @@ def log_func(func):
         logging.debug(f"</{called_func}>")
         logging.debug(f"<perf_counter>{end_time - start_time}</perf_counter>")
         return result
+
     return wrapper
+
 
 def check_path_to_save_torch_module(path: Path) -> None:
     """
@@ -124,7 +133,8 @@ def get_object_attributes(obj_instance) -> Dict[str, Any]:
         obj_instance,
         lambda attr: not (inspect.ismethod(attr)) and not (inspect.isfunction(attr)),
     )
-    # get the attributes that are inherited from (or found within) the super class
+    # get the attributes that are inherited from (or found within) the super
+    # class
     super_attributes = inspect.getmembers(
         obj_instance.__class__.__bases__[0],
         lambda attr: not (inspect.ismethod(attr)) and not (inspect.isfunction(attr)),

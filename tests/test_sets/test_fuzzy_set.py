@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import MutableMapping
 
 import torch
+
 from fuzzy.sets.abstract import FuzzySet
 from fuzzy.sets.impl.cmf import Gaussian, NoOp
 

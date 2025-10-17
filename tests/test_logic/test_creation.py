@@ -5,6 +5,7 @@ Test the various mechanisms in which a fuzzy logic rule can be created.
 import unittest
 
 import torch
+
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.relations.t_norm import Product

@@ -7,6 +7,7 @@ differing types) can then be combined into a compound relation.
 from typing import List
 
 import torch
+
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.sets.membership import Membership
 from fuzzy.utils.classes import Loggable
@@ -30,7 +31,7 @@ class Compound(torch.nn.Module, Loggable):
         # store the relations as a module list (as they are also modules)
         self.relations = torch.nn.ModuleList(relations)
 
-    #@log_method
+    # @log_method
     def forward(self, membership: Membership) -> Membership:
         """
         Apply the compound n-ary relation to the given membership values.

@@ -10,6 +10,7 @@ from typing import List
 import igraph
 import numpy as np
 import torch
+
 from fuzzy.logic.control.configurations.data import GranulationLayers, Shape
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.rule import Rule

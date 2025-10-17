@@ -77,14 +77,14 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         except AttributeError:
             return self.__getattr__(item)
 
-    #@log_method
+    # @log_method
     def __hash__(self) -> int:
         _hash: str = ""
         for module in self.modules_list:
             _hash += str(hash(module))
         return hash(_hash)
 
-    #@log_method
+    # @log_method
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, FuzzySetGroup):
             return False
@@ -95,7 +95,7 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
                 return False
         return True
 
-    #@log_method
+    # @log_method
     def to(self, device: torch.device, *args, **kwargs) -> "FuzzySetGroup":
         """
         Move the FuzzySetGroup to a different device.
@@ -114,7 +114,7 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
             module.to(device)
         return self
 
-    #@log_method
+    # @log_method
     def forward(self, observations) -> Membership:
         """
         Calculate the responses from the modules in the torch.nn.ModuleList of FuzzySetGroup.
@@ -126,7 +126,8 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         # modules' responses are membership degrees when modules are FuzzySet
 
         if len(self.modules_list) == 1:
-            # for computational efficiency, return the response from the only module
+            # for computational efficiency, return the response from the only
+            # module
             return self.modules_list[0](observations)
 
         # this can be computationally expensive, but it is necessary to calculate the responses

@@ -9,6 +9,7 @@ from typing import Any, Union
 
 import numpy as np
 import torch
+
 from fuzzy.logic.control.configurations.data import Shape
 from fuzzy.logic.rulebase import RuleBase
 from fuzzy.sets.group import FuzzySetGroup
@@ -274,8 +275,12 @@ class TSK(Defuzzification):
         #     torch.ones([shape.n_rules], dtype=torch.float32), requires_grad=True
         # )
         # Split weights and bias once (outside hot loop if possible)
-        self.weights = torch.nn.Parameter(consequences[:, :, 1:].contiguous(), requires_grad=True)
-        self.bias = torch.nn.Parameter(consequences[:, :, 0].contiguous(), requires_grad=True)
+        self.weights = torch.nn.Parameter(
+            consequences[:, :, 1:].contiguous(), requires_grad=True
+        )
+        self.bias = torch.nn.Parameter(
+            consequences[:, :, 0].contiguous(), requires_grad=True
+        )
 
     @property
     def consequences(self):
@@ -346,12 +351,13 @@ class TSK(Defuzzification):
         # Using einsum: 'r o f, b f -> b r o'
         if self.weights.device != observations.device:
             self.weights = self.weights.to(observations.device)
-        rule_output = torch.einsum('r o f, b f -> b r o', self.weights, observations)
+        rule_output = torch.einsum("r o f, b f -> b r o", self.weights, observations)
 
         # Add bias with broadcasting
         if self.bias.device != observations.device:
             self.bias = self.bias.to(observations.device)
-        rule_output = rule_output + self.bias.unsqueeze(0)  # shape: (batch_size, n_rules,
+        # shape: (batch_size, n_rules,
+        rule_output = rule_output + self.bias.unsqueeze(0)
         # n_outputs)
         rule_output = rule_output.transpose(1, 2).float()
 

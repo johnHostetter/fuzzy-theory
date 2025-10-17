@@ -5,6 +5,7 @@ Check that the equality operator works as expected for t-norms.
 import unittest
 
 import torch
+
 from fuzzy.relations.t_norm import Minimum, Product
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

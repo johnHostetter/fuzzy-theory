@@ -7,11 +7,12 @@ from typing import Any, List, MutableMapping, Union
 
 import numpy as np
 import torch
+from torch._C import Size
+
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import NestedTorchJitModule, check_path_to_save_torch_module
 from fuzzy.utils.classes import Loggable
 from fuzzy.utils.functions import log_classmethod, log_method
-from torch._C import Size
 
 
 class BinaryLinks(torch.nn.Module, Loggable):
@@ -45,25 +46,25 @@ class BinaryLinks(torch.nn.Module, Loggable):
         # )
         self.device: torch.device = device
 
-    #@log_method
+    # @log_method
     def __hash__(self) -> int:
         return hash(self.links)
 
-    #@log_method
+    # @log_method
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, BinaryLinks) and torch.equal(
             self.links.to_dense(), other.links.to_dense()
         )
 
     @property
-    #@log_method
+    # @log_method
     def shape(self) -> Size:
         """
         Get the shape of the binary links.
         """
         return self.links.shape
 
-    #@log_method
+    # @log_method
     def save(self, path: Path) -> MutableMapping[str, Any]:
         """
         Save the n-ary relation to a dictionary.
@@ -81,7 +82,7 @@ class BinaryLinks(torch.nn.Module, Loggable):
         return state_dict
 
     @classmethod
-    #@log_classmethod
+    # @log_classmethod
     def load(cls, path: Path, device: torch.device) -> "BinaryLinks":
         """
         Load the n-ary relation from a file and put it on the specified device.
@@ -93,7 +94,7 @@ class BinaryLinks(torch.nn.Module, Loggable):
         links = state_dict.pop("links")
         return cls(links, device, **state_dict)
 
-    #@log_method
+    # @log_method
     def to(self, *args, **kwargs) -> "BinaryLinks":
         """
         Move the BinaryLinks to a new device.
@@ -110,7 +111,7 @@ class BinaryLinks(torch.nn.Module, Loggable):
         self.device = self.links.device
         return self
 
-    #@log_method
+    # @log_method
     def forward(self, *_) -> torch.Tensor:
         """
         Apply the defined binary linkage to the given membership degrees.
@@ -135,7 +136,11 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
     """
 
     def __init__(
-        self, modules_list: Union[None, List[torch.nn.Module]], debug: bool = False, *args, **kwargs
+        self,
+        modules_list: Union[None, List[torch.nn.Module]],
+        debug: bool = False,
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         # self.create_logger(name=self.__class__.__name__, debug=debug)
@@ -154,7 +159,7 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
             shape[self.membership_dimension] += module.shape[self.membership_dimension]
         return torch.Size(shape)
 
-    #@log_method
+    # @log_method
     def to(self, *args, **kwargs):
         """
         Move the GroupedLinks to a new device.
@@ -252,7 +257,7 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
     #         )
     #     return difference_between_shapes > 0
 
-    #@log_method
+    # @log_method
     def forward(self, membership: Membership) -> torch.Tensor:
         """
         Fetch the links for later use.
