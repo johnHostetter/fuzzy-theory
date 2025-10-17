@@ -28,6 +28,60 @@ from ..utils.functions import log_classmethod, log_func, log_method
 from .membership import Membership
 
 
+class DynamicParameterList(torch.nn.Module):
+    """
+    Wraps a torch.nn.ParameterList and maintains a contiguous cached tensor for fast operations.
+    """
+    def __init__(self, init_params=None, dtype=None, device=None):
+        super().__init__()
+        self.params = torch.nn.ParameterList()
+        self._cached_tensor = None
+        self._device = device
+        self._dtype = dtype
+
+        if init_params is not None:
+            for p in init_params:
+                self.add_parameter(p)
+
+    def __getitem__(self, item):
+        return self.params[item]
+
+    def add_parameter(self, tensor: Union[np.ndarray, torch.Tensor]):
+        """
+        Add a new Parameter and invalidate cached tensor.
+        tensor: torch.Tensor (will be converted to Parameter)
+        """
+        if not isinstance(tensor, torch.Tensor):
+            tensor = torch.as_tensor(tensor, dtype=self._dtype, device=self._device)
+        param = torch.nn.Parameter(tensor)
+        if self._device is not None:
+            param.data = param.data.to(self._device, dtype=self._dtype)
+        self.params.append(param)
+        self._cached_tensor = None  # invalidate cache
+
+    @property
+    def tensor(self):
+        """
+        Returns a contiguous tensor concatenating all parameters along dim=-1.
+        Only re-concatenates if something changed.
+        """
+        if self._cached_tensor is None:
+            if len(self.params) == 0:
+                return torch.tensor([], device=self._device, dtype=self._dtype)
+            self._cached_tensor = torch.cat(list(self.params), dim=-1).contiguous()
+        return self._cached_tensor
+
+    def to(self, *args, **kwargs):
+        """
+        Override to move both ParameterList and cached tensor.
+        """
+        super().to(*args, **kwargs)
+        self._device = args[0] if args else self._device
+        if self._cached_tensor is not None:
+            self._cached_tensor = self._cached_tensor.to(*args, **kwargs)
+        return self
+
+
 class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     """
     A generic and abstract torch.nn.Module class that implements continuous fuzzy sets.
@@ -110,8 +164,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
 
         # avoid allocating new memory for the centers and widths
         # use torch.float32 to save memory and speed up computations
-        self._centers = torch.nn.ParameterList([self.make_parameter(centers)])
-        self._widths = torch.nn.ParameterList([self.make_parameter(widths)])
+        self._centers = DynamicParameterList(init_params=[centers], dtype=torch.float32, device=self.device)
+        self._widths = DynamicParameterList(init_params=[widths], dtype=torch.float32, device=self.device)
         self._cached_centers: Union[None, torch.Tensor] = None # will be created later
         self._cached_widths: Union[None, torch.Tensor] = None  # will be created later
         self._cached__mask: Union[None, torch.Tensor] = None  # will be created later
@@ -268,6 +322,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             The concatenated centers of the fuzzy set.
         """
+        return self._centers.tensor
         # return self._centers[0]
         # return torch.cat(list(self._centers), dim=-1)
         if self.training or self._cached_centers is None:
@@ -282,6 +337,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             The concatenated widths of the fuzzy set.
         """
+        return self._widths.tensor
         # return self._widths[0]
         # return torch.cat(list(self._widths), dim=-1)
         if self.training or self._cached_widths is None:
