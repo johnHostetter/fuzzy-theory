@@ -61,9 +61,6 @@ class NAryRelation(TorchJitModule, Loggable):
         self.grouped_links: Union[None, GroupedLinks] = (
             None  # created later (via self._rebuild)
         )
-        # self.applied_mask: Union[None, torch.Tensor] = (
-        #     None  # created later (at the end of the constructor)
-        # )
         self.graph = None  # will be created later (via self._rebuild)
 
         # variables used for when the indices are given
@@ -434,40 +431,22 @@ class NAryRelation(TorchJitModule, Loggable):
         # (for memory)
         self.applied_mask: torch.Tensor = self.grouped_links(
             membership=membership
-        ).to_dense()
-        if not self.applied_mask.is_contiguous():
-            self.applied_mask = self.applied_mask.contiguous()
-
-        # ORIGINAL ELEMENT-WISE MULTIPLICATION
-        # after_mask = membership.degrees.unsqueeze(dim=-1) * self.applied_mask.unsqueeze(
-        #     0
-        # )
-        # MEMORY-EFFICIENT ELEMENT-WISE MULTIPLICATION
-        # after_mask = torch.einsum("...i,...ij->...ij", membership.degrees, self.applied_mask)
-        result = []
-        # split the degrees into chunks to avoid memory issues if the number of variables is large
-        # this then splits the batch to individual observation's degree of
-        # memberships
-        n_chunks: int = (
-            membership.degrees.size(0) if membership.degrees.size(1) > 1000 else 1
         )
-        for chunk in torch.chunk(membership.degrees, chunks=n_chunks, dim=0):
-            after_mask = torch.einsum("...i,...ij->...ij", chunk, self.applied_mask)
+        if self.applied_mask.is_sparse:
+            self.applied_mask: torch.Tensor = self.applied_mask.to_dense()
 
-            # complement mask adds zeros where the mask is zero, these are not part of the relation
-            # nan_to_num replaces nan values with the nan_replacement value
-            # (often not needed)
-            result.append(
-                (
-                    after_mask + (1 - self.applied_mask)
-                )  # resulting shape is same as after_mask.shape
-                # torch.einsum("...ijk,ijk->...ijk", after_mask,
-                # 1 - self.applied_mask)  # resulting shape is same as
-                # after_mask.shape
-                .prod(dim=2, keepdim=False).nan_to_num(self.nan_replacement)
-            )
-            del after_mask
-        return torch.concat(result)
+        after_mask = membership.degrees.unsqueeze(-1) * self.applied_mask
+        vals = after_mask + (1 - self.applied_mask)
+        # "log-sum-exp trick" for stable product via log-domain
+        # more accurately: a numerically stable log-space product
+        # torch.prod on large dims is slow and non-fusible
+        # result = (vals).prod(dim=2, keepdim=False).nan_to_num(self.nan_replacement)
+        # so use the below version to be much faster and more numerically stable, GPU-friendly
+        new_result = torch.exp(
+            torch.sum(torch.log(vals + 1e-12), dim=2)
+        ).nan_to_num(self.nan_replacement)
+        # assert torch.allclose(new_result, result)
+        return new_result
 
     # @log_method
     def forward(self, membership: Membership) -> torch.Tensor:
