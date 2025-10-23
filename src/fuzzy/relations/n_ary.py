@@ -19,13 +19,8 @@ from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
 from fuzzy.utils.options.impl.primitive import GroupedOptions
 
 from ..utils.classes import Loggable
-from ..utils.functions import log_classmethod, log_func, log_method
+from ..utils.functions import exp_sum_log, log_classmethod, log_func, log_method
 from .linkage import BinaryLinks, GroupedLinks
-
-
-@torch.jit.script
-def exp_sum_log(x: torch.Tensor, dim: int, eps: float = 1e-12):
-    return torch.exp(torch.sum(torch.log(torch.clamp_min(x, eps)), dim=dim))
 
 
 class NAryRelation(TorchJitModule, Loggable):

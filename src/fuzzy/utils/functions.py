@@ -9,6 +9,13 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, Dict, Set
 
+import torch
+
+
+@torch.jit.script
+def exp_sum_log(x: torch.Tensor, dim: int, eps: float = 1e-12):
+    return torch.exp(torch.sum(torch.log(torch.clamp_min(x, eps)), dim=dim))
+
 
 def log_method(method):
     """
