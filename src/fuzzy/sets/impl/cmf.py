@@ -2,12 +2,14 @@
 Implements various conventional membership functions (CMFs) by inheriting from FuzzySet.
 """
 
-from typing import Union
+from pathlib import Path
+from typing import Any, MutableMapping, Union
 
 import numpy as np
 import sympy
 import torch
 
+from ...utils import check_path_to_save_torch_module
 from ...utils.classes import Loggable
 from ..abstract import FuzzySet
 from ..membership import Membership
@@ -18,11 +20,50 @@ class NoOp(FuzzySet):
     Implementation of the NoOp membership function, written in PyTorch.
     """
 
-    def __init__(self, n_elements, membership: float, device: torch.device, **kwargs):
+    def __init__(
+        self, n_elements: int, membership: float, device: torch.device, **kwargs
+    ):
         centers = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         widths = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         self.membership = membership  # the flat membership degree of the NoOp fuzzy set
+        self.n_elements = n_elements
         super().__init__(centers=centers, widths=widths, device=device, **kwargs)
+
+    def save(self, path: Path) -> MutableMapping[str, Any]:
+        """
+        Save the fuzzy set to a file.
+
+        Note: This does not preserve the ParameterList structure, but rather concatenates the
+        parameters into a single tensor, which is then saved to a file.
+
+        Returns:
+            A dictionary containing the state of the fuzzy set.
+        """
+        check_path_to_save_torch_module(path)
+        state_dict: MutableMapping = self.state_dict()
+        state_dict["class_name"] = self.__class__.__name__
+        state_dict["n_elements"] = self.n_elements
+        state_dict["membership"] = self.membership
+        torch.save(state_dict, path)
+        return state_dict
+
+    @classmethod
+    # @log_classmethod
+    def load(cls, path: Path, device: torch.device) -> "FuzzySet":
+        """
+        Load the fuzzy set from a file and put it on the specified device.
+
+        Returns:
+            None
+        """
+        state_dict: MutableMapping = torch.load(path, weights_only=False)
+        n_elements = state_dict.pop("n_elements")
+        membership = state_dict.pop("membership")
+        return NoOp(
+            n_elements=n_elements,
+            membership=membership,
+            device=device,
+        )
 
     @staticmethod
     def internal_calculate_membership(
@@ -82,7 +123,7 @@ class NoOp(FuzzySet):
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
         # we do not need torch.float64 for observations
-        degrees: torch.Tensor = self.calculate_membership(observations.float())
+        degrees: torch.Tensor = self.calculate_membership(observations)
 
         # assert (
         #     not degrees.isnan().any()
@@ -208,7 +249,7 @@ class GeneralizedGuassian(FuzzySet):
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
         # we do not need torch.float64 for observations
-        degrees: torch.Tensor = self.calculate_membership(observations.float())
+        degrees: torch.Tensor = self.calculate_membership(observations)
 
         # assert (
         #     not degrees.isnan().any()
@@ -271,6 +312,7 @@ class LogGaussian(FuzzySet):
     #     self.widths = sigmas
 
     @staticmethod
+    @torch.jit.script
     def internal_calculate_membership(
         observations: torch.Tensor,
         centers: torch.Tensor,
@@ -307,6 +349,31 @@ class LogGaussian(FuzzySet):
             min=-10, max=0  # was -50 for visualization
         )  # force values very close to zero to be zero
 
+        # pre-allocate output
+        # batch, features = observations.shape[0], observations.shape[1]
+        # terms = centers.shape[-1]
+        # out = torch.empty(batch, features, terms, device=observations.device,
+        #                   dtype=observations.dtype)
+
+        # step 1: observations - centers
+        diff = observations.unsqueeze(-1) - centers  # (batch, features, terms)
+
+        # step 2: square diff in-place (safe, diff not used elsewhere)
+        # autograd-safe because diff is a view, not a leaf requiring grad
+        diff.pow_(2)
+
+        # step 3: denominator
+        denom = width_multiplier * widths.pow(2) + 1e-32  # (features, terms)
+
+        # step 4: division and multiply by -1, store directly in pre-allocated output
+        # torch.div(diff, denom, out=out)
+        out = diff / denom
+        out.mul_(-1.0)
+
+        # step 5: clamp in-place (autograd-safe)
+        out.clamp_(min=-10, max=0)
+        return out
+
     @classmethod
     @torch.jit.ignore
     def sympy_formula(cls) -> sympy.Expr:
@@ -339,7 +406,7 @@ class LogGaussian(FuzzySet):
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
         # we do not need torch.float64 for observations
-        degrees: torch.Tensor = self.calculate_membership(observations.float())
+        degrees: torch.Tensor = self.calculate_membership(observations)
 
         # if True:
         #     print(
@@ -428,7 +495,7 @@ class Gaussian(LogGaussian):
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
         # we do not need torch.float64 for observations
-        degrees: torch.Tensor = self.calculate_membership(observations.float())
+        degrees: torch.Tensor = self.calculate_membership(observations)
 
         # assert (
         #     not degrees.isnan().any()
@@ -525,7 +592,7 @@ class Lorentzian(FuzzySet):
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
         # we do not need torch.float64 for observations
-        degrees: torch.Tensor = self.calculate_membership(observations.float())
+        degrees: torch.Tensor = self.calculate_membership(observations)
 
         assert (
             not degrees.isnan().any()
@@ -660,7 +727,7 @@ class Triangular(FuzzySet):
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
         # we do not need torch.float64 for observations
-        degrees: torch.Tensor = self.calculate_membership(observations.float())
+        degrees: torch.Tensor = self.calculate_membership(observations)
 
         assert (
             not degrees.isnan().any()
