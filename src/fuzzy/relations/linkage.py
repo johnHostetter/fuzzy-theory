@@ -3,7 +3,7 @@ This file helps support the linkage between relations necessary for fuzzy logic 
 """
 
 from pathlib import Path
-from typing import Any, List, MutableMapping, Union
+from typing import Any, List, MutableMapping, Union, Optional, Callable
 
 import numpy as np
 import torch
@@ -139,6 +139,7 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         self,
         modules_list: Union[None, List[torch.nn.Module]],
         debug: bool = False,
+        callback: Optional[Callable[[], None]] = None,
         *args,
         **kwargs,
     ):
@@ -148,16 +149,39 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
             modules_list = []
         self.modules_list = torch.nn.ModuleList(modules_list)
         self.membership_dimension: int = 1
+        self.callback = callback
+        self._compute_shape_cache()
+        # self.streams = [torch.cuda.Stream() for _ in range(len(self.modules_list))]
 
     @property
-    def shape(self) -> Size:
-        """
-        Get the shape of links.
-        """
-        shape = list(self.modules_list[0].shape)
-        for module in self.modules_list[1:]:
-            shape[self.membership_dimension] += module.shape[self.membership_dimension]
-        return torch.Size(shape)
+    def shape(self):
+        return self._cached_shape
+
+    def append(self, module: torch.nn.Module):
+        self.modules_list.append(module)
+        self._compute_shape_cache()
+
+    def extend(self, modules: List[torch.nn.Module]):
+        self.modules_list.extend(modules)
+        self._compute_shape_cache()
+
+    def _compute_shape_cache(self) -> Size:
+        base_shape = self.modules_list[0].shape
+        # this is efficient and works if modules inside self.modules_list are only added when
+        # neurogenesis is enabled and self.membership_dimension = 1, but if you need it to work with
+        # splitting up logits/links for the purpose of intra-GPU parallelism, then you need to
+        # change self.membership_dimension = 2
+        # self.membership_dimension = 2
+        dim_sum = sum(
+            module.shape[self.membership_dimension] for module in self.modules_list[1:])
+        shape = tuple(
+            s + dim_sum if i == self.membership_dimension else s
+            for i, s in enumerate(base_shape)
+        )
+        self._cached_shape = torch.Size(shape)
+        if self.callback:
+            self.callback()
+        return self._cached_shape
 
     # @log_method
     def to(self, *args, **kwargs):
@@ -269,6 +293,16 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         if len(self.modules_list) == 1:
             return self.modules_list[0](membership)
         all_links: List[Union[torch.Tensor, torch.nn.Parameter]] = []
+        # out_tensor = torch.empty(*self.shape, device=self.modules_list[0].logits.device)
+        # for idx, links in enumerate(self.modules_list):
+        #     with torch.cuda.stream(self.streams[idx]):
+        #         start = idx * 64
+        #         end =  ((idx + 1) * 64)
+        #         out_tensor[:, :, start:end] = links(membership)  # (option 1) for stream
+
         for links in self.modules_list:
+            # out_tensor[:, start:end, :] = links(membership)  # (option 2) for expanding mu
             all_links.append(links(membership))
+        # torch.cuda.synchronize(device=self.modules_list[0].logits.device)
+        # return out_tensor
         return torch.cat(all_links, dim=self.membership_dimension)
