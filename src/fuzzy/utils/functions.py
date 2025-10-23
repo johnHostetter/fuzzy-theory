@@ -13,8 +13,32 @@ import torch
 
 
 @torch.jit.script
-def exp_sum_log(x: torch.Tensor, dim: int, eps: float = 1e-12):
-    return torch.exp(torch.sum(torch.log(torch.clamp_min(x, eps)), dim=dim))
+def exp_sum_log(x: torch.Tensor, dim: int, eps: float = 1e-12) -> torch.Tensor:
+    """
+    A numerically stable product which may offer more time-efficient performance than torch.prod
+    while remaining equivalent. Although this is not a simpler operation, it may perform
+    better on PyTorch CUDA backend as sum-based reductions are more efficient than
+    multiplicative ones.
+
+    Also, if x contains zeros, torch.prod will give zero (which may underflow if chaining
+    gradients) so it may be more ideal to use this function instead.
+
+    Overall, this function could perhaps:
+
+    1. Leverage fused add+exp+log kernels (heavily optimized in CUDA)
+    2. Exploit tensor core friendly ops (adds and exps are vectorized; multiplications in prod
+    are chained and harder to parallelize efficiently)
+    3. Benefits from numerical stability with fewer infs/NaNs. Hopefully, fewer slow paths
+
+    Args:
+        x: The tensor to operate on.
+        dim: The dimension of the given tensor to apply this operation onto.
+        eps: A very small numerical offset.
+
+    Returns:
+        The product along that dimension of the given tensor.
+    """
+    return torch.exp(torch.sum(torch.log(x.clamp_min(eps)), dim=dim))
 
 
 def log_method(method):
@@ -30,7 +54,6 @@ def log_method(method):
 
     @wraps(method)
     def wrapper(self, *args, **kwargs):
-        return method(self, *args, **kwargs)
         called_method: str = f"{self.__class__.__name__}.{method.__name__}"
         self.logger.debug(f"<{called_method}>")
         start_time = time.perf_counter()
@@ -56,7 +79,6 @@ def log_classmethod(classmethod):
 
     @wraps(classmethod)
     def wrapper(cls, *args, **kwargs):
-        return classmethod(cls, *args, **kwargs)
         called_method: str = f"{cls.__name__}.{classmethod.__name__}"
         logging.debug(f"<{called_method}>")
         start_time = time.perf_counter()
@@ -82,7 +104,6 @@ def log_func(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
         called_func: str = f"{func.__name__}"
         logging.debug(f"<{called_func}>")
         start_time = time.perf_counter()
