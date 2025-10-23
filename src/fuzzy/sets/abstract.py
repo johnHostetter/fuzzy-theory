@@ -34,9 +34,10 @@ class DynamicParameterList(torch.nn.Module):
     Wraps a torch.nn.ParameterList and maintains a contiguous cached tensor for fast operations.
     """
 
-    def __init__(self, init_params=None, dtype=None, device=None):
+    def __init__(self, init_params=None, dtype=None, device=None, parameters: bool = True):
         super().__init__()
-        self.params = torch.nn.ParameterList()
+        self.params: Union[torch.nn.ParameterList, List[torch.Tensor]] = torch.nn.ParameterList() \
+            if parameters else []
         self._cached_tensor = None
         self._device = device
         self._dtype = dtype
@@ -55,7 +56,10 @@ class DynamicParameterList(torch.nn.Module):
         """
         if not isinstance(tensor, torch.Tensor):
             tensor = torch.as_tensor(tensor, dtype=self._dtype, device=self._device)
-        param = torch.nn.Parameter(tensor)
+        if isinstance(self.params, torch.nn.ParameterList):
+            param = torch.nn.Parameter(tensor)
+        else:
+            param = tensor  # leave it unmodified
         if self._device is not None:
             param.data = param.data.to(self._device, dtype=self._dtype)
         self.params.append(param)
@@ -173,19 +177,11 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         self._widths = DynamicParameterList(
             init_params=[widths], dtype=torch.float32, device=self.device
         )
-        # will be created later
-        self._cached_centers: Union[None, torch.Tensor] = None
-        # will be created later
-        self._cached_widths: Union[None, torch.Tensor] = None
-        # will be created later
-        self._cached__mask: Union[None, torch.Tensor] = None
         self.use_sparse_tensor = use_sparse_tensor
-        # self._mask = torch.nn.ParameterList(
-        #     [
-        #         self.make_mask(widths)
-        #     ]
-        # )
-        self._mask = [self.make_mask(widths)]
+        self._mask = DynamicParameterList(
+            init_params=[self.make_mask(widths)], dtype=torch.uint8, device=self.device,
+            parameters=False
+        )
 
     # @log_method
     def to(self, *args, **kwargs):
@@ -204,7 +200,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         self._widths = self._widths.to(*args, **kwargs)
 
         # special handling for the non-parameter tensors, such as mask
-        self._mask = [mask.to(*args, **kwargs) for mask in self._mask]
+        # self._mask = [mask.to(*args, **kwargs) for mask in self._mask]
+        self._mask = self._mask.to(*args, **kwargs)
         self.device = self._centers[0].device
         # self.logger.debug(f"Moved {self.__class__.__name__} to {self.device} device")
         return self
@@ -281,7 +278,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             )
 
         if method == "random":
-            logging.debug("The 'random' initialization")
+            # logging.debug("The 'random' initialization")
             centers: np.ndarray = np.random.randn(n_variables, n_terms)
             widths: np.ndarray = np.abs(np.random.randn(n_variables, n_terms)).clip(
                 min=0.1
@@ -298,7 +295,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                 f"The method must be either 'random' or 'linear', but got {method}"
             )
         fuzzy_sets = cls(centers=centers, widths=widths, device=device, **kwargs)
-        logging.debug(f"New fuzzy set(s) created with the %s method.", method)
+        # logging.debug(f"New fuzzy set(s) created with the %s method.", method)
         return fuzzy_sets
 
     # @log_method
@@ -337,11 +334,6 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             The concatenated centers of the fuzzy set.
         """
         return self._centers.tensor
-        # return self._centers[0]
-        # return torch.cat(list(self._centers), dim=-1)
-        if self.training or self._cached_centers is None:
-            self._cached_centers = torch.cat(list(self._centers), dim=-1)
-        return self._cached_centers
 
     # @log_method
     def get_widths(self) -> torch.Tensor:
@@ -352,11 +344,6 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             The concatenated widths of the fuzzy set.
         """
         return self._widths.tensor
-        # return self._widths[0]
-        # return torch.cat(list(self._widths), dim=-1)
-        if self.training or self._cached_widths is None:
-            self._cached_widths = torch.cat(list(self._widths), dim=-1)
-        return self._cached_widths
 
     # @log_method
     def get_mask(self) -> torch.Tensor:
@@ -366,11 +353,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             The concatenated mask of the fuzzy set.
         """
-        # return self._mask[0]
-        # return torch.cat(list(self._mask), dim=-1)
-        if self.training or self._cached__mask is None:
-            self._cached_mask = torch.cat(list(self._mask), dim=-1)
-        return self._cached_mask
+        return self._mask.tensor
 
     @classmethod
     # @log_classmethod
