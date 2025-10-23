@@ -4,8 +4,8 @@ import unittest
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
-from fuzzy.utils.options.abstract import Options
-from fuzzy.utils.options.impl.primitive import (
+from fuzzy.utils.options.abstract.meta import Options
+from fuzzy.utils.options.abstract.primitive import (
     CategoricalOptions,
     FloatOptions,
     GroupedOptions,

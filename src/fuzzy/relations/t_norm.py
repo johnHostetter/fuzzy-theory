@@ -13,7 +13,7 @@ import torch
 from fuzzy.relations.custom_t_norm import TNormPipeline
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.sets.membership import Membership
-from fuzzy.utils.options.impl.primitive import GroupedOptions
+from fuzzy.utils.options.abstract.primitive import GroupedOptions
 
 
 class TNorm(NAryRelation, ABC):

@@ -16,7 +16,7 @@ import torch
 
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
-from fuzzy.utils.options.impl.primitive import GroupedOptions
+from fuzzy.utils.options.abstract.primitive import GroupedOptions
 
 from ..utils.classes import Loggable
 from ..utils.functions import exp_sum_log, log_classmethod, log_func, log_method
@@ -478,7 +478,7 @@ class NAryRelation(TorchJitModule, Loggable):
         # with torch.autograd.graph.save_on_cpu():  # save the graph on the CPU
         # (for memory)
         _ = self._get_mask_with_membership(
-            membership=membership
+            membership=membership, inplace=True
         )  # update self.applied_mask
         after_mask = membership.degrees.unsqueeze(-1) * self.applied_mask
         vals = after_mask + (1 - self.applied_mask)
