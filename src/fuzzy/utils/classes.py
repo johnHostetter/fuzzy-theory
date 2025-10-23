@@ -149,13 +149,14 @@ class NestedTorchJitModule(torch.nn.Module):
             pickle.dump(local_attributes_only, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     @classmethod
-    def load(cls, path: Path, device: torch.device) -> "NestedTorchJitModule":
+    def load(cls, path: Path, device: torch.device, **kwargs) -> "NestedTorchJitModule":
         """
         Load the torch.nn.Module from the given path.
 
         Args:
             path: The path to load the NestedTorchJitModule from.
             device: The device to load the NestedTorchJitModule to.
+            **kwargs:
 
         Returns:
             The loaded NestedTorchJitModule.
@@ -177,7 +178,7 @@ class NestedTorchJitModule(torch.nn.Module):
                         try:
                             modules_list.append(
                                 TorchJitModule.get_subclass(class_name).load(
-                                    module_path, device=device
+                                    module_path, device=device, **kwargs
                                 )
                             )
                         except ValueError:
