@@ -5,12 +5,15 @@ relations are implemented here.
 """
 
 from abc import ABC
+from pathlib import Path
+from typing import Any, Dict, MutableMapping
 
 import torch
 
+from fuzzy.relations.custom_t_norm import TNormPipeline
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.sets.membership import Membership
-from fuzzy.utils.functions import log_method
+from fuzzy.utils.options.impl.primitive import GroupedOptions
 
 
 class TNorm(NAryRelation, ABC):
@@ -28,6 +31,58 @@ class TNorm(NAryRelation, ABC):
         if len(self.indices) == 1:
             return " AND ".join([f"({i}, {j})" for i, j in self.indices[0]])
         return super().__str__()
+
+    def save(self, path: Path) -> MutableMapping[str, Any]:
+        state_dict = super().save(path=path)  # path is a file that ends in .pt
+        if hasattr(self, "configuration"):
+            self.configuration.save(path.parent / "engine" / "configuration")
+        if hasattr(self, "_func"):
+            self._func.save(path.parent / "engine" / "_func")
+        return state_dict
+
+    @classmethod
+    def load(cls, path: Path, device: torch.device, **kwargs) -> "NAryRelation":
+        """
+        Load a TNorm from saved files. This override to NAryRelation.load passes a callback
+        function to load a GroupedOptions from storage and also accepts arbitrary keyword
+        arguments that may be needed. The reason why a GroupedOptions object may have existed for a
+        subclass of TNorm, or that keyword arguments might be needed, is it may be a custom
+        implementation requiring specialized, multistep features.
+
+        Args:
+            path: The path to load the t-norm relation.
+            device: The physical device to load the t-norm relation onto.
+            **kwargs: Any other additional keyword arguments that should be used.
+
+        Returns:
+            A t-norm (n-ary) relation.
+        """
+
+        def t_norm_callback(
+            t_norm_pending_keyword_arguments: Dict[str, Any],
+        ) -> Dict[str, Any]:
+            """
+            Accepts a keyword argument dictionary and modifies it to include two additional keyword
+            arguments, if they existed: (1) a GroupedOptions object, and (2) a TNormPipeline.
+
+            Args:
+                t_norm_pending_keyword_arguments: The keyword argument dictionary to be modified.
+
+            Returns:
+                A modified keyword argument dictionary.
+            """
+            if (path / "configuration").exists():
+                configuration: GroupedOptions = GroupedOptions.load(
+                    path / "configuration"
+                )
+                t_norm_pending_keyword_arguments["configuration"] = configuration
+
+            if (path / "_func").exists():
+                _func: TNormPipeline = TNormPipeline.load(path / "_func", device=device)
+                t_norm_pending_keyword_arguments["_func"] = _func
+            return t_norm_pending_keyword_arguments
+
+        return super().load(path=path, device=device, t_norm_callback=t_norm_callback)
 
 
 class Minimum(TNorm):
@@ -110,7 +165,7 @@ class SoftmaxSum(TNorm):
         # TODO: these dimensions are possibly not correct, need to be
         # fixed/tested
         firing_strengths = intermediate_values.sum(dim=1)
-        max_values, _ = firing_strengths.max(dim=-1, keepdim=True)
+        max_values = firing_strengths.amax(dim=-1, keepdim=True)
         return Membership(
             # elements=membership.elements,
             degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
@@ -179,7 +234,7 @@ class SoftmaxMean(TNorm):
         firing_strengths = intermediate_values.mean(
             dim=1
         )  # we take the mean instead of the sum
-        max_values, _ = firing_strengths.max(
+        max_values = firing_strengths.amax(
             dim=-1, keepdim=True
         )  # add this to prevent overflow
         return Membership(
