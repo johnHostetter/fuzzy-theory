@@ -55,7 +55,7 @@ class TNorm(NAryRelation, ABC):
             **kwargs: Any other additional keyword arguments that should be used.
 
         Returns:
-            A t-norm (n-ary) relation.
+            The t-norm (n-ary) relation.
         """
 
         def t_norm_callback(

@@ -462,9 +462,10 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
                 class_name: str = tokens[-1]  # e.g., Gaussian
                 module = getattr(importlib.import_module(module_path), class_name)
                 # load the vertex 'type' information from the file
+                # must be passed Path for module's that require Path.iterdir()
                 vertex_row["item"] = module.load(
                     Path(vertex_row["file"]), device=device
-                )  # must be passed Path for module's that require Path.iterdir()
+                )
             for attribute in vertices_df.columns:
                 if attribute == "file":
                     continue
