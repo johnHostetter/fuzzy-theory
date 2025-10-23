@@ -4,8 +4,10 @@ are used to combine multiple membership values into a single value. The n-ary re
 differing types) can then be combined into a compound relation.
 """
 
+import inspect
+import shutil
 from pathlib import Path
-from typing import Any, List, MutableMapping, Tuple, Union
+from typing import Any, Callable, Dict, List, MutableMapping, Tuple, Union
 
 import igraph
 import numpy as np
@@ -14,10 +16,16 @@ import torch
 
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
+from fuzzy.utils.options.impl.primitive import GroupedOptions
 
 from ..utils.classes import Loggable
 from ..utils.functions import log_classmethod, log_func, log_method
 from .linkage import BinaryLinks, GroupedLinks
+
+
+@torch.jit.script
+def exp_sum_log(x: torch.Tensor, dim: int, eps: float = 1e-12):
+    return torch.exp(torch.sum(torch.log(torch.clamp_min(x, eps)), dim=dim))
 
 
 class NAryRelation(TorchJitModule, Loggable):
@@ -268,12 +276,22 @@ class NAryRelation(TorchJitModule, Loggable):
 
     @classmethod
     # @log_classmethod
-    def load(cls, path: Path, device: torch.device) -> "NAryRelation":
+    def load(
+        cls,
+        path: Path,
+        device: torch.device,
+        t_norm_callback: Union[None, Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+    ) -> "NAryRelation":
         """
         Load the n-ary relation from a file and put it on the specified device.
 
+        Args:
+            path: The path to load the t-norm relation.
+            device: The physical device to load the t-norm relation onto.
+            t_norm_callback:
+
         Returns:
-            None
+            The n-ary relation.
         """
         if path.is_file() and path.suffix == ".pt":
             # load from indices
@@ -284,21 +302,34 @@ class NAryRelation(TorchJitModule, Loggable):
                 path / "state_dict.pt", weights_only=False
             )
         nan_replacement = state_dict.pop("nan_replacement")
+        kwargs: Dict[str, Any] = {"nan_replacement": nan_replacement, "device": device}
+
         class_name = state_dict.pop("class_name")
+        fuzzy_cls = cls.get_subclass(class_name)
 
         if "indices" in state_dict:
             indices = state_dict.pop("indices")
-            return cls.get_subclass(class_name)(
-                *indices,
-                device=device,
-                nan_replacement=nan_replacement,
-            )
+            return fuzzy_cls(*indices, **kwargs)
         grouped_links: Path = state_dict.pop("grouped_links")
-        obj = cls.get_subclass(class_name)(
-            device=device,
-            grouped_links=GroupedLinks.load(grouped_links, device=device),
-            nan_replacement=nan_replacement,
+        fuzzy_cls_sig = inspect.signature(fuzzy_cls.__init__)
+        grouped_links_kwargs: Dict[str, Any] = {"device": device}
+        if (grouped_links / "configuration").exists():
+            # order matters here; GroupedLinks cannot load before
+            # GumbelSoftmaxOptions.load
+            configuration: GroupedOptions = GroupedOptions.load(
+                grouped_links / "configuration"
+            )
+            # this directory cannot exist when calling GroupedLinks.load
+            shutil.rmtree(grouped_links / "configuration")
+            grouped_links_kwargs["configuration"] = configuration
+        kwargs["grouped_links"] = GroupedLinks.load(
+            grouped_links, **grouped_links_kwargs
         )
+
+        if t_norm_callback is not None:
+            kwargs = t_norm_callback(kwargs)
+
+        obj = fuzzy_cls(**kwargs)
         # add other attributes that may be specific to the subclass
         obj.load_state_dict(state_dict, strict=False)
         return obj
@@ -399,6 +430,28 @@ class NAryRelation(TorchJitModule, Loggable):
             coo_matrix.resize(*shape)
         self._rebuild(*shape)
 
+    def _get_mask_with_membership(
+        self, membership: Membership, inplace: bool = False
+    ) -> torch.Tensor:
+        """
+        Get the applied mask from the GroupedLinks using the given Membership object. Caution
+        should be used with this method as it may or may not update the cached applied mask
+        depending on if inplace is True (default is False).
+
+        Args:
+            membership: The Membership object to use in determining the applied mask.
+            inplace: Whether to modify the self.applied_mask with this obtained applied mask.
+
+        Returns:
+            The applied mask based on the given membership.
+        """
+        applied_mask: torch.Tensor = self.grouped_links(membership=membership)
+        if applied_mask.is_sparse:
+            applied_mask: torch.Tensor = self.applied_mask.to_dense()
+        if inplace:
+            self.applied_mask = applied_mask
+        return applied_mask
+
     # @log_method
     def apply_mask(self, membership: Membership) -> torch.Tensor:
         """
@@ -429,23 +482,22 @@ class NAryRelation(TorchJitModule, Loggable):
         # select memberships that are not zeroed out (i.e., involved in the relation)
         # with torch.autograd.graph.save_on_cpu():  # save the graph on the CPU
         # (for memory)
-        self.applied_mask: torch.Tensor = self.grouped_links(
+        _ = self._get_mask_with_membership(
             membership=membership
-        )
-        if self.applied_mask.is_sparse:
-            self.applied_mask: torch.Tensor = self.applied_mask.to_dense()
-
+        )  # update self.applied_mask
         after_mask = membership.degrees.unsqueeze(-1) * self.applied_mask
         vals = after_mask + (1 - self.applied_mask)
         # "log-sum-exp trick" for stable product via log-domain
         # more accurately: a numerically stable log-space product
         # torch.prod on large dims is slow and non-fusible
         # result = (vals).prod(dim=2, keepdim=False).nan_to_num(self.nan_replacement)
+        # return result
         # so use the below version to be much faster and more numerically stable, GPU-friendly
-        new_result = torch.exp(
-            torch.sum(torch.log(vals + 1e-12), dim=2)
-        ).nan_to_num(self.nan_replacement)
-        # assert torch.allclose(new_result, result)
+        # new_result = torch.exp(
+        #     torch.sum(torch.log(vals + 1e-12), dim=2)
+        # ).nan_to_num(self.nan_replacement)
+        # assert torch.allclose(new_result, exp_sum_log(vals, dim=2))
+        new_result = exp_sum_log(vals, dim=2).nan_to_num(self.nan_replacement)
         return new_result
 
     # @log_method
