@@ -2,8 +2,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from fuzzy.utils.options.abstract import EnumPromoter, ExtendedEnumMeta
-from fuzzy.utils.options.impl.primitive import CategoricalOptions
+from fuzzy.utils.options.abstract.meta import EnumPromoter, ExtendedEnumMeta
+from fuzzy.utils.options.abstract.primitive import CategoricalOptions
 
 
 class CategoricalEnumOptions(CategoricalOptions, EnumPromoter):

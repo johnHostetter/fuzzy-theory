@@ -2,10 +2,7 @@ import pickle
 from pathlib import Path
 from typing import Tuple, Union
 
-from fuzzy.utils.options.abstract import (
-    IterableOptions,
-    Options,
-)
+from fuzzy.utils.options.abstract.meta import IterableOptions, Options
 
 
 class CategoricalOptions(IterableOptions, Options):
