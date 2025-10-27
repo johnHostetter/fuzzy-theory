@@ -284,6 +284,7 @@ class LogGaussian(FuzzySet):
     ):
         super().__init__(centers=centers, widths=widths, device=device, **kwargs)
         self.width_multiplier = width_multiplier
+        self._buffer = None
         if int(self.width_multiplier) not in [1, 2]:
             raise ValueError(
                 "The width multiplier must be either 1.0 or 2.0, but got {self.width_multiplier}."
@@ -318,6 +319,7 @@ class LogGaussian(FuzzySet):
         centers: torch.Tensor,
         widths: torch.Tensor,
         width_multiplier: float,
+        buffer: torch.Tensor,
     ) -> torch.Tensor:
         """
         Calculate the membership of the observations to the Log Gaussian fuzzy set.
@@ -336,18 +338,18 @@ class LogGaussian(FuzzySet):
         Returns:
             The membership degrees of the observations for the Log Gaussian fuzzy set.
         """
-        return (
-            -1.0
-            * (
-                torch.pow(
-                    observations - centers,
-                    2,
-                )
-                / (width_multiplier * torch.pow(widths, 2) + 1e-32)
-            )
-        ).clamp(
-            min=-10, max=0  # was -50 for visualization
-        )  # force values very close to zero to be zero
+        # return (
+        #     -1.0
+        #     * (
+        #         torch.pow(
+        #             observations - centers,
+        #             2,
+        #         )
+        #         / (width_multiplier * torch.pow(widths, 2) + 1e-32)
+        #     )
+        # ).clamp(
+        #     min=-10, max=0  # was -50 for visualization
+        # )  # force values very close to zero to be zero
 
         # pre-allocate output
         # batch, features = observations.shape[0], observations.shape[1]
@@ -355,8 +357,28 @@ class LogGaussian(FuzzySet):
         # out = torch.empty(batch, features, terms, device=observations.device,
         #                   dtype=observations.dtype)
 
+        # inv_sigma2 = widths.mul(widths)  # widths^2
+        # inv_sigma2.mul_(width_multiplier)  # *= width_multiplier
+        # inv_sigma2.add_(1e-32)  # += epsilon
+        # inv_sigma2.reciprocal_()  # 1/x (in-place)
+        #
+        # # Suppose buffer is already allocated with the right shape
+        # buffer[:] = observations  # copy data into buffer
+        # buffer.sub(centers)  # in-place subtraction (autograd-safe)
+        # buffer.mul_(buffer)  # square in-place
+        # buffer.mul_(inv_sigma2)  # scale in-place
+        # return buffer
+
+        #
+        # buffer = torch.sub(observations, centers)
+        # buffer.mul_(buffer)
+        # buffer.mul_(inv_sigma2)
+        # buffer.neg_()
+        # buffer.clamp_(min=-10.0, max=0.0)
+        # return buffer
+
         # step 1: observations - centers
-        diff = observations.unsqueeze(-1) - centers  # (batch, features, terms)
+        diff = observations - centers  # (batch, features, terms)
 
         # step 2: square diff in-place (safe, diff not used elsewhere)
         # autograd-safe because diff is a view, not a leaf requiring grad
@@ -400,11 +422,19 @@ class LogGaussian(FuzzySet):
             centers=self.get_centers(),
             widths=self.get_widths(),
             width_multiplier=self.width_multiplier,
+            buffer=self._buffer
         )
 
     def forward(self, observations) -> Membership:
+        if self._buffer is None or self._buffer.shape != observations.shape:
+            self._buffer = torch.empty(
+                *observations.shape, self.get_centers().shape[-1],
+                device=observations.device, dtype=observations.dtype
+            )
+
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
+
         # we do not need torch.float64 for observations
         degrees: torch.Tensor = self.calculate_membership(observations)
 
