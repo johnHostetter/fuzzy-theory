@@ -13,6 +13,8 @@ import igraph
 import numpy as np
 import scipy.sparse as sps
 import torch
+from line_profiler import profile
+from torch import Size, Tensor
 
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
@@ -20,7 +22,15 @@ from fuzzy.utils.options.abstract.primitive import GroupedOptions
 
 from ..utils.classes import Loggable
 from ..utils.functions import exp_sum_log, log_classmethod, log_func, log_method
+from ..utils.options.abstract.ext_enum import ExtendedEnum
 from .linkage import BinaryLinks, GroupedLinks
+
+
+class NAryMaskMethods(ExtendedEnum):
+    PROD = "prod"  # the default implementation
+    EXP_SUM_LOG = "exp_sum_log"  # an alternative implementation
+    # a more efficient calculation if sum is to be applied immediately after
+    LINEAR_SUM = "linear"
 
 
 class NAryRelation(TorchJitModule, Loggable):
@@ -39,6 +49,7 @@ class NAryRelation(TorchJitModule, Loggable):
         device: torch.device,
         grouped_links: Union[None, GroupedLinks] = None,
         nan_replacement: float = 0.0,
+        method: NAryMaskMethods = NAryMaskMethods.PROD,
         **kwargs,
     ):
         """
@@ -59,7 +70,12 @@ class NAryRelation(TorchJitModule, Loggable):
         if nan_replacement not in [0.0, 1.0]:
             raise ValueError("The nan_replacement must be either 0.0 or 1.0.")
         self.nan_replacement: float = nan_replacement
-
+        self.method: NAryMaskMethods = method
+        # cache the selected method; very important for performance to avoid
+        # branching
+        self._apply_mask_func: Callable[[Membership], torch.Tensor] = (
+            self._cache_apply_mask_func()
+        )
         self.matrix = None  # created later (via self._rebuild)
         self.grouped_links: Union[None, GroupedLinks] = (
             None  # created later (via self._rebuild)
@@ -441,19 +457,26 @@ class NAryRelation(TorchJitModule, Loggable):
             The applied mask based on the given membership.
         """
         applied_mask: torch.Tensor = self.grouped_links(membership=membership)
-        if applied_mask.is_sparse:
-            applied_mask: torch.Tensor = self.applied_mask.to_dense()
-        if inplace:
-            self.applied_mask = applied_mask
+        # if applied_mask.is_sparse:
+        #     applied_mask: torch.Tensor = self.applied_mask.to_dense()
+        # if inplace:
+        #     self.applied_mask = applied_mask
         return applied_mask
 
     # @log_method
-    def apply_mask(self, membership: Membership) -> torch.Tensor:
+    @profile
+    def apply_mask(
+        self, membership: Membership, method: NAryMaskMethods = NAryMaskMethods.PROD
+    ) -> torch.Tensor:
         """
         Apply the n-ary relation's mask to the given memberships.
 
         Args:
             membership: The membership values to apply the minimum n-ary relation to.
+            method: The selected method to apply the mask to the membership degrees. Some
+            implementations are more efficient if we can incorporate subsequent calculations
+            (e.g., it is possible to use torch.nn.functional.linear if we know a .sum is applied
+            immediately afterward).
 
         Returns:
             The masked membership values (zero may or may not be a valid degree of truth).
@@ -477,23 +500,71 @@ class NAryRelation(TorchJitModule, Loggable):
         # select memberships that are not zeroed out (i.e., involved in the relation)
         # with torch.autograd.graph.save_on_cpu():  # save the graph on the CPU
         # (for memory)
-        _ = self._get_mask_with_membership(
-            membership=membership, inplace=True
-        )  # update self.applied_mask
-        after_mask = membership.degrees.unsqueeze(-1) * self.applied_mask
-        vals = after_mask + (1 - self.applied_mask)
-        # "log-sum-exp trick" for stable product via log-domain
+        # applied_mask = self.grouped_links.grouped_links.modules_list[0].logits
+        return self._apply_mask_func(membership)
+
+    def _cache_apply_mask_func(self) -> Callable[[Membership], torch.Tensor]:
+        if self.method == NAryMaskMethods.PROD:
+            return self._prod_apply_mask
+        elif self.method == NAryMaskMethods.LINEAR_SUM:
+            return self._linear_sum_apply_mask
+        elif self.method == NAryMaskMethods.EXP_SUM_LOG:
+            return self._exp_sum_log_apply_mask
+        raise NotImplementedError(
+            f"The given method '{self.method}' does not have an implemented behavior within "
+            f"{type(self)}."
+        )
+
+    def _exp_sum_log_apply_mask(self, membership: Membership) -> Tensor:
+        # "exp-sum-log trick" for stable product via log-domain
         # more accurately: a numerically stable log-space product
-        # torch.prod on large dims is slow and non-fusible
-        # result = (vals).prod(dim=2, keepdim=False).nan_to_num(self.nan_replacement)
-        # return result
         # so use the below version to be much faster and more numerically stable, GPU-friendly
-        # new_result = torch.exp(
+        # exp_sum_log_impl_result = torch.exp(
         #     torch.sum(torch.log(vals + 1e-12), dim=2)
         # ).nan_to_num(self.nan_replacement)
-        # assert torch.allclose(new_result, exp_sum_log(vals, dim=2))
-        new_result = exp_sum_log(vals, dim=2).nan_to_num(self.nan_replacement)
-        return new_result
+        applied_mask = self._get_mask_with_membership(
+            membership=membership, inplace=True
+        )  # update self.applied_mask
+        after_mask = membership.degrees.unsqueeze(-1) * applied_mask
+        vals = after_mask + (1 - applied_mask)
+        exp_sum_log_func_result = exp_sum_log(vals, dim=2).nan_to_num(
+            self.nan_replacement
+        )
+        # assert torch.allclose(exp_sum_log_impl_result, exp_sum_log_func_result)
+        return exp_sum_log_func_result
+
+    def _linear_sum_apply_mask(self, membership: Membership) -> Tensor:
+        # WARNING: this will not work for information with missing data
+        # (notice that there is no use of self.nan_replacement)
+        membership_shape: Size = membership.degrees.shape
+        batch_size, var_count, term_count = (
+            membership_shape[0],
+            membership_shape[1],
+            membership_shape[2],
+        )
+        applied_mask = self._get_mask_with_membership(
+            membership=membership, inplace=True
+        )  # update self.applied_mask
+        # avoiding the above call can lead to significant performance increases
+        # applied_mask = self.grouped_links.grouped_links.modules_list[0].logits
+        n_rules = applied_mask.shape[-1]
+        linear_result = torch.nn.functional.linear(
+            membership.degrees.view(batch_size, var_count * term_count),
+            applied_mask.view(var_count * term_count, n_rules).T,
+        )
+        # the above is equivalent if you apply .sum(dim=1) to PROD result
+        # assert torch.allclose(result.sum(dim=1).half(), linear_result.half())
+        return linear_result
+
+    def _prod_apply_mask(self, membership: Membership) -> Tensor:
+        # torch.prod on large dims can be slow and non-fusible
+        applied_mask = self._get_mask_with_membership(
+            membership=membership, inplace=True
+        )  # update self.applied_mask
+        after_mask = membership.degrees.unsqueeze(-1) * applied_mask
+        vals = after_mask + (1 - applied_mask)
+        prod_result = vals.prod(dim=2, keepdim=False).nan_to_num(self.nan_replacement)
+        return prod_result
 
     # @log_method
     def forward(self, membership: Membership) -> torch.Tensor:
