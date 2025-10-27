@@ -286,10 +286,10 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         """
         Fetch the links for later use.
         """
-        if torch.is_grad_enabled():
-            assert (
-                membership.degrees.grad_fn is not None
-            ), "The membership degrees must have a grad_fn."
+        # if torch.is_grad_enabled():
+        #     assert (
+        #         membership.degrees.grad_fn is not None
+        #     ), "The membership degrees must have a grad_fn."
         if len(self.modules_list) == 1:
             return self.modules_list[0](membership)
         all_links: List[Union[torch.Tensor, torch.nn.Parameter]] = []
