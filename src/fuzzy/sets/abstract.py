@@ -179,7 +179,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         )
         self.use_sparse_tensor = use_sparse_tensor
         self._mask = DynamicParameterList(
-            init_params=[self.make_mask(widths)], dtype=torch.float16, device=self.device,
+            init_params=[self.make_mask(widths)], dtype=torch.uint8, device=self.device,
             parameters=False
         )
 
