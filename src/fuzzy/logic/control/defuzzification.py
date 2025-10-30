@@ -69,7 +69,8 @@ class Defuzzification(TorchJitModule, abc.ABC):
             device=device,
             rule_base=rule_base,
         )
-        defuzzification.load_state_dict(state_dict)  # load the remaining parameters
+        # load the remaining parameters
+        defuzzification.load_state_dict(state_dict)
         return defuzzification
 
     def to(self, device: torch.device, *args, **kwargs) -> "Defuzzification":

@@ -34,10 +34,13 @@ class DynamicParameterList(torch.nn.Module):
     Wraps a torch.nn.ParameterList and maintains a contiguous cached tensor for fast operations.
     """
 
-    def __init__(self, init_params=None, dtype=None, device=None, parameters: bool = True):
+    def __init__(
+        self, init_params=None, dtype=None, device=None, parameters: bool = True
+    ):
         super().__init__()
-        self.params: Union[torch.nn.ParameterList, List[torch.Tensor]] = torch.nn.ParameterList() \
-            if parameters else []
+        self.params: Union[torch.nn.ParameterList, List[torch.Tensor]] = (
+            torch.nn.ParameterList() if parameters else []
+        )
         self._cached_tensor = None
         self._device = device
         self._dtype = dtype
@@ -179,8 +182,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         )
         self.use_sparse_tensor = use_sparse_tensor
         self._mask = DynamicParameterList(
-            init_params=[self.make_mask(widths)], dtype=torch.uint8, device=self.device,
-            parameters=False
+            init_params=[self.make_mask(widths)],
+            dtype=torch.uint8,
+            device=self.device,
+            parameters=False,
         )
 
     # @log_method

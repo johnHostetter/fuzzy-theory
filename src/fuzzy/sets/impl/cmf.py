@@ -422,14 +422,16 @@ class LogGaussian(FuzzySet):
             centers=self.get_centers(),
             widths=self.get_widths(),
             width_multiplier=self.width_multiplier,
-            buffer=self._buffer
+            buffer=self._buffer,
         )
 
     def forward(self, observations) -> Membership:
         if self._buffer is None or self._buffer.shape != observations.shape:
             self._buffer = torch.empty(
-                *observations.shape, self.get_centers().shape[-1],
-                device=observations.device, dtype=observations.dtype
+                *observations.shape,
+                self.get_centers().shape[-1],
+                device=observations.device,
+                dtype=observations.dtype,
             )
 
         if observations.ndim == self.get_centers().ndim:

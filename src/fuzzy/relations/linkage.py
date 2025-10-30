@@ -3,7 +3,7 @@ This file helps support the linkage between relations necessary for fuzzy logic 
 """
 
 from pathlib import Path
-from typing import Any, List, MutableMapping, Union, Optional, Callable
+from typing import Any, Callable, List, MutableMapping, Optional, Union
 
 import numpy as np
 import torch
@@ -173,7 +173,8 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         # change self.membership_dimension = 2
         # self.membership_dimension = 2
         dim_sum = sum(
-            module.shape[self.membership_dimension] for module in self.modules_list[1:])
+            module.shape[self.membership_dimension] for module in self.modules_list[1:]
+        )
         shape = tuple(
             s + dim_sum if i == self.membership_dimension else s
             for i, s in enumerate(base_shape)
@@ -298,10 +299,12 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         #     with torch.cuda.stream(self.streams[idx]):
         #         start = idx * 64
         #         end =  ((idx + 1) * 64)
-        #         out_tensor[:, :, start:end] = links(membership)  # (option 1) for stream
+        # out_tensor[:, :, start:end] = links(membership)  # (option 1) for
+        # stream
 
         for links in self.modules_list:
-            # out_tensor[:, start:end, :] = links(membership)  # (option 2) for expanding mu
+            # out_tensor[:, start:end, :] = links(membership)  # (option 2) for
+            # expanding mu
             all_links.append(links(membership))
         # torch.cuda.synchronize(device=self.modules_list[0].logits.device)
         # return out_tensor
