@@ -17,7 +17,7 @@ from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule
 
 
-class Defuzzification(TorchJitModule):
+class Defuzzification(TorchJitModule, abc.ABC):
     """
     Implements the defuzzification process for a fuzzy inference engine.
     """
@@ -55,19 +55,22 @@ class Defuzzification(TorchJitModule):
             state_dict = torch.load(path, weights_only=False, encoding="latin1")
 
         shape: Shape = Shape(*state_dict.pop("shape"))
+        class_name: str = state_dict.pop("class_name")
+
         source: Union[None, np.ndarray, torch.nn.Sequential, FuzzySetGroup] = (
-            state_dict.pop("source")
+            state_dict.pop("source") if "source" in state_dict else None
         )
         rule_base: Union[None, RuleBase] = (
             state_dict.pop("rule_base") if "rule_base" in state_dict else None
         )
-        class_name: str = state_dict.pop("class_name")
-        return cls.get_subclass(class_name)(
+        defuzzification = cls.get_subclass(class_name)(
             shape=shape,
             source=source,
             device=device,
             rule_base=rule_base,
         )
+        defuzzification.load_state_dict(state_dict)  # load the remaining parameters
+        return defuzzification
 
     def to(self, device: torch.device, *args, **kwargs) -> "Defuzzification":
         """
