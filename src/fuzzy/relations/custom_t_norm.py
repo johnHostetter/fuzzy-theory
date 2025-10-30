@@ -60,10 +60,10 @@ class TNormPipeline(torch.nn.Module):
             )
 
     def save(self, path: Path) -> MutableMapping[str, Any]:
-        (path / "certainty").mkdir(parents=True, exist_ok=True)
         state_dict: MutableMapping[str, Any] = self.state_dict()
         state_dict["n_relations"] = self.n_relations
         if self.certainty is not None:
+            (path / "certainty").mkdir(parents=True, exist_ok=True)
             self.certainty.save(path=path / "certainty")
         torch.save(state_dict, path / "state_dict.pt")
         return state_dict
