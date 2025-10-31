@@ -3,8 +3,117 @@ Utility functions for fuzzy-theory.
 """
 
 import inspect
+import logging
+import time
+from functools import wraps
 from pathlib import Path
 from typing import Any, Dict, Set
+
+import torch
+
+
+@torch.jit.script
+def exp_sum_log(x: torch.Tensor, dim: int, eps: float = 1e-12) -> torch.Tensor:
+    """
+    A numerically stable product which may offer more time-efficient performance than torch.prod
+    while remaining equivalent. Although this is not a simpler operation, it may perform
+    better on PyTorch CUDA backend as sum-based reductions are more efficient than
+    multiplicative ones.
+
+    Also, if x contains zeros, torch.prod will give zero (which may underflow if chaining
+    gradients) so it may be more ideal to use this function instead.
+
+    Overall, this function could perhaps:
+
+    1. Leverage fused add+exp+log kernels (heavily optimized in CUDA)
+    2. Exploit tensor core friendly ops (adds and exps are vectorized; multiplications in prod
+    are chained and harder to parallelize efficiently)
+    3. Benefits from numerical stability with fewer infs/NaNs. Hopefully, fewer slow paths
+
+    Args:
+        x: The tensor to operate on.
+        dim: The dimension of the given tensor to apply this operation onto.
+        eps: A very small numerical offset.
+
+    Returns:
+        The product along that dimension of the given tensor.
+    """
+    return torch.exp(torch.sum(torch.log(x.clamp_min(eps)), dim=dim))
+
+
+def log_method(method):
+    """
+    Log the call and completion of an object's method.
+
+    Args:
+        method: The method to be logged.
+
+    Returns:
+        The wrapped method.
+    """
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        called_method: str = f"{self.__class__.__name__}.{method.__name__}"
+        self.logger.debug("<%s>", called_method)
+        start_time = time.perf_counter()
+        result = method(self, *args, **kwargs)
+        end_time = time.perf_counter()
+        self.logger.debug("<perf_counter>%s</perf_counter>", end_time - start_time)
+        self.logger.debug("</%s>", called_method)
+        return result
+
+    return wrapper
+
+
+def log_classmethod(class_method):
+    """
+    Log the call and completion of a class method using the root logger.
+
+    Args:
+        class_method: The class method to be logged.
+
+    Returns:
+        The wrapped class method.
+    """
+
+    @wraps(class_method)
+    def wrapper(cls, *args, **kwargs):
+        called_method: str = f"{cls.__name__}.{class_method.__name__}"
+        logging.debug("<%s>", called_method)
+        start_time = time.perf_counter()
+        result = class_method(cls, *args, **kwargs)
+        end_time = time.perf_counter()
+        logging.debug("<perf_counter>%s</perf_counter>", end_time - start_time)
+        logging.debug("</%s>", called_method)
+        return result
+
+    return wrapper
+
+
+def log_func(func):
+    """
+    Log the call and completion of a function using the root logger.
+
+    Args:
+        func: The function to be logged.
+
+    Returns:
+        The wrapped function.
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        called_func: str = f"{func.__name__}"
+        logging.debug("<%s>", called_func)
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        logging.debug("<perf_counter>%s</perf_counter>", end_time - start_time)
+        logging.debug("</%s>", called_func)
+        return result
+
+    return wrapper
 
 
 def check_path_to_save_torch_module(path: Path) -> None:

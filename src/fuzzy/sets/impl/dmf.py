@@ -44,8 +44,9 @@ class DimensionDependent(FuzzySet, ABC):
         widths: np.ndarray,
         device: torch.device,
         rho: Union[None, torch.Tensor] = None,
+        **kwargs,
     ):
-        super().__init__(centers, widths, device)
+        super().__init__(centers=centers, widths=widths, device=device, **kwargs)
         self.n_inputs: torch.Tensor = torch.tensor(
             [centers.shape[0]], dtype=torch.float32, device=device
         )  # count of input variables/features/dimensions

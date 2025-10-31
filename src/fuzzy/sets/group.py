@@ -12,10 +12,12 @@ from typing import Any, List, Union
 import torch
 
 from ..utils import NestedTorchJitModule
+from ..utils.classes import Loggable
+from ..utils.functions import log_method
 from .membership import Membership
 
 
-class FuzzySetGroup(NestedTorchJitModule):
+class FuzzySetGroup(NestedTorchJitModule, Loggable):
     """
     A generic and abstract torch.nn.Module class that contains a torch.nn.ModuleList
     of FuzzySet objects. The expectation here is that each FuzzySet may define fuzzy sets of
@@ -50,6 +52,7 @@ class FuzzySetGroup(NestedTorchJitModule):
         super().__init__(*args, **kwargs)
         if modules_list is None:
             modules_list = []
+        # self.create_logger(self.__class__.__name__, debug=False)
         self.modules_list = torch.nn.ModuleList(modules_list)
         self.device = device
 
@@ -65,18 +68,23 @@ class FuzzySetGroup(NestedTorchJitModule):
                         # get the method for the module and then call it
                         item_method: callable = getattr(module, f"get_{item}")
                         module_attributes.append(item_method())
-                    return torch.cat(module_attributes, dim=-1)
+                    if len(module_attributes) == 1:
+                        return module_attributes[0]
+                    else:
+                        return torch.cat(module_attributes, dim=-1)
                 raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
             return object.__getattribute__(self, item)
         except AttributeError:
             return self.__getattr__(item)
 
+    # @log_method
     def __hash__(self) -> int:
         _hash: str = ""
         for module in self.modules_list:
             _hash += str(hash(module))
         return hash(_hash)
 
+    # @log_method
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, FuzzySetGroup):
             return False
@@ -87,6 +95,7 @@ class FuzzySetGroup(NestedTorchJitModule):
                 return False
         return True
 
+    # @log_method
     def to(self, device: torch.device, *args, **kwargs) -> "FuzzySetGroup":
         """
         Move the FuzzySetGroup to a different device.
@@ -105,38 +114,41 @@ class FuzzySetGroup(NestedTorchJitModule):
             module.to(device)
         return self
 
+    # @log_method
     def forward(self, observations) -> Membership:
         """
         Calculate the responses from the modules in the torch.nn.ModuleList of FuzzySetGroup.
         Expand the FuzzySetGroup if necessary.
         """
-        if len(self.modules_list) > 0:
-            # modules' responses are membership degrees when modules are FuzzySet
-            # if len(self.modules_list) == 1:
-            #     # for computational efficiency, return the response from the only module
-            #     return self.modules_list[0](observations)
+        if len(self.modules_list) == 0:
+            raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
 
-            # this can be computationally expensive, but it is necessary to calculate the responses
-            # from all the modules in the torch.nn.ModuleList of FuzzySetGroup
-            # ideally this should be done in parallel, but it is not possible with the current
-            # implementation; only use this if the torch.nn.Module objects are different
-            # module_elements: List[torch.Tensor] = []
-            module_memberships: List[torch.Tensor] = (
-                []
-            )  # the primary response from the module
-            module_masks: List[torch.Tensor] = (
-                []
-            )  # the secondary response denoting module filter
-            for module in self.modules_list:
-                membership: Membership = module(observations)
-                # module_elements.append(membership.elements)
-                module_memberships.append(membership.degrees)
-                module_masks.append(membership.mask)
+        # modules' responses are membership degrees when modules are FuzzySet
 
-            # return Membership(degrees=torch.cat(module_memberships, dim=-1))
-            return Membership(
-                # elements=torch.cat(module_elements, dim=-1),
-                degrees=torch.cat(module_memberships, dim=-1),
-                mask=torch.cat(module_masks, dim=-1),
-            )
-        raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
+        if len(self.modules_list) == 1:
+            # for computational efficiency, return the response from the only
+            # module
+            return self.modules_list[0](observations)
+
+        # this can be computationally expensive, but it is necessary to calculate the responses
+        # from all the modules in the torch.nn.ModuleList of FuzzySetGroup
+        # ideally this should be done in parallel, but it is not possible with the current
+        # implementation; only use this if the torch.nn.Module objects are different
+        # module_elements: List[torch.Tensor] = []
+        module_memberships: List[torch.Tensor] = (
+            []
+        )  # the primary response from the module
+        module_masks: List[torch.Tensor] = (
+            []
+        )  # the secondary response denoting module filter
+        for module in self.modules_list:
+            membership: Membership = module(observations)
+            # module_elements.append(membership.elements)
+            module_memberships.append(membership.degrees)
+            module_masks.append(membership.mask)
+
+        return Membership(
+            # elements=torch.cat(module_elements, dim=-1),
+            degrees=torch.cat(module_memberships, dim=-1),
+            mask=torch.cat(module_masks, dim=-1),
+        )

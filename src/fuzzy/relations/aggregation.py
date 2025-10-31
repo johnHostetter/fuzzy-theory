@@ -4,8 +4,11 @@ Implements aggregation operators in fuzzy theory.
 
 import torch
 
+from fuzzy.utils.classes import Loggable
+from fuzzy.utils.functions import log_method
 
-class OrderedWeightedAveraging(torch.nn.Module):
+
+class OrderedWeightedAveraging(torch.nn.Module, Loggable):
     """
     Yager's On Ordered Weighted Averaging Aggregation Operators in
     Multicriteria Decisionmaking (1988)
@@ -31,6 +34,7 @@ class OrderedWeightedAveraging(torch.nn.Module):
                     "The weight vector of the Ordered Weighted Averaging operator must sum to 1.0."
                 )
 
+    # @log_method
     def orness(self):
         """
         A degree of 1 means the OWA operator is the 'or' operator,
@@ -47,6 +51,7 @@ class OrderedWeightedAveraging(torch.nn.Module):
             ]
         ).sum()
 
+    # @log_method
     def dispersion(self):
         """
         The measure of dispersion; essentially, it is a measure of entropy that is related to the
@@ -61,6 +66,7 @@ class OrderedWeightedAveraging(torch.nn.Module):
             return torch.zeros(1)
         return -1 * (self.weights * torch.log(self.weights)).sum()
 
+    # @log_method
     def forward(self, input_observation):
         """
         Applies the Ordered Weighted Averaging operator. First, it will sort the argument

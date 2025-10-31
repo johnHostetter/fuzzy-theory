@@ -47,6 +47,17 @@ class FuzzyLogicController(torch.nn.Sequential):
         self.device: torch.device = device
         self.disabled_parameters: List[str] = disabled_parameters
 
+        # A = torch.ones((self.source.configuration["algorithm"].learning.batch.selection,
+        #                 self.shape.n_outputs),
+        #                device=self.device)
+        # self.A = torch.nn.Parameter(A, requires_grad=True)
+
+        # self.net = torch.nn.Sequential(
+        #     torch.nn.Linear(self.shape.n_inputs, 512),
+        #     getattr(torch.nn, "ReLU")(),
+        #     torch.nn.Linear(512, self.shape.n_outputs),
+        # )
+
         # build or extract the necessary components for the FLC from the source
         granulation_layers: GranulationLayers = source.granulation_layers
         engine: TNorm = source.engine
@@ -107,16 +118,6 @@ class FuzzyLogicController(torch.nn.Sequential):
             path / "input"
         )  # save the input granulation layer (drop the extension)
         self.engine.save(path / "engine.pt")  # save the inference engine
-        # TODO: figure out a better way to handle the configuration
-        if hasattr(self.engine, "configuration"):
-            # pickle the configuration for the engine
-            with open(path / "engine_config.pkl", "wb+") as f:
-                pickle.dump(
-                    self.engine.configuration, f, protocol=pickle.HIGHEST_PROTOCOL
-                )
-            # save the layer_norm weights
-            torch.save(self.engine.layer_norm.state_dict(), path / "layer_norm.pt")
-
         self.defuzzification.save(
             path / "defuzzification"
         )  # save the defuzzification method
@@ -137,21 +138,11 @@ class FuzzyLogicController(torch.nn.Sequential):
         # load the components from their respective directories
         input_granules = FuzzySetGroup.load(path / "input", device=device)
         engine = TNorm.load(path / "engine", device=device)
-        # TODO: figure out a better way to handle the configuration
-        if hasattr(engine, "configuration"):
-            # pickle the configuration for the engine
-            with open(path / "engine_config.pkl", "rb") as f:
-                engine.configuration = pickle.load(f)
-            # load the layer_norm weights
-            engine.layer_norm.load_state_dict(
-                torch.load(path / "layer_norm.pt", map_location=device)
-            )
-
         defuzzification = Defuzzification.load(path / "defuzzification", device=device)
 
         # load the FLC state dictionary for the remaining components
         state_dict: MutableMapping[str, Any] = torch.load(
-            path / "flc.pt", map_location=device
+            path / "flc.pt", map_location=device, weights_only=False
         )
         shape: Shape = Shape(*state_dict.pop("shape"))
 
@@ -278,14 +269,21 @@ class FuzzyLogicController(torch.nn.Sequential):
         Returns:
             The defuzzified output of the FLC.
         """
+        # return self.net(input)
         # fuzzification
         granulated_input = self.input(input)
+        # A = torch.ones((self.shape.n_inputs, self.shape.n_outputs), device=input.device)
+        # return torch.mm(granulated_input.degrees.mean(dim=-1), A)
 
         # rule evaluation
         rule_strengths = self.engine(granulated_input)
+
+        # return self.net(input)
 
         # defuzzification
         try:  # TSK
             return self.defuzzification(input, rule_strengths)
         except TypeError:  # Mamdani, ZeroOrder, etc.
             return self.defuzzification(rule_strengths)
+
+        # return self.net(input)

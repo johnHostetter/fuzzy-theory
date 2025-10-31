@@ -4,21 +4,42 @@ are used to combine multiple membership values into a single value. The n-ary re
 differing types) can then be combined into a compound relation.
 """
 
+import shutil
 from pathlib import Path
-from typing import Any, List, MutableMapping, Tuple, Union
+from typing import Any, Callable, Dict, List, MutableMapping, Tuple, Union
 
 import igraph
 import numpy as np
 import scipy.sparse as sps
 import torch
 
+# from line_profiler import profile
+from torch import Size, Tensor
+
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
+from fuzzy.utils.options.abstract.primitive import GroupedOptions
 
+from ..utils.classes import Loggable
+
+# , log_classmethod, log_func, log_method
+from ..utils.functions import exp_sum_log
+from ..utils.options.abstract.ext_enum import ExtendedEnum
 from .linkage import BinaryLinks, GroupedLinks
 
 
-class NAryRelation(TorchJitModule):
+class NAryMaskMethods(ExtendedEnum):
+    """
+    The available methods for completing n-ary fuzzy relations.
+    """
+
+    PROD = "prod"  # the default implementation
+    EXP_SUM_LOG = "exp_sum_log"  # an alternative implementation
+    # a more efficient calculation if sum is to be applied immediately after
+    LINEAR_SUM = "linear"
+
+
+class NAryRelation(TorchJitModule, Loggable):
     """
     This class represents an n-ary fuzzy relation. An n-ary fuzzy relation is a relation that takes
     n arguments and returns a (float) value. This class is useful for representing fuzzy relations
@@ -34,6 +55,7 @@ class NAryRelation(TorchJitModule):
         device: torch.device,
         grouped_links: Union[None, GroupedLinks] = None,
         nan_replacement: float = 0.0,
+        method: NAryMaskMethods = NAryMaskMethods.PROD,
         **kwargs,
     ):
         """
@@ -48,20 +70,26 @@ class NAryRelation(TorchJitModule):
             nan_replacement: The value to use when a value is missing in the relation (i.e., nan);
                 this is useful for when input to the relation is not complete. Default is 0.0
                 (penalize), a value of 1.0 would ignore missing values (i.e., do not penalize).
+            method: The selected method to apply the mask to the membership degrees. Some
+                implementations are more efficient if we can incorporate subsequent calculations
+                (e.g., it is possible to use torch.nn.functional.linear if we know a .sum is applied
+                immediately afterward).
         """
         super().__init__(**kwargs)
         self.device: torch.device = device
         if nan_replacement not in [0.0, 1.0]:
             raise ValueError("The nan_replacement must be either 0.0 or 1.0.")
         self.nan_replacement: float = nan_replacement
-
+        self.method: NAryMaskMethods = method
+        # cache the selected method; very important for performance to avoid
+        # branching
+        self._apply_mask_func: Callable[[Membership], torch.Tensor] = (
+            self._cache_apply_mask_func()
+        )
         self.matrix = None  # created later (via self._rebuild)
         self.grouped_links: Union[None, GroupedLinks] = (
             None  # created later (via self._rebuild)
         )
-        # self.applied_mask: Union[None, torch.Tensor] = (
-        #     None  # created later (at the end of the constructor)
-        # )
         self.graph = None  # will be created later (via self._rebuild)
 
         # variables used for when the indices are given
@@ -114,19 +142,22 @@ class NAryRelation(TorchJitModule):
             None  # created later (via self.apply_mask)
         )
 
+    # @log_method
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.indices})"
 
+    # @log_method
     def __hash__(self) -> int:
         return hash(self.nan_replacement) + hash(self.device)
 
+    # @log_method
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, NAryRelation) or not isinstance(self, type(other)):
             return False
         applied_mask, other_applied_mask = self.get_mask(), other.get_mask()
         return (
             applied_mask.shape == other_applied_mask.shape
-            and torch.allclose(applied_mask, other_applied_mask)
+            and (applied_mask - other_applied_mask).sum() == 0
             and self.nan_replacement == other.nan_replacement
         )
 
@@ -141,6 +172,7 @@ class NAryRelation(TorchJitModule):
         return self.grouped_links.shape
 
     @staticmethod
+    # @log_func
     def convert_indices_to_matrix(indices) -> sps._coo.coo_matrix:
         """
         Convert the given indices to a COO matrix.
@@ -155,6 +187,7 @@ class NAryRelation(TorchJitModule):
         row, col = zip(*indices)
         return sps.coo_matrix((data, (row, col)), dtype=np.int8)
 
+    # @log_method
     def get_mask(self) -> torch.Tensor:
         """
         Get the applied mask.
@@ -180,6 +213,7 @@ class NAryRelation(TorchJitModule):
                 mask = mask.coalesce()
         return mask
 
+    # @log_method
     def to(self, device: torch.device, *args, **kwargs) -> "NAryRelation":
         """
         Move the n-ary relation to the specified device.
@@ -198,6 +232,7 @@ class NAryRelation(TorchJitModule):
             self.grouped_links.to(device)
         return self
 
+    # @log_method
     def _state_dict(self, path: Path) -> MutableMapping[str, Any]:
         """
         An internal method to get the state dictionary for the n-ary relation. A path is required
@@ -234,6 +269,7 @@ class NAryRelation(TorchJitModule):
             )
         return state_dict
 
+    # @log_method
     def save(self, path: Path) -> MutableMapping[str, Any]:
         """
         Save the n-ary relation to a dictionary given a path.
@@ -260,12 +296,24 @@ class NAryRelation(TorchJitModule):
         return state_dict
 
     @classmethod
-    def load(cls, path: Path, device: torch.device) -> "NAryRelation":
+    # @log_classmethod
+    def load(
+        cls,
+        path: Path,
+        device: torch.device,
+        t_norm_callback: Union[None, Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+    ) -> "NAryRelation":
         """
         Load the n-ary relation from a file and put it on the specified device.
 
+        Args:
+            path: The path to load the t-norm relation.
+            device: The physical device to load the t-norm relation onto.
+            t_norm_callback: A function to call to dynamically modify the keyword arguments
+                passed onto the TNorm subclass after it has been identified.
+
         Returns:
-            None
+            The n-ary relation.
         """
         if path.is_file() and path.suffix == ".pt":
             # load from indices
@@ -276,25 +324,38 @@ class NAryRelation(TorchJitModule):
                 path / "state_dict.pt", weights_only=False
             )
         nan_replacement = state_dict.pop("nan_replacement")
+        kwargs: Dict[str, Any] = {"nan_replacement": nan_replacement, "device": device}
+
         class_name = state_dict.pop("class_name")
+        fuzzy_cls = cls.get_subclass(class_name)
 
         if "indices" in state_dict:
             indices = state_dict.pop("indices")
-            return cls.get_subclass(class_name)(
-                *indices,
-                device=device,
-                nan_replacement=nan_replacement,
-            )
+            return fuzzy_cls(*indices, **kwargs)
         grouped_links: Path = state_dict.pop("grouped_links")
-        obj = cls.get_subclass(class_name)(
-            device=device,
-            grouped_links=GroupedLinks.load(grouped_links, device=device),
-            nan_replacement=nan_replacement,
+        grouped_links_kwargs: Dict[str, Any] = {"device": device}
+        if (grouped_links / "configuration").exists():
+            # order matters here; GroupedLinks cannot load before
+            # GumbelSoftmaxOptions.load
+            configuration: GroupedOptions = GroupedOptions.load(
+                grouped_links / "configuration"
+            )
+            # this directory cannot exist when calling GroupedLinks.load
+            shutil.rmtree(grouped_links / "configuration")
+            grouped_links_kwargs["configuration"] = configuration
+        kwargs["grouped_links"] = GroupedLinks.load(
+            grouped_links, **grouped_links_kwargs
         )
+
+        if t_norm_callback is not None:
+            kwargs = t_norm_callback(kwargs)
+
+        obj = fuzzy_cls(**kwargs)
         # add other attributes that may be specific to the subclass
         obj.load_state_dict(state_dict, strict=False)
         return obj
 
+    # @log_method
     def create_ndarray(self, max_var: int, max_term: int) -> None:
         """
         Make (or update) the numpy matrix from the COO matrices.
@@ -315,6 +376,7 @@ class NAryRelation(TorchJitModule):
             # make a new axis and stack along that axis
             self.matrix: np.ndarray = np.stack(matrices).swapaxes(0, 1).swapaxes(1, 2)
 
+    # @log_method
     def create_igraph(self) -> None:
         """
         Create the graph representation of the relation(s).
@@ -351,6 +413,7 @@ class NAryRelation(TorchJitModule):
         if len(graphs) > 0:  # need at least one graph to union
             self.graph = igraph.union(graphs, byname=True)
 
+    # @log_method
     def _rebuild(self, *shape) -> None:
         """
         Rebuild the relation's matrix and graph.
@@ -373,6 +436,7 @@ class NAryRelation(TorchJitModule):
         # created)
         self.create_igraph()
 
+    # @log_method
     def resize(self, *shape) -> None:
         """
         Resize the matrix in-place to the given shape, and then rebuild the relations' members.
@@ -387,6 +451,31 @@ class NAryRelation(TorchJitModule):
             coo_matrix.resize(*shape)
         self._rebuild(*shape)
 
+    def _apply_mask(
+        self, membership: Membership, inplace: bool = False
+    ) -> torch.Tensor:
+        """
+        Get the applied mask from the GroupedLinks using the given Membership object. Caution
+        should be used with this method as it may or may not update the cached applied mask
+        depending on if inplace is True (default is False).
+
+        Args:
+            membership: The Membership object to use in determining the applied mask.
+            inplace: Whether to modify the self.applied_mask with this obtained applied mask.
+
+        Returns:
+            The applied mask based on the given membership.
+        """
+        applied_mask: torch.Tensor = self.grouped_links(membership=membership)
+        # if applied_mask.is_sparse:
+        #     applied_mask: torch.Tensor = self.applied_mask.to_dense()
+        if inplace:
+            self.applied_mask = applied_mask
+        after_mask = membership.degrees.unsqueeze(-1) * applied_mask
+        return after_mask + (1 - applied_mask)
+
+    # @log_method
+    # @profile
     def apply_mask(self, membership: Membership) -> torch.Tensor:
         """
         Apply the n-ary relation's mask to the given memberships.
@@ -416,43 +505,101 @@ class NAryRelation(TorchJitModule):
         # select memberships that are not zeroed out (i.e., involved in the relation)
         # with torch.autograd.graph.save_on_cpu():  # save the graph on the CPU
         # (for memory)
-        self.applied_mask: torch.Tensor = self.grouped_links(
-            membership=membership
-        ).to_dense()
-        if not self.applied_mask.is_contiguous():
-            self.applied_mask = self.applied_mask.contiguous()
+        # applied_mask = self.grouped_links.grouped_links.modules_list[0].logits
+        return self._apply_mask_func(membership)
 
-        # ORIGINAL ELEMENT-WISE MULTIPLICATION
-        # after_mask = membership.degrees.unsqueeze(dim=-1) * self.applied_mask.unsqueeze(
-        #     0
-        # )
-        # MEMORY-EFFICIENT ELEMENT-WISE MULTIPLICATION
-        # after_mask = torch.einsum("...i,...ij->...ij", membership.degrees, self.applied_mask)
-        result = []
-        # split the degrees into chunks to avoid memory issues if the number of variables is large
-        # this then splits the batch to individual observation's degree of
-        # memberships
-        n_chunks: int = (
-            membership.degrees.size(0) if membership.degrees.size(1) > 1000 else 1
+    def _cache_apply_mask_func(self) -> Callable[[Membership], torch.Tensor]:
+        if self.method == NAryMaskMethods.PROD:
+            return self._prod_apply_mask
+        if self.method == NAryMaskMethods.LINEAR_SUM:
+            return self._linear_sum_apply_mask
+        if self.method == NAryMaskMethods.EXP_SUM_LOG:
+            return self._exp_sum_log_apply_mask
+        raise NotImplementedError(
+            f"The given method '{self.method}' does not have an implemented behavior within "
+            f"{type(self)}."
         )
-        for chunk in torch.chunk(membership.degrees, chunks=n_chunks, dim=0):
-            after_mask = torch.einsum("...i,...ij->...ij", chunk, self.applied_mask)
 
-            # complement mask adds zeros where the mask is zero, these are not part of the relation
-            # nan_to_num replaces nan values with the nan_replacement value
-            # (often not needed)
-            result.append(
-                (
-                    after_mask + (1 - self.applied_mask)
-                )  # resulting shape is same as after_mask.shape
-                # torch.einsum("...ijk,ijk->...ijk", after_mask,
-                # 1 - self.applied_mask)  # resulting shape is same as
-                # after_mask.shape
-                .prod(dim=2, keepdim=False).nan_to_num(self.nan_replacement)
-            )
-            del after_mask
-        return torch.concat(result)
+    def _prod_apply_mask(self, membership: Membership) -> Tensor:
+        """
+        The default resolution strategy for applying the mask to the given fuzzy relation.
 
+        Args:
+            membership: The membership values.
+
+        Returns:
+            The fuzzy relation values.
+        """
+        # torch.prod on large dims can be slow and non-fusible
+        after_mask: torch.Tensor = self._apply_mask(
+            membership=membership, inplace=True
+        )  # update self.applied_mask
+        prod_result = after_mask.prod(dim=2, keepdim=False).nan_to_num(
+            self.nan_replacement
+        )
+        return prod_result
+
+    def _exp_sum_log_apply_mask(self, membership: Membership) -> Tensor:
+        """
+        A possibly more efficient resolution strategy for applying the mask to the given
+        fuzzy relation; it is mathematically equivalent to the product technique.
+
+        Args:
+            membership: The membership values.
+
+        Returns:
+            The fuzzy relation values.
+        """
+        # "exp-sum-log trick" for stable product via log-domain
+        # more accurately: a numerically stable log-space product
+        # so use the below version to be much faster and more numerically stable, GPU-friendly
+        # exp_sum_log_impl_result = torch.exp(
+        #     torch.sum(torch.log(vals + 1e-12), dim=2)
+        # ).nan_to_num(self.nan_replacement)
+        after_mask: torch.Tensor = self._apply_mask(
+            membership=membership, inplace=True
+        )  # update self.applied_mask
+        exp_sum_log_func_result = exp_sum_log(after_mask, dim=2).nan_to_num(
+            self.nan_replacement
+        )
+        # assert torch.allclose(exp_sum_log_impl_result, exp_sum_log_func_result)
+        return exp_sum_log_func_result
+
+    def _linear_sum_apply_mask(self, membership: Membership) -> Tensor:
+        """
+        A very efficient resolution strategy for applying the mask to the given fuzzy relation if
+        the summation is taken immediately afterward; it is *NOT* mathematically equivalent to the
+        product/exp-sum-log technique unless they also are followed by sum(dim=1). This is
+        particularly helpful if a TSK product inference engine is utilized, and the fuzzy inference
+        is exploiting the softmax that occurs within the calculations.
+
+        Args:
+            membership: The membership values.
+
+        Returns:
+            The fuzzy relation values.
+        """
+        # WARNING: this will not work for information with missing data
+        # (notice that there is no use of self.nan_replacement)
+        membership_shape: Size = membership.degrees.shape
+        batch_size, var_count, term_count = (
+            membership_shape[0],
+            membership_shape[1],
+            membership_shape[2],
+        )
+        applied_mask: torch.Tensor = self.grouped_links(membership=membership)
+        # avoiding the above call can lead to significant performance increases
+        # applied_mask = self.grouped_links.grouped_links.modules_list[0].logits
+        n_rules = applied_mask.shape[-1]
+        linear_result = torch.nn.functional.linear(
+            membership.degrees.view(batch_size, var_count * term_count),
+            applied_mask.view(var_count * term_count, n_rules).T,
+        )
+        # the above is equivalent if you apply .sum(dim=1) to PROD result
+        # assert torch.allclose(result.sum(dim=1).half(), linear_result.half())
+        return linear_result
+
+    # @log_method
     def forward(self, membership: Membership) -> torch.Tensor:
         """
         Apply the n-ary relation to the given memberships.

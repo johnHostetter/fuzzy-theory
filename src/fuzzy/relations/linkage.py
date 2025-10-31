@@ -3,7 +3,7 @@ This file helps support the linkage between relations necessary for fuzzy logic 
 """
 
 from pathlib import Path
-from typing import Any, List, MutableMapping, Union
+from typing import Any, Callable, List, MutableMapping, Optional, Union
 
 import numpy as np
 import torch
@@ -11,9 +11,11 @@ from torch._C import Size
 
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import NestedTorchJitModule, check_path_to_save_torch_module
+from fuzzy.utils.classes import Loggable
+from fuzzy.utils.functions import log_classmethod, log_method
 
 
-class BinaryLinks(torch.nn.Module):
+class BinaryLinks(torch.nn.Module, Loggable):
     """
     This class will implement the 'standard' neuro-fuzzy network definition, where connections or
     edges between layers of a neuro-fuzzy network can only have a value of either 0 or 1.
@@ -44,21 +46,25 @@ class BinaryLinks(torch.nn.Module):
         # )
         self.device: torch.device = device
 
+    # @log_method
     def __hash__(self) -> int:
         return hash(self.links)
 
+    # @log_method
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, BinaryLinks) and torch.equal(
             self.links.to_dense(), other.links.to_dense()
         )
 
     @property
+    # @log_method
     def shape(self) -> Size:
         """
         Get the shape of the binary links.
         """
         return self.links.shape
 
+    # @log_method
     def save(self, path: Path) -> MutableMapping[str, Any]:
         """
         Save the n-ary relation to a dictionary.
@@ -76,6 +82,7 @@ class BinaryLinks(torch.nn.Module):
         return state_dict
 
     @classmethod
+    # @log_classmethod
     def load(cls, path: Path, device: torch.device) -> "BinaryLinks":
         """
         Load the n-ary relation from a file and put it on the specified device.
@@ -87,6 +94,7 @@ class BinaryLinks(torch.nn.Module):
         links = state_dict.pop("links")
         return cls(links, device, **state_dict)
 
+    # @log_method
     def to(self, *args, **kwargs) -> "BinaryLinks":
         """
         Move the BinaryLinks to a new device.
@@ -103,6 +111,7 @@ class BinaryLinks(torch.nn.Module):
         self.device = self.links.device
         return self
 
+    # @log_method
     def forward(self, *_) -> torch.Tensor:
         """
         Apply the defined binary linkage to the given membership degrees.
@@ -117,7 +126,7 @@ class BinaryLinks(torch.nn.Module):
         return self.links
 
 
-class GroupedLinks(NestedTorchJitModule):
+class GroupedLinks(NestedTorchJitModule, Loggable):
     """
     This class is a container for the various LogitLinks or BinaryLinks that are used to
     probabilistically sample from the fuzzy sets along some dimension. This class is defined as a
@@ -127,24 +136,55 @@ class GroupedLinks(NestedTorchJitModule):
     """
 
     def __init__(
-        self, modules_list: Union[None, List[torch.nn.Module]], *args, **kwargs
+        self,
+        *args,
+        modules_list: Union[None, List[torch.nn.Module]],
+        debug: bool = False,
+        callback: Optional[Callable[[], None]] = None,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        # self.create_logger(name=self.__class__.__name__, debug=debug)
         if modules_list is None:
             modules_list = []
         self.modules_list = torch.nn.ModuleList(modules_list)
         self.membership_dimension: int = 1
+        self.callback = callback
+        self._compute_shape_cache()
+        # self.streams = [torch.cuda.Stream() for _ in range(len(self.modules_list))]
 
     @property
-    def shape(self) -> Size:
-        """
-        Get the shape of links.
-        """
-        shape = list(self.modules_list[0].shape)
-        for module in self.modules_list[1:]:
-            shape[self.membership_dimension] += module.shape[self.membership_dimension]
-        return torch.Size(shape)
+    def shape(self):
+        return self._cached_shape
 
+    def append(self, module: torch.nn.Module):
+        self.modules_list.append(module)
+        self._compute_shape_cache()
+
+    def extend(self, modules: List[torch.nn.Module]):
+        self.modules_list.extend(modules)
+        self._compute_shape_cache()
+
+    def _compute_shape_cache(self) -> Size:
+        base_shape = self.modules_list[0].shape
+        # this is efficient and works if modules inside self.modules_list are only added when
+        # neurogenesis is enabled and self.membership_dimension = 1, but if you need it to work with
+        # splitting up logits/links for the purpose of intra-GPU parallelism, then you need to
+        # change self.membership_dimension = 2
+        # self.membership_dimension = 2
+        dim_sum = sum(
+            module.shape[self.membership_dimension] for module in self.modules_list[1:]
+        )
+        shape = tuple(
+            s + dim_sum if i == self.membership_dimension else s
+            for i, s in enumerate(base_shape)
+        )
+        self._cached_shape = torch.Size(shape)
+        if self.callback:
+            self.callback()
+        return self._cached_shape
+
+    # @log_method
     def to(self, *args, **kwargs):
         """
         Move the GroupedLinks to a new device.
@@ -242,15 +282,30 @@ class GroupedLinks(NestedTorchJitModule):
     #         )
     #     return difference_between_shapes > 0
 
+    # @log_method
     def forward(self, membership: Membership) -> torch.Tensor:
         """
         Fetch the links for later use.
         """
-        if torch.is_grad_enabled():
-            assert (
-                membership.degrees.grad_fn is not None
-            ), "The membership degrees must have a grad_fn."
+        # if torch.is_grad_enabled():
+        #     assert (
+        #         membership.degrees.grad_fn is not None
+        #     ), "The membership degrees must have a grad_fn."
+        if len(self.modules_list) == 1:
+            return self.modules_list[0](membership)
         all_links: List[Union[torch.Tensor, torch.nn.Parameter]] = []
+        # out_tensor = torch.empty(*self.shape, device=self.modules_list[0].logits.device)
+        # for idx, links in enumerate(self.modules_list):
+        #     with torch.cuda.stream(self.streams[idx]):
+        #         start = idx * 64
+        #         end =  ((idx + 1) * 64)
+        # out_tensor[:, :, start:end] = links(membership)  # (option 1) for
+        # stream
+
         for links in self.modules_list:
+            # out_tensor[:, start:end, :] = links(membership)  # (option 2) for
+            # expanding mu
             all_links.append(links(membership))
+        # torch.cuda.synchronize(device=self.modules_list[0].logits.device)
+        # return out_tensor
         return torch.cat(all_links, dim=self.membership_dimension)

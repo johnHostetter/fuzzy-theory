@@ -3,7 +3,7 @@ This module contains the data structures used to define the shape of a Fuzzy Log
 and the granulation layers used in the FLC.
 """
 
-from typing import TypedDict, NamedTuple, Union
+from typing import NamedTuple, TypedDict, Union
 
 from fuzzy.sets.group import FuzzySetGroup
 

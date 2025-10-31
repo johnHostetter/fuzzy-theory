@@ -10,9 +10,11 @@ import torch
 
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.sets.membership import Membership
+from fuzzy.utils.classes import Loggable
+from fuzzy.utils.functions import log_method
 
 
-class Compound(torch.nn.Module):
+class Compound(torch.nn.Module, Loggable):
     """
     This class represents an n-ary compound relation, where it expects at least 1 or more
     instance of NAryRelation.
@@ -29,6 +31,7 @@ class Compound(torch.nn.Module):
         # store the relations as a module list (as they are also modules)
         self.relations = torch.nn.ModuleList(relations)
 
+    # @log_method
     def forward(self, membership: Membership) -> Membership:
         """
         Apply the compound n-ary relation to the given membership values.

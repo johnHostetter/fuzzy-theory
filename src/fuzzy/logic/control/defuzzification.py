@@ -17,18 +17,18 @@ from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule
 
 
-class Defuzzification(TorchJitModule):
+class Defuzzification(TorchJitModule, abc.ABC):
     """
     Implements the defuzzification process for a fuzzy inference engine.
     """
 
     def __init__(
         self,
+        *args,
         shape: Shape,
         source: Union[None, np.ndarray, torch.nn.Sequential, FuzzySetGroup],
         device: torch.device,
         rule_base: Union[None, RuleBase],
-        *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -55,19 +55,23 @@ class Defuzzification(TorchJitModule):
             state_dict = torch.load(path, weights_only=False, encoding="latin1")
 
         shape: Shape = Shape(*state_dict.pop("shape"))
+        class_name: str = state_dict.pop("class_name")
+
         source: Union[None, np.ndarray, torch.nn.Sequential, FuzzySetGroup] = (
-            state_dict.pop("source")
+            state_dict.pop("source") if "source" in state_dict else None
         )
         rule_base: Union[None, RuleBase] = (
             state_dict.pop("rule_base") if "rule_base" in state_dict else None
         )
-        class_name: str = state_dict.pop("class_name")
-        return cls.get_subclass(class_name)(
+        defuzzification = cls.get_subclass(class_name)(
             shape=shape,
             source=source,
             device=device,
             rule_base=rule_base,
         )
+        # load the remaining parameters
+        defuzzification.load_state_dict(state_dict)
+        return defuzzification
 
     def to(self, device: torch.device, *args, **kwargs) -> "Defuzzification":
         """
@@ -271,10 +275,30 @@ class TSK(Defuzzification):
         else:
             consequences = torch.as_tensor(source, device=self.device)
 
-        self.consequences = torch.nn.Parameter(consequences, requires_grad=True)
         # self.weights = torch.nn.Parameter(
         #     torch.ones([shape.n_rules], dtype=torch.float32), requires_grad=True
         # )
+        # Split weights and bias once
+        shape = consequences[:, :, 1:].shape
+        # Flatten (r, o) into one big linear projection dimension
+        self.r, self.o, self.f = shape[0], shape[1], shape[2]
+        self.weights = torch.nn.Parameter(
+            consequences[:, :, 1:].reshape(self.r * self.o, self.f).T.contiguous(),
+            requires_grad=True,
+        )
+        self.bias = torch.nn.Parameter(
+            consequences[:, :, 0].contiguous().unsqueeze(0), requires_grad=True
+        )
+
+    @property
+    def consequences(self):
+        return torch.cat(
+            [
+                self.bias.squeeze(0).unsqueeze(-1),
+                self.weights.reshape(self.r, self.o, self.f),
+            ],
+            dim=-1,
+        )
 
     def save(self, path: Path) -> MutableMapping[str, Any]:
         """
@@ -324,7 +348,8 @@ class TSK(Defuzzification):
             The defuzzification process.
         """
         super().to(device, *args, **kwargs)
-        self.consequences.to(device)
+        self.weights = self.weights.to(device)
+        self.bias = self.bias.to(device)
         return self
 
     def forward(
@@ -332,9 +357,36 @@ class TSK(Defuzzification):
     ) -> torch.Tensor:
         # print("w", self.consequences[0].state_dict()['weight'][0][0])
         # print("b", self.consequences[0].state_dict()['bias'][0])
-        rule_output = (
-            self.consequences[:, :, 1:] @ observations.T
-        ).T + self.consequences[:, :, 0].T
+        # old_rule_output = (
+        #     self.consequences[:, :, 1:] @ observations.T
+        # ).T + self.consequences[:, :, 0].T
+
+        # Compute batch matrix multiplication without transposes
+        # Using einsum: 'r o f, b f -> b r o'
+        # if self.weights.device != observations.device:
+        #     self.weights = self.weights.to(observations.device)
+        # slow einsum
+        # rule_output = torch.einsum("r o f, b f -> b r o", self.weights, observations)
+        # fast alt
+        # weights: (r, o, f)
+        # observations: (b, f)
+        # want: (b, r, o)
+
+        rule_output = observations @ self.weights  # (b, r*o)
+        rule_output = rule_output.view(
+            observations.shape[0], self.r, self.o
+        )  # (b, r, o)
+
+        # Add bias with broadcasting
+        # if self.bias.device != observations.device:
+        #     self.bias = self.bias.to(observations.device)
+        # shape: (batch_size, n_rules,
+        rule_output.add_(self.bias)
+        # n_outputs)
+        rule_output = rule_output.transpose(1, 2)
+
+        # assert torch.allclose(rule_output.float(), old_rule_output)
+
         fir_str_bar = rule_activations.degrees / torch.sum(
             rule_activations.degrees, 1
         ).unsqueeze(

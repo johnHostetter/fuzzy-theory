@@ -53,10 +53,8 @@ class TestBinaryLinks(unittest.TestCase):
         # test that this is reflected in its parameters
         self.assertEqual(AVAILABLE_DEVICE.type, self.binary_links.links.device.type)
 
-        # test we can also create a GroupedLinks object without any modules
-        grouped_links = GroupedLinks(modules_list=None)
-        # and then later add a module
-        grouped_links.modules_list.add_module("0", self.binary_links)
+        # test we can create a GroupedLinks object
+        grouped_links = GroupedLinks(modules_list=[self.binary_links])
         self.assertEqual(1, len(grouped_links.modules_list))
         self.assertIsInstance(grouped_links.modules_list[0], BinaryLinks)
 
