@@ -11,6 +11,20 @@ from fuzzy.utils.options.abstract.primitive import (
     GroupedOptions,
     IntOptions,
 )
+from fuzzy.utils.options.impl.impl_enums import (
+    PremiseActivationEnum,
+    PremiseAggregationEnum,
+    PremiseEliminationEnum,
+    RuleElevationEnum,
+    RuleEliminationEnum,
+    RuleWeightsEnum,
+)
+from fuzzy.utils.options.impl.impl_options import (
+    NeuroFuzzyNetworkHyperparameters,
+    PremiseActivation,
+    PremiseConfig,
+    RuleConfig,
+)
 
 
 class TestOptions(unittest.TestCase):
@@ -60,7 +74,7 @@ class TestOptions(unittest.TestCase):
             self.assertEqual(args[idx], getattr(after_assignment, attribute))
         return before_assignment, after_assignment
 
-    def test_group_options(self):
+    def test_group_options(self) -> None:
         categorical_options_before_assignment, categorical_options_after_assignment = (
             self.test_categorical_options()
         )
@@ -87,6 +101,35 @@ class TestOptions(unittest.TestCase):
         )
         self.check_grouped_options_behavior(grouped_options, path, **kwargs)
 
+    def test_premise_activation(self) -> None:
+        premise_activation: PremiseActivation = PremiseActivation()
+        self.assertEqual(-1, premise_activation.dim)
+
+    def test_premise_config(self) -> None:
+        premise_config: PremiseConfig = PremiseConfig()
+        self.assertIsNotNone(premise_config)
+        premise_config.default()
+        self.assertEqual(
+            PremiseAggregationEnum.SUM, premise_config.aggregation.selection
+        )
+        self.assertEqual(
+            PremiseEliminationEnum.NONE, premise_config.elimination.selection
+        )
+        self.assertEqual(
+            PremiseActivationEnum.SOFTMAX, premise_config.activation.selection
+        )
+
+    def test_rule_config(self) -> None:
+        rule_config: RuleConfig = RuleConfig()
+        self.assertIsNotNone(rule_config)
+        rule_config.default()
+        self.assertEqual(RuleWeightsEnum.NONE, rule_config.weights.selection)
+        self.assertEqual(RuleEliminationEnum.NONE, rule_config.elimination.selection)
+        self.assertEqual(RuleElevationEnum.NONE, rule_config.elevation.selection)
+
+    def test_create_neuro_fuzzy_network_hyperparameters(self) -> None:
+        self.assertIsNotNone(NeuroFuzzyNetworkHyperparameters())
+
     @staticmethod
     def create_grouped_options_from_kwargs(
         categorical_options: CategoricalOptions,
@@ -102,7 +145,7 @@ class TestOptions(unittest.TestCase):
 
     def check_grouped_options_behavior(
         self, grouped_options: GroupedOptions, path: Path, **kwargs
-    ):
+    ) -> None:
         # check that we can save and load it
         loaded_grouped_options = self.check_save_and_load(grouped_options, path=path)
         self.assertIsInstance(loaded_grouped_options, GroupedOptions)
