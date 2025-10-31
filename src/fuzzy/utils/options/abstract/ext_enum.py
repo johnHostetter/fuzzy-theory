@@ -13,10 +13,20 @@ class CategoricalEnumOptions(CategoricalOptions, EnumPromoter):
         EnumPromoter.__init_subclass__(enum_cls=self.enum_cls)
         super().__init__(*self.options, *args, **kwargs)
 
-    @classmethod
-    def load(cls, path: Path):
-        loaded_object = super().load(path=path, cls=cls)
-        if isinstance(loaded_object, cls):
+    @staticmethod
+    def load(path: Path, cls=None) -> "CategoricalEnumOptions":
+        """
+        The function to load a CategoricalEnumOptions object. The 'cls' argument is ignored but
+        kept for consistency with the static load method from 'CategoricalOptions'.
+        Args:
+            path: The path where the CategoricalEnumOptions object is located.
+            cls: An ignored argument; kept for interface consistency.
+
+        Returns:
+            An instance of CategoricalEnumOptions.
+        """
+        loaded_object = super().load(path=path, cls=CategoricalEnumOptions)
+        if isinstance(loaded_object, CategoricalEnumOptions):
             return loaded_object
         raise ValueError(f"Failed to load from: {path}")
 

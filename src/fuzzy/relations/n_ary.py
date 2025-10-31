@@ -4,7 +4,6 @@ are used to combine multiple membership values into a single value. The n-ary re
 differing types) can then be combined into a compound relation.
 """
 
-import inspect
 import shutil
 from pathlib import Path
 from typing import Any, Callable, Dict, List, MutableMapping, Tuple, Union
@@ -13,7 +12,8 @@ import igraph
 import numpy as np
 import scipy.sparse as sps
 import torch
-from line_profiler import profile
+
+# from line_profiler import profile
 from torch import Size, Tensor
 
 from fuzzy.sets.membership import Membership
@@ -21,12 +21,18 @@ from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
 from fuzzy.utils.options.abstract.primitive import GroupedOptions
 
 from ..utils.classes import Loggable
-from ..utils.functions import exp_sum_log, log_classmethod, log_func, log_method
+
+# , log_classmethod, log_func, log_method
+from ..utils.functions import exp_sum_log
 from ..utils.options.abstract.ext_enum import ExtendedEnum
 from .linkage import BinaryLinks, GroupedLinks
 
 
 class NAryMaskMethods(ExtendedEnum):
+    """
+    The available methods for completing n-ary fuzzy relations.
+    """
+
     PROD = "prod"  # the default implementation
     EXP_SUM_LOG = "exp_sum_log"  # an alternative implementation
     # a more efficient calculation if sum is to be applied immediately after
@@ -64,6 +70,10 @@ class NAryRelation(TorchJitModule, Loggable):
             nan_replacement: The value to use when a value is missing in the relation (i.e., nan);
                 this is useful for when input to the relation is not complete. Default is 0.0
                 (penalize), a value of 1.0 would ignore missing values (i.e., do not penalize).
+            method: The selected method to apply the mask to the membership degrees. Some
+                implementations are more efficient if we can incorporate subsequent calculations
+                (e.g., it is possible to use torch.nn.functional.linear if we know a .sum is applied
+                immediately afterward).
         """
         super().__init__(**kwargs)
         self.device: torch.device = device
@@ -299,7 +309,8 @@ class NAryRelation(TorchJitModule, Loggable):
         Args:
             path: The path to load the t-norm relation.
             device: The physical device to load the t-norm relation onto.
-            t_norm_callback:
+            t_norm_callback: A function to call to dynamically modify the keyword arguments
+                passed onto the TNorm subclass after it has been identified.
 
         Returns:
             The n-ary relation.
@@ -322,7 +333,6 @@ class NAryRelation(TorchJitModule, Loggable):
             indices = state_dict.pop("indices")
             return fuzzy_cls(*indices, **kwargs)
         grouped_links: Path = state_dict.pop("grouped_links")
-        fuzzy_cls_sig = inspect.signature(fuzzy_cls.__init__)
         grouped_links_kwargs: Dict[str, Any] = {"device": device}
         if (grouped_links / "configuration").exists():
             # order matters here; GroupedLinks cannot load before
@@ -465,19 +475,13 @@ class NAryRelation(TorchJitModule, Loggable):
         return after_mask + (1 - applied_mask)
 
     # @log_method
-    @profile
-    def apply_mask(
-        self, membership: Membership, method: NAryMaskMethods = NAryMaskMethods.PROD
-    ) -> torch.Tensor:
+    # @profile
+    def apply_mask(self, membership: Membership) -> torch.Tensor:
         """
         Apply the n-ary relation's mask to the given memberships.
 
         Args:
             membership: The membership values to apply the minimum n-ary relation to.
-            method: The selected method to apply the mask to the membership degrees. Some
-            implementations are more efficient if we can incorporate subsequent calculations
-            (e.g., it is possible to use torch.nn.functional.linear if we know a .sum is applied
-            immediately afterward).
 
         Returns:
             The masked membership values (zero may or may not be a valid degree of truth).
@@ -507,9 +511,9 @@ class NAryRelation(TorchJitModule, Loggable):
     def _cache_apply_mask_func(self) -> Callable[[Membership], torch.Tensor]:
         if self.method == NAryMaskMethods.PROD:
             return self._prod_apply_mask
-        elif self.method == NAryMaskMethods.LINEAR_SUM:
+        if self.method == NAryMaskMethods.LINEAR_SUM:
             return self._linear_sum_apply_mask
-        elif self.method == NAryMaskMethods.EXP_SUM_LOG:
+        if self.method == NAryMaskMethods.EXP_SUM_LOG:
             return self._exp_sum_log_apply_mask
         raise NotImplementedError(
             f"The given method '{self.method}' does not have an implemented behavior within "

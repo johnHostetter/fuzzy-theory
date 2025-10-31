@@ -17,9 +17,9 @@ from fuzzy.utils.options.impl.impl_options import (
 
 class CustomTNormOptions(GroupedOptions):
     def __init__(
-        self, hyperparameters: NeuroFuzzyNetworkHyperparameters = None, *args, **kwargs
+        self, hyperparameters: NeuroFuzzyNetworkHyperparameters = None, **kwargs
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         if hyperparameters is None:
             self.premise = PremiseConfig()
             self.rule = RuleConfig()

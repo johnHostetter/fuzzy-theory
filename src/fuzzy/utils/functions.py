@@ -55,37 +55,37 @@ def log_method(method):
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         called_method: str = f"{self.__class__.__name__}.{method.__name__}"
-        self.logger.debug(f"<{called_method}>")
+        self.logger.debug("<%s>", called_method)
         start_time = time.perf_counter()
         result = method(self, *args, **kwargs)
         end_time = time.perf_counter()
-        self.logger.debug(f"<perf_counter>{end_time - start_time}</perf_counter>")
-        self.logger.debug(f"</{called_method}>")
+        self.logger.debug("<perf_counter>%s</perf_counter>", end_time - start_time)
+        self.logger.debug("</%s>", called_method)
         return result
 
     return wrapper
 
 
-def log_classmethod(classmethod):
+def log_classmethod(class_method):
     """
     Log the call and completion of a class method using the root logger.
 
     Args:
-        classmethod: The class method to be logged.
+        class_method: The class method to be logged.
 
     Returns:
         The wrapped class method.
     """
 
-    @wraps(classmethod)
+    @wraps(class_method)
     def wrapper(cls, *args, **kwargs):
-        called_method: str = f"{cls.__name__}.{classmethod.__name__}"
-        logging.debug(f"<{called_method}>")
+        called_method: str = f"{cls.__name__}.{class_method.__name__}"
+        logging.debug("<%s>", called_method)
         start_time = time.perf_counter()
-        result = classmethod(cls, *args, **kwargs)
+        result = class_method(cls, *args, **kwargs)
         end_time = time.perf_counter()
-        logging.debug(f"<perf_counter>{end_time - start_time}</perf_counter>")
-        logging.debug(f"</{called_method}>")
+        logging.debug("<perf_counter>%s</perf_counter>", end_time - start_time)
+        logging.debug("</%s>", called_method)
         return result
 
     return wrapper
@@ -105,12 +105,12 @@ def log_func(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         called_func: str = f"{func.__name__}"
-        logging.debug(f"<{called_func}>")
+        logging.debug("<%s>", called_func)
         start_time = time.perf_counter()
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
-        logging.debug(f"</{called_func}>")
-        logging.debug(f"<perf_counter>{end_time - start_time}</perf_counter>")
+        logging.debug("<perf_counter>%s</perf_counter>", end_time - start_time)
+        logging.debug("</%s>", called_func)
         return result
 
     return wrapper

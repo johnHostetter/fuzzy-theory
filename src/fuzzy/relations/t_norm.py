@@ -6,7 +6,7 @@ relations are implemented here.
 
 from abc import ABC
 from pathlib import Path
-from typing import Any, Dict, MutableMapping
+from typing import Any, Callable, Dict, MutableMapping, Union
 
 import torch
 
@@ -41,7 +41,12 @@ class TNorm(NAryRelation, ABC):
         return state_dict
 
     @classmethod
-    def load(cls, path: Path, device: torch.device, **kwargs) -> "NAryRelation":
+    def load(
+        cls,
+        path: Path,
+        device: torch.device,
+        t_norm_callback: Union[None, Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+    ) -> "NAryRelation":
         """
         Load a TNorm from saved files. This override to NAryRelation.load passes a callback
         function to load a GroupedOptions from storage and also accepts arbitrary keyword
@@ -52,13 +57,14 @@ class TNorm(NAryRelation, ABC):
         Args:
             path: The path to load the t-norm relation.
             device: The physical device to load the t-norm relation onto.
-            **kwargs: Any other additional keyword arguments that should be used.
+            t_norm_callback: A function to call to dynamically modify the keyword arguments
+                passed onto the TNorm subclass after it has been identified.
 
         Returns:
             The t-norm (n-ary) relation.
         """
 
-        def t_norm_callback(
+        def default_t_norm_callback(
             t_norm_pending_keyword_arguments: Dict[str, Any],
         ) -> Dict[str, Any]:
             """
@@ -82,7 +88,9 @@ class TNorm(NAryRelation, ABC):
                 t_norm_pending_keyword_arguments["_func"] = _func
             return t_norm_pending_keyword_arguments
 
-        return super().load(path=path, device=device, t_norm_callback=t_norm_callback)
+        return super().load(
+            path=path, device=device, t_norm_callback=default_t_norm_callback
+        )
 
 
 class Minimum(TNorm):

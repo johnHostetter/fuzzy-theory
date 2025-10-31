@@ -5,9 +5,9 @@ This module contains classes that are reserved more for the internal use of the 
 import inspect
 import logging
 import pickle
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, MutableMapping, Set, Tuple
+from typing import Any, Callable, Dict, List, MutableMapping, Set, Tuple, Union
 
 import torch
 from natsort import natsorted
@@ -17,10 +17,24 @@ from fuzzy.utils.functions import all_subclasses, get_object_attributes
 
 
 class Loggable:
+    """
+    Inherit this Loggable class to automatically create a logger to use.
+    """
+
     def __init__(self, logger=None):
         self.logger = logger
 
-    def create_logger(self, name: str, debug: bool = False):
+    def create_logger(self, name: str, debug: bool = False) -> None:
+        """
+        Create an instance of the logger for the object to access and utilize.
+
+        Args:
+            name: The name of the logger to be used.
+            debug: Whether debug mode is enabled (default is False).
+
+        Returns:
+            None
+        """
         self.logger = logging.getLogger(name=name)
         if debug:
             self.logger.setLevel(logging.DEBUG)
@@ -81,6 +95,61 @@ class TimeDistributed(torch.nn.Module):
             )  # (timesteps, samples, output_size)
 
         return module_output
+
+
+class TorchJitModule(torch.nn.Module, ABC):
+    """
+    A TorchJitModule is a torch.nn.Module that can be saved and loaded to and from a file. It is
+    also expected that the class that inherits from TorchJitModule will have subclasses of its own.
+    """
+
+    @abstractmethod
+    @torch.jit.ignore
+    def save(self, path: Path) -> MutableMapping[str, Any]:
+        """
+        Save the torch.nn.Module object to a file.
+
+        Note: This does not preserve ParameterList structures, but rather concatenates the
+        parameters into a single tensor, which is then saved to a file.
+
+        Returns:
+            A dictionary containing the state of the torch.nn.Module object.
+        """
+
+    @classmethod
+    @abstractmethod
+    @torch.jit.ignore
+    def load(cls, path: Path, device: torch.device) -> "TorchJitModule":
+        """
+        Load the class object from a file and put it on the specified device.
+
+        Returns:
+            None
+        """
+
+    @classmethod
+    @torch.jit.ignore
+    def get_subclass(cls, class_name: str) -> "TorchJitModule":
+        """
+        Get the subclass of TorchJitModule with the given class name.
+
+        Args:
+            class_name: The name of the subclass to find.
+
+        Returns:
+            A subclass implementation of TorchJitModule with the given class name.
+        """
+        fuzzy_set_class = None
+        for subclass in all_subclasses(cls):
+            if subclass.__name__ == class_name:
+                fuzzy_set_class = subclass
+                break
+        if fuzzy_set_class is None:
+            raise ValueError(
+                f"The class {class_name} was not found in the subclasses of "
+                f"{cls}. Please ensure that {class_name} is a subclass of {cls}."
+            )
+        return fuzzy_set_class
 
 
 class NestedTorchJitModule(torch.nn.Module):
@@ -161,7 +230,6 @@ class NestedTorchJitModule(torch.nn.Module):
         Returns:
             The loaded NestedTorchJitModule.
         """
-        modules_list = []
         local_attributes_only: Dict[str, Any] = {}
         for file_path in path.iterdir():
             if ".pickle" in file_path.name:
@@ -169,29 +237,11 @@ class NestedTorchJitModule(torch.nn.Module):
                 with open(file_path, "rb") as handle:
                     local_attributes_only.update(pickle.load(handle))
             elif file_path.is_dir():
-                for subdirectory in natsorted(file_path.iterdir()):
-                    if subdirectory.is_dir():
-                        module_path: Path = list(subdirectory.glob("*.pt"))[0]
-                        # load the fuzzy set using the fuzzy set's special
-                        # protocol
-                        class_name: str = module_path.name.split(".pt")[0]
-                        try:
-                            modules_list.append(
-                                TorchJitModule.get_subclass(class_name).load(
-                                    module_path, device=device, **kwargs
-                                )
-                            )
-                        except ValueError:
-                            # unknown and unrecognized module, but attempt to
-                            # load the module
-                            modules_list.append(
-                                torch.load(module_path, weights_only=False)
-                            )
-                    else:
-                        raise UserWarning(
-                            f"Unexpected file found in {file_path}: {subdirectory}"
-                        )
-                local_attributes_only[file_path.name] = modules_list
+                local_attributes_only[file_path.name] = (
+                    cls.find_load_and_return_modules(
+                        path=file_path, device=device, kwargs=kwargs
+                    )
+                )
 
         # of the remaining attributes, we must determine which are shared between the
         # super class and the local class, otherwise we will get an error when trying to
@@ -229,57 +279,40 @@ class NestedTorchJitModule(torch.nn.Module):
                 continue
         return grouped_fuzzy_set
 
-
-class TorchJitModule(torch.nn.Module):
-    """
-    A TorchJitModule is a torch.nn.Module that can be saved and loaded to and from a file. It is
-    also expected that the class that inherits from TorchJitModule will have subclasses of its own.
-    """
-
-    @abstractmethod
-    @torch.jit.ignore
-    def save(self, path: Path) -> MutableMapping[str, Any]:
-        """
-        Save the torch.nn.Module object to a file.
-
-        Note: This does not preserve ParameterList structures, but rather concatenates the
-        parameters into a single tensor, which is then saved to a file.
-
-        Returns:
-            A dictionary containing the state of the torch.nn.Module object.
-        """
-
     @classmethod
-    @abstractmethod
-    @torch.jit.ignore
-    def load(cls, path: Path, device: torch.device) -> "TorchJitModule":
+    def find_load_and_return_modules(
+        cls,
+        path: Path,
+        device: torch.device,
+        kwargs: dict[str, Any],
+    ) -> List[Union[TorchJitModule, torch.nn.Module]]:
         """
-        Load the class object from a file and put it on the specified device.
-
-        Returns:
-            None
-        """
-
-    @classmethod
-    @torch.jit.ignore
-    def get_subclass(cls, class_name: str) -> "TorchJitModule":
-        """
-        Get the subclass of TorchJitModule with the given class name.
 
         Args:
-            class_name: The name of the subclass to find.
+            path: The path to where the modules are stored.
+            device: The device to which the modules should be loaded.
+            kwargs: The keyword arguments to pass to the modules.
 
         Returns:
-            A subclass implementation of TorchJitModule with the given class name.
+            A list of the discovered modules.
         """
-        fuzzy_set_class = None
-        for subclass in all_subclasses(cls):
-            if subclass.__name__ == class_name:
-                fuzzy_set_class = subclass
-                break
-        if fuzzy_set_class is None:
-            raise ValueError(
-                f"The class {class_name} was not found in the subclasses of "
-                f"{cls}. Please ensure that {class_name} is a subclass of {cls}."
-            )
-        return fuzzy_set_class
+        modules_list: List[Union[TorchJitModule, torch.nn.Module]] = []
+        for subdirectory in natsorted(path.iterdir()):
+            if subdirectory.is_dir():
+                module_path: Path = list(subdirectory.glob("*.pt"))[0]
+                # load the fuzzy set using the fuzzy set's special
+                # protocol
+                class_name: str = module_path.name.split(".pt")[0]
+                try:
+                    modules_list.append(
+                        TorchJitModule.get_subclass(class_name).load(
+                            module_path, device=device, **kwargs
+                        )
+                    )
+                except ValueError:
+                    # unknown and unrecognized module, but attempt to
+                    # load the module
+                    modules_list.append(torch.load(module_path, weights_only=False))
+            else:
+                raise UserWarning(f"Unexpected file found in {path}: {subdirectory}")
+        return modules_list

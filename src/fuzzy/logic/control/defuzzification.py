@@ -24,11 +24,11 @@ class Defuzzification(TorchJitModule, abc.ABC):
 
     def __init__(
         self,
+        *args,
         shape: Shape,
         source: Union[None, np.ndarray, torch.nn.Sequential, FuzzySetGroup],
         device: torch.device,
         rule_base: Union[None, RuleBase],
-        *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)

@@ -74,6 +74,11 @@ class RuleWeightsEnum(ExtendedEnum):
 
 
 class RuleEliminationEnum(ExtendedEnum):
+    """
+    This allows for the disabling/enabling of rule elimination in an attempt to improve
+    interpretability of fuzzy inference.
+    """
+
     NONE = "none"  # no rule elimination
     NO_OP = (
         "no_op"  # use the no-op procedure where it is possible for a fuzzy logic rule's

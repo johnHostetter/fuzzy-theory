@@ -21,7 +21,7 @@ class CategoricalOptions(IterableOptions, Options):
             categorical_options.selection = loaded_dict["_value"]
 
         for key, value in loaded_dict.items():
-            if key != "options" and key != "_value":
+            if key not in {"options", "_value"}:
                 setattr(categorical_options, key, value)
         return categorical_options
 
@@ -100,16 +100,14 @@ class FloatOptions(Options):
 
 
 class GroupedOptions(Options):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__()
         for key, value in kwargs.items():
             setattr(self, key, value)
 
     def assign(self, trial, name):
         for attr, options in vars(self).items():
-            if (
-                hasattr(options, "assign") and options.assignable
-            ):  # TODO: this is not being reached
+            if hasattr(options, "assign") and options.assignable:
                 options.assign(trial=trial, name=f"{name}.{attr}")
 
     @staticmethod

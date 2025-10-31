@@ -137,10 +137,10 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
 
     def __init__(
         self,
+        *args,
         modules_list: Union[None, List[torch.nn.Module]],
         debug: bool = False,
         callback: Optional[Callable[[], None]] = None,
-        *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)

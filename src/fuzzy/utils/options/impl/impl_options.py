@@ -7,10 +7,10 @@ Furthermore, some of these classes will also store the accompanying function for
 they inherit from torch.nn.Module and can be used accordingly).
 """
 
-from typing import Tuple, Type, Union
+from typing import Callable, Tuple, Type, Union
 
 import torch
-from entmax import entmax15, entmax_bisect
+from entmax import entmax15  # , entmax_bisect
 from torch.nn import Module
 
 from fuzzy.utils.options.abstract.ext_enum import CategoricalEnumOptions
@@ -34,31 +34,47 @@ from fuzzy.utils.options.impl.impl_enums import (
 
 
 class PremiseAggregation(CategoricalEnumOptions):
+    """
+    Outlines the available premise aggregation strategies and their implementations.
+    """
+
     enum_cls = PremiseAggregationEnum
     _fn = {
         PremiseAggregationEnum.SUM.value: lambda x: -1 * x.sum(dim=1),
         PremiseAggregationEnum.MEAN.value: lambda x: -1 * x.mean(dim=1),
     }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     @property
-    def func(self):
+    def func(self) -> Callable[[torch.Tensor], torch.Tensor]:
+        """
+        Obtain the appropriate premise aggregation function based on the stored selection.
+
+        Returns:
+            A callable function that expects a torch.Tensor and will return a torch.Tensor.
+        """
         if self.assignable:
             raise ValueError("A selection has not yet been made.")
         return self._fn[self.selection.value]
 
 
 class PremiseElimination(CategoricalEnumOptions):
+    """
+    Outlines the available premise elimination strategies.
+    """
+
     enum_cls = PremiseEliminationEnum
 
 
 class BoundAlphaEntmax(
     CategoricalOptions, torch.nn.Module, EnumPromoter, enum_cls=BoundAlphaEntmaxEnum
 ):
+    """
+    Outlines the available strategies for bounding the alpha value used in the entmax_bisect and
+    their implementations.
+    """
+
     def __init__(
-        self, device=None, alpha: Union[None, torch.Tensor] = None, *args, **kwargs
+        self, *args, device=None, alpha: Union[None, torch.Tensor] = None, **kwargs
     ):
         super().__init__(*self.options)
         Module.__init__(self, *args, **kwargs)
@@ -97,6 +113,10 @@ class BoundAlphaEntmax(
 class PremiseActivation(
     CategoricalOptions, torch.nn.Module, EnumPromoter, enum_cls=PremiseActivationEnum
 ):
+    """
+    Outlines the available premise activation strategies and their implementations.
+    """
+
     _fn = {
         PremiseActivationEnum.ENTMAX15.value: entmax15,
         PremiseActivationEnum.SOFTMAX.value: torch.nn.functional.softmax,
@@ -104,10 +124,10 @@ class PremiseActivation(
 
     def __init__(
         self,
+        *args,
         device=None,
         dim: int = -1,
         alpha: Union[None, torch.Tensor] = None,
-        *args,
         **kwargs,
     ):
         super().__init__(*self.options)
@@ -121,7 +141,13 @@ class PremiseActivation(
         )
 
     @property
-    def func(self):
+    def func(self) -> Callable[[torch.Tensor], torch.Tensor]:
+        """
+        Obtain the appropriate premise aggregation function based on the stored selection.
+
+        Returns:
+            A callable function that expects a torch.Tensor and will return a torch.Tensor.
+        """
         if self.assignable:
             raise ValueError("A selection has not yet been made.")
         return self._fn[self.selection.value]
@@ -149,18 +175,34 @@ class PremiseActivation(
 
 
 class Sampling(CategoricalEnumOptions):
+    """
+    Outlines the available sampling strategies.
+    """
+
     enum_cls = SamplingEnum
 
 
 class RuleWeights(CategoricalEnumOptions):
+    """
+    Outlines the available rule weighing strategies.
+    """
+
     enum_cls = RuleWeightsEnum
 
 
 class RuleElimination(CategoricalEnumOptions):
+    """
+    Outlines the available rule elimination strategies.
+    """
+
     enum_cls = RuleEliminationEnum
 
 
 class RuleElevation(CategoricalEnumOptions):
+    """
+    Outlines the available rule elevation strategies.
+    """
+
     enum_cls = RuleElevationEnum
 
 
@@ -191,6 +233,7 @@ class PremiseConfig(GroupedOptions):
             PremiseActivation() if activation is None else activation
         )
 
+    @property
     def selection(self):
         return (
             option.selection
@@ -198,7 +241,13 @@ class PremiseConfig(GroupedOptions):
             if isinstance(option, Options)
         )
 
-    def default(self):
+    def default(self) -> None:
+        """
+        Select the 'default' settings for a TSK neuro-fuzzy network with respect to premises.
+
+        Returns:
+            None
+        """
         self.select(
             aggregation=PremiseAggregation.SUM,
             elimination=PremiseElimination.NONE,
@@ -210,7 +259,18 @@ class PremiseConfig(GroupedOptions):
         aggregation: Type[PremiseAggregation],
         elimination: Type[PremiseElimination],
         activation: Type[PremiseActivation],
-    ):
+    ) -> None:
+        """
+        Select the assignments based on the given arguments.
+
+        Args:
+            aggregation: A premise aggregation enum member.
+            elimination: A premise elimination enum member.
+            activation: A premise activation enum member.
+
+        Returns:
+            None
+        """
         self.aggregation.selection = aggregation
         self.elimination.selection = elimination
         self.activation.selection = activation
@@ -239,6 +299,7 @@ class RuleConfig(GroupedOptions):
             RuleElevation() if elevation is None else elevation
         )
 
+    @property
     def selection(self):
         return (
             option.selection
@@ -246,7 +307,13 @@ class RuleConfig(GroupedOptions):
             if isinstance(option, Options)
         )
 
-    def default(self):
+    def default(self) -> None:
+        """
+        Select the 'default' settings for a TSK neuro-fuzzy network with respect to rules.
+
+        Returns:
+            None
+        """
         self.select(
             weights=RuleWeightsEnum.NONE,
             elimination=RuleEliminationEnum.NONE,
@@ -259,6 +326,17 @@ class RuleConfig(GroupedOptions):
         elimination: Type[RuleElimination],
         elevation: Type[RuleElevation],
     ):
+        """
+        Select the assignments based on the given arguments.
+
+        Args:
+            weights: A rule weights enum member.
+            elimination: A rule elimination enum member.
+            elevation: A rule elevation enum member.
+
+        Returns:
+            None
+        """
         self.weights.selection = weights
         self.elimination.selection = elimination
         self.elevation.selection = elevation
@@ -279,6 +357,11 @@ class ApproximatorHyperparameters:
 
 
 class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
+    """
+    An all-ecompassing class for exposing all available hyperparameters or design-choices of
+    neuro-fuzzy networks.
+    """
+
     def __init__(self):
         super().__init__(
             display_name="Concurrent Optimization of Fuzzy Inference Systems",
