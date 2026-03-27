@@ -7,6 +7,7 @@ Furthermore, some of these classes will also store the accompanying function for
 they inherit from torch.nn.Module and can be used accordingly).
 """
 
+from enum import Enum
 from typing import Callable, Tuple, Type, Union
 
 import torch
@@ -44,7 +45,7 @@ class PremiseAggregation(CategoricalEnumOptions):
         PremiseAggregationEnum.MEAN.value: lambda x: -1 * x.mean(dim=1),
     }
 
-    @property
+    # @property
     def func(self) -> Callable[[torch.Tensor], torch.Tensor]:
         """
         Obtain the appropriate premise aggregation function based on the stored selection.
@@ -54,7 +55,9 @@ class PremiseAggregation(CategoricalEnumOptions):
         """
         if self.assignable:
             raise ValueError("A selection has not yet been made.")
-        return self._fn[self.selection.value]
+        if isinstance(self.selection, Enum):
+            return self._fn[self.selection.value]
+        return self._fn[self.selection]  # self.selection is 'str' if optuna assigns
 
 
 class PremiseElimination(CategoricalEnumOptions):
@@ -140,7 +143,7 @@ class PremiseActivation(
             else (BoundAlphaEntmax(device=self.device, alpha=alpha))
         )
 
-    @property
+    # @property
     def func(self) -> Callable[[torch.Tensor], torch.Tensor]:
         """
         Obtain the appropriate premise aggregation function based on the stored selection.
@@ -150,7 +153,9 @@ class PremiseActivation(
         """
         if self.assignable:
             raise ValueError("A selection has not yet been made.")
-        return self._fn[self.selection.value]
+        if isinstance(self.selection, Enum):
+            return self._fn[self.selection.value]
+        return self._fn[self.selection]  # self.selection is 'str' if optuna assigns
 
     def assign(self, trial, name) -> Tuple[str, str]:
         super_assignment = super().assign(trial=trial, name=name)
@@ -391,9 +396,7 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
             128,
             256,
         )  # how much to delay updating the GMT noise
-        self.epsilon: CategoricalOptions = CategoricalOptions(
-            0.1, 0.5
-        )  # epsilon-completeness
+        self.epsilon: FloatOptions = FloatOptions(0.1, 0.5)  # epsilon-completeness
         self.add_premise_delay: IntOptions = IntOptions(
             1,  # means no delay in adding fuzzy sets (since it's about modulo)
             5,

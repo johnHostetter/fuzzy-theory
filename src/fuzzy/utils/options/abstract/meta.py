@@ -1,4 +1,9 @@
-import collections
+import sys
+
+if sys.version_info >= (3, 10):
+    from collections.abc import Iterator
+else:
+    from collections import Iterator
 import pickle
 from abc import ABC, ABCMeta, abstractmethod
 from enum import EnumMeta
@@ -79,7 +84,7 @@ class Options(ABC):
         """
 
 
-class IterableOptions(collections.Iterator, Options, ABC):
+class IterableOptions(Iterator, Options, ABC):
     def __init__(self, values):
         super().__init__()
         self._value: Any = None

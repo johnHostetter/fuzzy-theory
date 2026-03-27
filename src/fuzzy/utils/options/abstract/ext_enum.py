@@ -34,6 +34,7 @@ class CategoricalEnumOptions(CategoricalOptions, EnumPromoter):
 class ExtendedEnum(
     CategoricalOptions, str, Enum, metaclass=ExtendedEnumMeta
 ):  # incl. 'str' so == will work between string value and Enum member
+    __hash__ = str.__hash__
 
     def __init__(self, _):
         super().__init__()
