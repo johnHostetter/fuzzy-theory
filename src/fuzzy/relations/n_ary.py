@@ -591,7 +591,7 @@ class NAryRelation(TorchJitModule, Loggable):
         # avoiding the above call can lead to significant performance increases
         # applied_mask = self.grouped_links.grouped_links.modules_list[0].logits
         n_rules = applied_mask.shape[-1]
-        linear_result = torch.nn.functional.linear(
+        linear_result = torch.nn.functional.linear(  # pylint: disable=not-callable
             membership.degrees.view(batch_size, var_count * term_count),
             applied_mask.view(var_count * term_count, n_rules).T,
         )

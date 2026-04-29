@@ -5,7 +5,8 @@ Implements aggregation operators in fuzzy theory.
 import torch
 
 from fuzzy.utils.classes import Loggable
-from fuzzy.utils.functions import log_method
+
+# from fuzzy.utils.functions import log_method
 
 
 class OrderedWeightedAveraging(torch.nn.Module, Loggable):

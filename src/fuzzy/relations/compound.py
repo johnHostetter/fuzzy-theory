@@ -11,7 +11,8 @@ import torch
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.sets.membership import Membership
 from fuzzy.utils.classes import Loggable
-from fuzzy.utils.functions import log_method
+
+# from fuzzy.utils.functions import log_method
 
 
 class Compound(torch.nn.Module, Loggable):

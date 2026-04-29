@@ -13,7 +13,8 @@ import torch
 
 from ..utils import NestedTorchJitModule
 from ..utils.classes import Loggable
-from ..utils.functions import log_method
+
+# from ..utils.functions import log_method
 from .membership import Membership
 
 
@@ -70,8 +71,7 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
                         module_attributes.append(item_method())
                     if len(module_attributes) == 1:
                         return module_attributes[0]
-                    else:
-                        return torch.cat(module_attributes, dim=-1)
+                    return torch.cat(module_attributes, dim=-1)
                 raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
             return object.__getattribute__(self, item)
         except AttributeError:

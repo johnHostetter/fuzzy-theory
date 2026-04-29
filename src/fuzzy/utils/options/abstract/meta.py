@@ -1,11 +1,6 @@
-import sys
-
-if sys.version_info >= (3, 10):
-    from collections.abc import Iterator
-else:
-    from collections import Iterator
 import pickle
 from abc import ABC, ABCMeta, abstractmethod
+from collections.abc import Iterator
 from enum import EnumMeta
 from pathlib import Path
 from typing import Any, Callable
@@ -98,9 +93,9 @@ class IterableOptions(Iterator, Options, ABC):
         self._idx += 1
         try:
             return self.options[self._idx - 1]
-        except IndexError:
+        except IndexError as exc:
             self._idx = 0
-            raise StopIteration
+            raise StopIteration from exc
 
 
 class EnumPromoter:

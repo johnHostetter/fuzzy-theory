@@ -147,7 +147,9 @@ class ZeroOrder(Defuzzification):
         state_dict["class_name"] = self.__class__.__name__
         # convert to tuple for serialization
         state_dict["shape"] = tuple(self.shape)
-        state_dict["source"] = self.consequences.detach().cpu().numpy()
+        state_dict["source"] = (
+            self.consequences.detach().cpu().numpy()  # pylint: disable=not-callable
+        )
         torch.save(state_dict, path)
         return state_dict
 

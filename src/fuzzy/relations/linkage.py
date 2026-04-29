@@ -12,7 +12,8 @@ from torch._C import Size
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import NestedTorchJitModule, check_path_to_save_torch_module
 from fuzzy.utils.classes import Loggable
-from fuzzy.utils.functions import log_classmethod, log_method
+
+# from fuzzy.utils.functions import log_classmethod, log_method
 
 
 class BinaryLinks(torch.nn.Module, Loggable):
@@ -139,7 +140,7 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         self,
         *args,
         modules_list: Union[None, List[torch.nn.Module]],
-        debug: bool = False,
+        # debug: bool = False,
         callback: Optional[Callable[[], None]] = None,
         **kwargs,
     ):

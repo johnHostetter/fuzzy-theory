@@ -6,7 +6,8 @@ which contains a helpful interface understanding membership degrees.
 
 import abc
 import inspect
-import logging
+
+# import logging
 from abc import abstractmethod
 from pathlib import Path
 from typing import Any, List, MutableMapping, NoReturn, Tuple, Type, Union
@@ -21,11 +22,14 @@ import scienceplots  # noqa # pylint: disable=unused-import
 import sympy
 import torch
 import torchquad
+from matplotlib.axes import Axes
+from numpy import ndarray
 from torchquad.utils.set_up_backend import set_up_backend
 
 from ..utils import TorchJitModule, check_path_to_save_torch_module
 from ..utils.classes import Loggable
-from ..utils.functions import log_classmethod, log_func, log_method
+
+# from ..utils.functions import log_classmethod, log_func, log_method
 from .membership import Membership
 
 
@@ -114,12 +118,39 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         widths: np.ndarray,
         device: torch.device,
         use_sparse_tensor: bool = False,
-        debug: bool = False,
+        # debug: bool = False,
     ):
         super().__init__()
         self.device = device
         # self.create_logger(self.__class__.__name__, debug=debug)
         self.__check_args(centers, widths)
+
+        def __alloc_members(
+            self, centers: np.ndarray, use_sparse_tensor: bool, widths: np.ndarray
+        ) -> None:
+            if centers.ndim == 1 and widths.ndim == 1:
+                # assuming that the array is a single linguistic variable
+                centers, widths = centers[None, :], widths[None, :]
+
+            # avoid allocating new memory for the centers and widths
+            # use torch.float32 to save memory and speed up computations
+            self._centers = DynamicParameterList(
+                init_params=[centers], dtype=torch.float32, device=self.device
+            )
+            self._widths = DynamicParameterList(
+                init_params=[widths], dtype=torch.float32, device=self.device
+            )
+            self.use_sparse_tensor = use_sparse_tensor
+            self._mask = DynamicParameterList(
+                init_params=[self.make_mask(widths)],
+                dtype=torch.uint8,
+                device=self.device,
+                parameters=False,
+            )
+
+        self._centers = None
+        self._widths = None
+        self._mask = None
         self.__alloc_members(centers, use_sparse_tensor, widths)
 
     # @log_method
@@ -571,7 +602,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     # @log_method
     def plot(
         self, output_dir: Path, selected_terms: List[Tuple[int, int]] = None
-    ) -> Tuple[list, list]:
+    ) -> tuple[list[Any], Union[Axes, ndarray]]:
         """
         Plot the fuzzy set.
 

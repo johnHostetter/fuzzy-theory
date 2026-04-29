@@ -7,6 +7,7 @@ Furthermore, some of these classes will also store the accompanying function for
 they inherit from torch.nn.Module and can be used accordingly).
 """
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Tuple, Type, Union
 
@@ -103,7 +104,9 @@ class BoundAlphaEntmax(
         if self.selection == BoundAlphaEntmaxEnum.TANH:
             return 1.5 + (0.5 * torch.tanh(alpha))
         if self.selection == BoundAlphaEntmaxEnum.SOFTPLUS:
-            softplus_alpha = torch.nn.functional.softplus(alpha)
+            softplus_alpha = torch.nn.functional.softplus(
+                alpha
+            )  # pylint: disable=not-callable
             return 1.0 + (softplus_alpha / (1 + softplus_alpha))
 
         raise ValueError(
@@ -347,6 +350,7 @@ class RuleConfig(GroupedOptions):
         self.elevation.selection = elevation
 
 
+@dataclass
 class ApproximatorHyperparameters:
     """
     A standard data class format with attributes that are expected throughout PySoft optuna
@@ -361,9 +365,10 @@ class ApproximatorHyperparameters:
         self.abbrev_name = abbrev_name
 
 
+@dataclass
 class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
     """
-    An all-ecompassing class for exposing all available hyperparameters or design-choices of
+    An all-encompassing class for exposing all available hyperparameters or design-choices of
     neuro-fuzzy networks.
     """
 

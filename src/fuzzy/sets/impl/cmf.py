@@ -2,6 +2,7 @@
 Implements various conventional membership functions (CMFs) by inheriting from FuzzySet.
 """
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, MutableMapping, Union
 
@@ -13,6 +14,14 @@ from ...utils import check_path_to_save_torch_module
 from ...utils.classes import Loggable
 from ..abstract import FuzzySet
 from ..membership import Membership
+
+
+@dataclass(frozen=False)
+class GaussianKernel:
+    width_multiplier: float = (
+        2.0  # in fuzzy logic, convention is usually 1.0, but can be 2.0
+    )
+    slope_multiplier: float = 1.0
 
 
 class NoOp(FuzzySet):
@@ -150,20 +159,29 @@ class GeneralizedGuassian(FuzzySet):
         centers,
         widths,
         device: torch.device,
-        width_multiplier: float = 2.0,
-        slope_multiplier: float = 1.0,
+        gaussian_kernel: GaussianKernel = GaussianKernel(),
         **kwargs,
     ):
         super().__init__(centers=centers, widths=widths, device=device, **kwargs)
-        if width_multiplier < 0.0:
+        self._gaussian_kernel = gaussian_kernel
+        if self._gaussian_kernel.width_multiplier < 0.0:
             raise ValueError(
-                f"The width multiplier must be greater than zero, but got {self.width_multiplier}."
+                f"The width multiplier must be > 0, but got"
+                f" {self._gaussian_kernel.width_multiplier}."
             )
         self._width_multiplier = torch.nn.ParameterList(
-            [self.make_parameter(width_multiplier * np.ones_like(centers))]
+            [
+                self.make_parameter(
+                    self._gaussian_kernel.width_multiplier * np.ones_like(centers)
+                )
+            ]
         )
         self._slope_multiplier = torch.nn.ParameterList(
-            [self.make_parameter(slope_multiplier * np.ones_like(centers))]
+            [
+                self.make_parameter(
+                    self._gaussian_kernel.slope_multiplier * np.ones_like(centers)
+                )
+            ]
         )
 
     def get_width_multiplier(self) -> torch.Tensor:
@@ -278,12 +296,12 @@ class LogGaussian(FuzzySet):
         centers,
         widths,
         device: torch.device,
-        width_multiplier: float = 2.0,
-        # in fuzzy logic, convention is usually 1.0, but can be 2.0
+        gaussian_kernel: GaussianKernel = GaussianKernel(),
         **kwargs,
     ):
         super().__init__(centers=centers, widths=widths, device=device, **kwargs)
-        self.width_multiplier = width_multiplier
+        self._gaussian_kernel = gaussian_kernel
+        self.width_multiplier = self._gaussian_kernel.width_multiplier
         self._buffer = None
         if int(self.width_multiplier) not in [1, 2]:
             raise ValueError(
@@ -319,7 +337,7 @@ class LogGaussian(FuzzySet):
         centers: torch.Tensor,
         widths: torch.Tensor,
         width_multiplier: float,
-        buffer: torch.Tensor,
+        # buffer: torch.Tensor,
     ) -> torch.Tensor:
         """
         Calculate the membership of the observations to the Log Gaussian fuzzy set.
@@ -422,7 +440,7 @@ class LogGaussian(FuzzySet):
             centers=self.get_centers(),
             widths=self.get_widths(),
             width_multiplier=self.width_multiplier,
-            buffer=self._buffer,
+            # buffer=self._buffer,
         )
 
     def forward(self, observations) -> Membership:
