@@ -36,7 +36,9 @@ class TestLogistic(unittest.TestCase):
             ],
             device=AVAILABLE_DEVICE,
         )
-        logistic_curve = LogisticCurve(midpoint=0.5, growth=10, supremum=1)
+        logistic_curve = LogisticCurve(
+            midpoint=0.5, growth=10, supremum=1, device=AVAILABLE_DEVICE
+        )
 
         self.assertTrue(
             torch.allclose(

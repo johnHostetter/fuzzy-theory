@@ -32,26 +32,16 @@ def make_test_scenario(t_norm: Type[TNorm]) -> Tuple[
         Number of output features, consequences (torch.nn.parameter.Parameter), links,
         offset, antecedents_memberships
     """
-    input_data = torch.tensor(
-        [
-            [1.5409961, -0.2934289],
-            [-2.1787894, 0.56843126],
-            [-1.0845224, -1.3985955],
-            [0.40334684, 0.83802634],
-        ],
-        device=AVAILABLE_DEVICE,
-    )
-
     _, _, rules = toy_tsk(t_norm=t_norm, device=AVAILABLE_DEVICE)
     antecedents = [
         Gaussian(
-            centers=np.array([-1.0, 0.0, 1.0]),
-            widths=np.array([1.0, 1.0, 1.0]),
+            centers=np.array([-0.9, 0.2, 0.7]),
+            widths=np.array([1.5, 0.5, 1.1]),
             device=AVAILABLE_DEVICE,
         ),
         Gaussian(
-            centers=np.array([-1.0, 0.0, 1.0]),
-            widths=np.array([1.0, 1.0, 1.0]),
+            centers=np.array([-0.4, 1.3, 2.4]),
+            widths=np.array([0.85, 0.34, 0.68]),
             device=AVAILABLE_DEVICE,
         ),
     ]
@@ -65,6 +55,16 @@ def make_test_scenario(t_norm: Type[TNorm]) -> Tuple[
     input_granulation = knowledge_base.select_by_tags(tags={"premise", "group"})[0][
         "item"
     ].to(AVAILABLE_DEVICE)
+
+    input_data: torch.Tensor = torch.tensor(
+        [
+            [1.5409961, -0.2934289],
+            [-2.1787894, 0.56843126],
+            [-1.0845224, -1.3985955],
+            [0.40334684, 0.83802634],
+        ],
+        device=AVAILABLE_DEVICE,
+    )
 
     antecedents_memberships = input_granulation(input_data)
 
@@ -95,32 +95,32 @@ class TestFuzzyInference(unittest.TestCase):
         expected_output = torch.tensor(
             [
                 [
-                    9.52992122e-04,
-                    1.44050468e-03,
-                    5.64775779e-02,
-                    8.53692423e-02,
-                    1.74637646e-02,
+                    6.96742013e-02,
+                    2.04711196e-11,
+                    7.40043994e-04,
+                    2.17433845e-13,
+                    1.15470390e-10,
                 ],
                 [
-                    2.12899314e-02,
-                    1.80385602e-01,
-                    7.41303946e-04,
-                    6.28092951e-03,
-                    7.20215626e-03,
+                    1.32010251e-01,
+                    4.71740961e-03,
+                    4.03822635e-11,
+                    1.44306724e-12,
+                    1.04518844e-13,
                 ],
                 [
-                    8.47027257e-01,
-                    1.40406535e-01,
-                    2.63140523e-01,
-                    4.36191975e-02,
-                    9.78540533e-04,
+                    2.47751176e-01,
+                    4.30835969e-28,
+                    3.42174753e-04,
+                    5.95037309e-31,
+                    3.81395014e-17,
                 ],
                 [
-                    4.75897548e-03,
-                    6.91366485e-02,
-                    2.89834770e-02,
-                    4.21061312e-01,
-                    8.27849315e-01,
+                    5.63383065e-02,
+                    7.41864368e-02,
+                    1.01591364e-01,
+                    1.33775786e-01,
+                    4.33210563e-03,
                 ],
             ],
             device=AVAILABLE_DEVICE,
@@ -145,10 +145,34 @@ class TestFuzzyInference(unittest.TestCase):
         self.assertIsNotNone(actual_output.degrees.grad_fn)
         expected_output = torch.tensor(
             [
-                [0.00157003, 0.00157003, 0.09304529, 0.09304529, 0.09304529],
-                [0.08543695, 0.24918881, 0.00867662, 0.00867662, 0.00867662],
-                [0.8531001, 0.1414132, 0.3084521, 0.1414132, 0.00317242],
-                [0.034104, 0.13954304, 0.034104, 0.49545035, 0.8498557],
+                [
+                    7.0778102e-02,
+                    2.8922956e-10,
+                    7.5176911e-04,
+                    2.8922956e-10,
+                    1.5359821e-07,
+                ],
+                [
+                    2.7305701e-01,
+                    9.7577404e-03,
+                    1.4788949e-10,
+                    1.4788949e-10,
+                    1.4788949e-10,
+                ],
+                [
+                    2.5152883e-01,
+                    4.3740527e-28,
+                    1.3603799e-03,
+                    4.3740527e-28,
+                    2.8035920e-14,
+                ],
+                [
+                    1.1986406e-01,
+                    1.5783733e-01,
+                    1.1986406e-01,
+                    1.5783733e-01,
+                    5.1112985e-03,
+                ],
             ],
             device=AVAILABLE_DEVICE,
         )

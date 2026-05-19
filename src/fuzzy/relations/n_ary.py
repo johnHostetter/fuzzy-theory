@@ -5,6 +5,7 @@ differing types) can then be combined into a compound relation.
 """
 
 import shutil
+from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, MutableMapping, Tuple, Union
 
@@ -24,11 +25,10 @@ from ..utils.classes import Loggable
 
 # , log_classmethod, log_func, log_method
 from ..utils.functions import exp_sum_log
-from ..utils.options.abstract.ext_enum import ExtendedEnum
 from .linkage import BinaryLinks, GroupedLinks
 
 
-class NAryMaskMethods(ExtendedEnum):
+class NAryMaskMethods(str, Enum):
     """
     The available methods for completing n-ary fuzzy relations.
     """

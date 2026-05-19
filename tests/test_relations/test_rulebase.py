@@ -83,7 +83,11 @@ class TestRuleBase(unittest.TestCase):
 
         # check that _combine_t_norms only works for recognized attribute
         # references
-        self.assertRaises(ValueError, rule_base._combine_t_norms, "unknown_attribute")
+        self.assertRaises(
+            ValueError,
+            rule_base._combine_t_norms,  # pylint: disable=protected-access
+            "unknown_attribute",
+        )
 
     def test_rule_base_output(self) -> None:
         """

@@ -12,12 +12,13 @@ from enum import Enum
 from typing import Callable, Tuple, Type, Union
 
 import torch
+import torch.nn.functional as F
 from entmax import entmax15  # , entmax_bisect
 from torch.nn import Module
 
-from fuzzy.utils.options.abstract.ext_enum import CategoricalEnumOptions
 from fuzzy.utils.options.abstract.meta import EnumPromoter, Options
 from fuzzy.utils.options.abstract.primitive import (
+    CategoricalEnumOptions,
     CategoricalOptions,
     FloatOptions,
     GroupedOptions,
@@ -35,16 +36,24 @@ from fuzzy.utils.options.impl.impl_enums import (
 )
 
 
-class PremiseAggregation(CategoricalEnumOptions):
+class PremiseAggregation(
+    CategoricalOptions, EnumPromoter, enum_cls=PremiseAggregationEnum
+):
     """
     Outlines the available premise aggregation strategies and their implementations.
     """
 
-    enum_cls = PremiseAggregationEnum
+    # type hints for Pylint - not required for functionality but only static code analysis
+    SUM: PremiseAggregationEnum
+    MEAN: PremiseAggregationEnum
+
     _fn = {
         PremiseAggregationEnum.SUM.value: lambda x: -1 * x.sum(dim=1),
         PremiseAggregationEnum.MEAN.value: lambda x: -1 * x.mean(dim=1),
     }
+
+    def __init__(self):
+        super().__init__(*self.options)
 
     # @property
     def func(self) -> Callable[[torch.Tensor], torch.Tensor]:
@@ -61,12 +70,16 @@ class PremiseAggregation(CategoricalEnumOptions):
         return self._fn[self.selection]  # self.selection is 'str' if optuna assigns
 
 
-class PremiseElimination(CategoricalEnumOptions):
+class PremiseElimination(
+    CategoricalEnumOptions, EnumPromoter, enum_cls=PremiseEliminationEnum
+):
     """
     Outlines the available premise elimination strategies.
     """
 
-    enum_cls = PremiseEliminationEnum
+    # type hints for Pylint - not required for functionality but only static code analysis
+    NONE: PremiseEliminationEnum
+    NO_OP: PremiseEliminationEnum
 
 
 class BoundAlphaEntmax(
@@ -104,9 +117,7 @@ class BoundAlphaEntmax(
         if self.selection == BoundAlphaEntmaxEnum.TANH:
             return 1.5 + (0.5 * torch.tanh(alpha))
         if self.selection == BoundAlphaEntmaxEnum.SOFTPLUS:
-            softplus_alpha = torch.nn.functional.softplus(
-                alpha
-            )  # pylint: disable=not-callable
+            softplus_alpha = F.softplus(alpha)  # pylint: disable=not-callable
             return 1.0 + (softplus_alpha / (1 + softplus_alpha))
 
         raise ValueError(
@@ -350,6 +361,158 @@ class RuleConfig(GroupedOptions):
         self.elevation.selection = elevation
 
 
+class GumbelConfig(GroupedOptions):
+    """
+    How to set up the Gumbel Softmax, whether it should be constrained, how long to delay
+    resampling the Gumbel noise, and what temperature to use for the Gumbel distribution.
+    Default options and values replicate those explored in Hostetter's dissertation.
+    """
+
+    def __init__(
+        self,
+        temperature: Union[None, FloatOptions] = None,
+        epsilon_filter: Union[None, CategoricalOptions] = None,
+        noise_delay: Union[None, CategoricalOptions] = None,
+    ):
+        super().__init__()
+        self.temperature: FloatOptions = (
+            FloatOptions(
+                0.25,
+                1.25,
+            )
+            if temperature is None
+            else temperature
+        )
+        self.epsilon_filter: CategoricalOptions = (
+            CategoricalOptions(0.0, 0.1) if epsilon_filter is None else epsilon_filter
+        )
+        self.noise_delay: CategoricalOptions = (
+            CategoricalOptions(
+                1,
+                # means no delay in updating the GMT noise (since it's about modulo)
+                32,
+                64,
+                128,
+                256,
+            )
+            if noise_delay is None
+            else noise_delay
+        )
+
+    @property
+    def selection(self):
+        return (
+            option.selection
+            for _, option in vars(self).items()
+            if isinstance(option, Options)
+        )
+
+    def default(self) -> None:
+        """
+        Select 'default' settings for a neuro-fuzzy network with respect to the Gumbel Softmax.
+
+        Returns:
+            None
+        """
+        self.select(
+            temperature=1.0,
+            epsilon_filter=0.0,
+            noise_delay=1,
+        )
+
+    def select(
+        self,
+        temperature: float,
+        epsilon_filter: float,
+        noise_delay: int,
+    ):
+        """
+        Select the assignments based on the given arguments.
+
+        Args:
+            temperature: The temperature of the Gumbel distribution.
+            epsilon_filter: Whether to constrain the Gumbel Softmax and by how much.
+            noise_delay: Whether to delay resampling of the Gumbel Softmax noise, and for how long.
+
+        Returns:
+            None
+        """
+        self.temperature.selection = temperature
+        self.epsilon_filter.selection = epsilon_filter
+        self.noise_delay.selection = noise_delay
+
+
+class NeurogenesisConfig(GroupedOptions):
+    """
+    How to set up neurogenesis, such as whether it should be delayed and how it should be
+    triggered. Default options and values replicate those explored in Hostetter's dissertation.
+    """
+
+    def __init__(
+        self,
+        epsilon: Union[None, FloatOptions] = None,
+        add_premise_delay: Union[None, IntOptions] = None,
+    ):
+        super().__init__()
+        self.epsilon: FloatOptions = (
+            FloatOptions(
+                0.1,
+                0.5,
+            )
+            if epsilon is None
+            else epsilon
+        )
+        # how much to delay adding new premises; int range [1, 5] w/ step=2
+        self.add_premise_delay: IntOptions = (
+            IntOptions(
+                1,  # means no delay in adding fuzzy sets (since it's about modulo)
+                5,
+                2,
+            )
+            if add_premise_delay is None
+            else add_premise_delay
+        )
+
+    @property
+    def selection(self):
+        return (
+            option.selection
+            for _, option in vars(self).items()
+            if isinstance(option, Options)
+        )
+
+    def default(self) -> None:
+        """
+        Select 'default' settings for a neuro-fuzzy network with respect to the Gumbel Softmax.
+
+        Returns:
+            None
+        """
+        self.select(
+            epsilon=0.5,
+            add_premise_delay=1,
+        )
+
+    def select(
+        self,
+        epsilon: float,
+        add_premise_delay: int,
+    ):
+        """
+        Select the assignments based on the given arguments.
+
+        Args:
+            epsilon: The minimum membership degree that must be achieved; otherwise, neurogenesis
+            will be triggered.
+            add_premise_delay: Whether to delay adding a new premise term, and for how long.
+
+        Returns:
+            None
+        """
+        self.epsilon.selection = epsilon
+        self.add_premise_delay.selection = add_premise_delay
+
+
 @dataclass
 class ApproximatorHyperparameters:
     """
@@ -384,26 +547,6 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
         self.premise: PremiseConfig = PremiseConfig()
         self.premise_sampling: Sampling = Sampling()  # how to sample premises
         self.rule: RuleConfig = RuleConfig()
-        self.gumbel_temperature: FloatOptions = FloatOptions(
-            0.25,
-            1.25,
-        )  # what temperature to use for Gumbel-Softmax
-        self.epsilon_filter: CategoricalOptions = CategoricalOptions(
-            0.0, 0.1
-        )  # epsilon-filtering for premise sampling
-        self.epsilon_filter.selection = 0.0  # disable it
-        self.noise_delay: CategoricalOptions = CategoricalOptions(
-            1,
-            # means no delay in updating the GMT noise (since it's about
-            # modulo)
-            32,
-            64,
-            128,
-            256,
-        )  # how much to delay updating the GMT noise
-        self.epsilon: FloatOptions = FloatOptions(0.1, 0.5)  # epsilon-completeness
-        self.add_premise_delay: IntOptions = IntOptions(
-            1,  # means no delay in adding fuzzy sets (since it's about modulo)
-            5,
-            2,
-        )  # how much to delay adding new premises; int range [1, 5] w/ step=2
+        self.gumbel: GumbelConfig = GumbelConfig()
+        self.gumbel.epsilon_filter.selection = 0.0  # disable the constraint
+        self.neurogenesis: NeurogenesisConfig = NeurogenesisConfig()

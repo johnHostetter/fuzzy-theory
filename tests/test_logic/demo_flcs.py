@@ -183,7 +183,7 @@ def train_model(model, input_x, target_y):
         loss.backward(retain_graph=True)
         params_after = deepcopy(list(model.parameters()))
         try:
-            if not all([(b == a).all() for b, a in zip(params_before, params_after)]):
+            if not all((b == a).all() for b, a in zip(params_before, params_after)):
                 print("updating optimizer")
                 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
         except RuntimeError:
@@ -241,6 +241,9 @@ if __name__ == "__main__":
                 inference=Mamdani,
                 device=AVAILABLE_DEVICE,
             )
+        else:
+            raise ValueError(f"Unknown flc type: {flc_type}")
+
         print(f"Demonstrating {flc}")
 
         predicted_y = flc(x)

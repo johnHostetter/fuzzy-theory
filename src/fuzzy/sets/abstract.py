@@ -9,6 +9,8 @@ import inspect
 
 # import logging
 from abc import abstractmethod
+from dataclasses import dataclass
+from enum import Enum, auto
 from pathlib import Path
 from typing import Any, List, MutableMapping, NoReturn, Tuple, Type, Union
 
@@ -23,7 +25,9 @@ import sympy
 import torch
 import torchquad
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from numpy import ndarray
+from numpy._typing import _64Bit
 from torchquad.utils.set_up_backend import set_up_backend
 
 from ..utils import TorchJitModule, check_path_to_save_torch_module
@@ -33,7 +37,75 @@ from ..utils.classes import Loggable
 from .membership import Membership
 
 
-class DynamicParameterList(torch.nn.Module):
+@dataclass(frozen=True)
+class FuzzySetShape:
+    """
+    A dataclass containing information about the shape of homogeneous fuzzy sets.
+    """
+
+    n_variables: int
+    n_terms: int
+
+
+@dataclass
+class FuzzySetInitResult:
+    """
+    A dataclass representing an initialization result concerning the centers and widths of fuzzy
+    set(s).
+    """
+
+    centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]]
+    widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]]
+
+
+class FuzzySetInitMethod(Enum):
+    """
+    An extended Enum that offers various built-in functionality for basic fuzzy set initialization
+    methods.
+    """
+
+    RANDOM = auto()
+    LINEAR = auto()
+
+    def initialize(
+        self,
+        shape: FuzzySetShape,
+        init_width: float = 1.0,
+    ) -> FuzzySetInitResult:
+        """
+        Perform a basic initialization of parameters for fuzzy sets.
+
+        Args:
+            shape: The shape of these fuzzy sets.
+            init_width: The initial width to use for each fuzzy set.
+
+        Returns:
+            An initialization result containing parameters, such as centers and widths.
+        """
+        if self is FuzzySetInitMethod.RANDOM:
+            centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = (
+                np.random.randn(shape.n_variables, shape.n_terms)
+            )
+            widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = np.abs(
+                np.random.randn(shape.n_variables, shape.n_terms)
+            ).clip(min=0.1)
+
+        elif self is FuzzySetInitMethod.LINEAR:
+            base = np.linspace(0.0, 1.0, num=shape.n_terms)
+            centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = (
+                np.repeat(base[None, :], repeats=shape.n_variables, axis=0)
+            )
+            widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = np.full(
+                (shape.n_variables, shape.n_terms), init_width, dtype=np.float32
+            )
+
+        else:
+            raise ValueError(f"Unsupported method: {self}")
+
+        return FuzzySetInitResult(centers, widths)
+
+
+class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
     """
     Wraps a torch.nn.ParameterList and maintains a contiguous cached tensor for fast operations.
     """
@@ -114,8 +186,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        centers: np.ndarray,
-        widths: np.ndarray,
+        centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
+        widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
         device: torch.device,
         use_sparse_tensor: bool = False,
         # debug: bool = False,
@@ -124,29 +196,6 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         self.device = device
         # self.create_logger(self.__class__.__name__, debug=debug)
         self.__check_args(centers, widths)
-
-        def __alloc_members(
-            self, centers: np.ndarray, use_sparse_tensor: bool, widths: np.ndarray
-        ) -> None:
-            if centers.ndim == 1 and widths.ndim == 1:
-                # assuming that the array is a single linguistic variable
-                centers, widths = centers[None, :], widths[None, :]
-
-            # avoid allocating new memory for the centers and widths
-            # use torch.float32 to save memory and speed up computations
-            self._centers = DynamicParameterList(
-                init_params=[centers], dtype=torch.float32, device=self.device
-            )
-            self._widths = DynamicParameterList(
-                init_params=[widths], dtype=torch.float32, device=self.device
-            )
-            self.use_sparse_tensor = use_sparse_tensor
-            self._mask = DynamicParameterList(
-                init_params=[self.make_mask(widths)],
-                dtype=torch.uint8,
-                device=self.device,
-                parameters=False,
-            )
 
         self._centers = None
         self._widths = None
@@ -282,10 +331,9 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     # @log_classmethod
     def create(
         cls,
-        n_variables: int,
-        n_terms: int,
+        shape: FuzzySetShape,
         device: torch.device,
-        method: str,
+        method: FuzzySetInitMethod,
         init_width: float = 0.5,
         **kwargs,
     ) -> Union[NoReturn, "FuzzySet"]:
@@ -296,8 +344,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         a total of nine fuzzy sets. The centers and widths are initialized randomly.
 
         Args:
-            n_variables: The number of variables.
-            n_terms: The number of terms.
+            shape: The shape of these fuzzy sets.
             device: The device to use.
             method: The method to use for creating the fuzzy set (e.g., "random" or "linear").
             init_width: The initial width of the fuzzy set (for "linear" method).
@@ -313,24 +360,17 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                 "and inherit from FuzzySet, or use a predefined class, such as Gaussian."
             )
 
-        if method == "random":
-            # logging.debug("The 'random' initialization")
-            centers: np.ndarray = np.random.randn(n_variables, n_terms)
-            widths: np.ndarray = np.abs(np.random.randn(n_variables, n_terms)).clip(
-                min=0.1
-            )
-        elif method == "linear":
-            centers: np.ndarray = np.linspace(start=0.0, stop=1.0, num=n_terms)[
-                None, :
-            ].repeat(repeats=n_variables, axis=0)
-            widths: np.ndarray = (
-                np.ones((n_variables, n_terms), dtype=np.float32) * init_width
-            )
-        else:
-            raise ValueError(
-                f"The method must be either 'random' or 'linear', but got {method}"
-            )
-        fuzzy_sets = cls(centers=centers, widths=widths, device=device, **kwargs)
+        init_result: FuzzySetInitResult = method.initialize(
+            shape=shape,
+            init_width=init_width,
+        )
+
+        fuzzy_sets = cls(
+            centers=init_result.centers,
+            widths=init_result.widths,
+            device=device,
+            **kwargs,
+        )
         # logging.debug(f"New fuzzy set(s) created with the %s method.", method)
         return fuzzy_sets
 
@@ -713,10 +753,26 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
 
             plt.savefig(output_dir / "mu.png")
 
-        # Save just the portion _inside_ the second axis's boundaries
-        # Why do I do it this way? Because the axis is not always the same size if each plot is
-        # different. So, I save the area inside the axis's boundaries, and then I can pad it to
-        # make it look nice in papers
+        self.__individual_plot(axes, fig, output_dir)
+
+        return figures, axes
+
+    def __individual_plot(
+        self, axes: Union[Axes, ndarray], fig: Figure, output_dir: Path
+    ) -> None:
+        """
+        Save just the portion _inside_ the second axis's boundaries. Why do I do it this way?
+        Because the axis is not always the same size if each plot is different. So, I save the
+        area inside the axis's boundaries, and then I can pad it to make it look nice in papers.
+
+        Args:
+            axes: The axes to use for the plots.
+            fig: The figure to continue referencing when plotting.
+            output_dir: The directory to save the figure(s).
+
+        Returns:
+            None
+        """
         for variable_idx in range(self.get_centers().shape[0]):
             extent = (
                 axes[variable_idx]
@@ -741,8 +797,6 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                 output_dir / f"mu_{variable_idx}_expanded.png",
                 bbox_inches=expanded_bbox,
             )
-
-        return figures, axes
 
     @staticmethod
     # @log_func
@@ -851,14 +905,13 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
 
     # @log_method
     @abc.abstractmethod
-    def forward(self, observations) -> Membership:
+    def forward(self, observations: torch.Tensor) -> Membership:
         """
         Forward pass of the function. Applies the function to the input elementwise.
 
         Args:
-            observations: Two-dimensional matrix of observations,
-            where a row is a single observation and each column
-            is related to an attribute measured during that observation.
+            observations: Two-dimensional matrix of observations, where a row is a single
+            observation and each column is related to an attribute measured during that observation.
 
         Returns:
             The membership degrees of the observations for the Gaussian fuzzy set.

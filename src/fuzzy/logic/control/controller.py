@@ -283,7 +283,7 @@ class FuzzyLogicController(torch.nn.Sequential):
 
         # defuzzification
         try:  # TSK
-            return self.defuzzification(input, rule_strengths)
+            return self.defuzzification(rule_strengths, observations=input)
         except TypeError:  # Mamdani, ZeroOrder, etc.
             return self.defuzzification(rule_strengths)
 

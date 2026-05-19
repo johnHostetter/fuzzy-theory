@@ -7,7 +7,17 @@ import logging
 import pickle
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, MutableMapping, Set, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    MutableMapping,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 import torch
 from natsort import natsorted
@@ -16,31 +26,25 @@ from torch.nn.modules.module import _forward_unimplemented
 from fuzzy.utils.functions import all_subclasses, get_object_attributes
 
 
-class Loggable:
+class Loggable:  # pylint: disable=too-few-public-methods
     """
     Inherit this Loggable class to automatically create a logger to use.
     """
 
-    def __init__(self, logger=None):
-        self.logger = logger
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        debug: bool = False,
+        logger: Optional[logging.Logger] = None,
+    ):
+        if logger is not None:
+            self.logger = logger
+            return
 
-    def create_logger(self, name: str, debug: bool = False) -> None:
-        """
-        Create an instance of the logger for the object to access and utilize.
+        name = name or self.__class__.__name__
+        self.logger = logging.getLogger(name)
 
-        Args:
-            name: The name of the logger to be used.
-            debug: Whether debug mode is enabled (default is False).
-
-        Returns:
-            None
-        """
-        self.logger = logging.getLogger(name=name)
-        if debug:
-            self.logger.setLevel(logging.DEBUG)
-        else:
-            self.logger.setLevel(logging.INFO)
-        logging.disable(logging.CRITICAL)
+        self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
 
 
 class TimeDistributed(torch.nn.Module):

@@ -92,13 +92,18 @@ class Defuzzification(TorchJitModule, abc.ABC):
         return self
 
     @abc.abstractmethod
-    def forward(self, rule_activations: Membership) -> torch.Tensor:
+    def forward(
+        self,
+        rule_activations: Membership,
+        observations: Union[None, torch.Tensor],
+    ) -> torch.Tensor:
         """
         Given the activations of the fuzzy logic rules, calculate the output of the
         fuzzy logic controller.
 
         Args:
             rule_activations: The rule activations, or firing levels.
+            observations: The observations that activated the rules (does nothing here).
 
         Returns:
             The defuzzified output of the fuzzy logic controller.
@@ -186,7 +191,22 @@ class ZeroOrder(Defuzzification):
         self.consequences.to(device)
         return self
 
-    def forward(self, rule_activations: Membership) -> torch.Tensor:
+    def forward(
+        self,
+        rule_activations: Membership,
+        observations: Union[None, torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """
+        Given the activations of the fuzzy logic rules, calculate the output of the
+        fuzzy logic controller.
+
+        Args:
+            rule_activations: The rule activations, or firing levels.
+            observations: The observations that activated the rules (does nothing here).
+
+        Returns:
+            The defuzzified output of the fuzzy logic controller.
+        """
         # if self.training:
         #     assert not rule_activations.isnan().any(), "Rule activations are NaN!"
         #     assert not rule_activations.isinf().any(), "Rule activations are infinite!"
@@ -239,8 +259,25 @@ class NormalizedZeroOrder(ZeroOrder):
     one, and we want to ensure that the output is normalized.
     """
 
-    def forward(self, rule_activations: Membership) -> torch.Tensor:
-        numerator: torch.Tensor = self.super().forward(rule_activations)
+    def forward(
+        self,
+        rule_activations: Membership,
+        observations: Union[None, torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """
+        Given the activations of the fuzzy logic rules, calculate the output of the
+        fuzzy logic controller.
+
+        Args:
+            rule_activations: The rule activations, or firing levels.
+            observations: The observations that activated the rules (does nothing here).
+
+        Returns:
+            The defuzzified output of the fuzzy logic controller.
+        """
+        numerator: torch.Tensor = self.super().forward(
+            rule_activations,
+        )
         # unsqueeze must be there with or without confidences
         denominator = (rule_activations.degrees).sum(dim=1, keepdim=True)
         denominator += (
@@ -270,7 +307,7 @@ class TSK(Defuzzification):
     ):
         super().__init__(shape=shape, source=source, device=device, *args, **kwargs)
         if source is None:
-            consequences = torch.zeros(  # TODO: needs to be randn for optuna images
+            consequences = torch.randn(  # used to be torch.zero until April 30, 2026
                 [shape.n_outputs, shape.n_rules, shape.n_inputs + 1],
                 dtype=torch.float32,
             )
@@ -294,6 +331,13 @@ class TSK(Defuzzification):
 
     @property
     def consequences(self):
+        """
+        Obtain the consequences of the fuzzy logic controller, which for this particular type of
+        defuzzification, include both biases and weights.
+
+        Returns:
+            The biases and weights of the fuzzy logic controller's decisions.
+        """
         return torch.cat(
             [
                 self.bias.squeeze(0).unsqueeze(-1),
@@ -355,8 +399,21 @@ class TSK(Defuzzification):
         return self
 
     def forward(
-        self, observations: torch.Tensor, rule_activations: Membership
+        self,
+        rule_activations: Membership,
+        observations: Union[None, torch.Tensor],
     ) -> torch.Tensor:
+        """
+        Given the activations of the fuzzy logic rules, calculate the output of the
+        fuzzy logic controller.
+
+        Args:
+            rule_activations: The rule activations, or firing levels.
+            observations: The observations that activated the rules (required).
+
+        Returns:
+            The defuzzified output of the fuzzy logic controller.
+        """
         # print("w", self.consequences[0].state_dict()['weight'][0][0])
         # print("b", self.consequences[0].state_dict()['bias'][0])
         # old_rule_output = (
@@ -462,12 +519,17 @@ class Mamdani(Defuzzification):
         self.consequences.to(device)
         return self
 
-    def forward(self, rule_activations: Membership) -> torch.Tensor:
+    def forward(
+        self,
+        rule_activations: Membership,
+        observations: Union[None, torch.Tensor] = None,
+    ) -> torch.Tensor:
         """
         Given the activations of the fuzzy logic rules, calculate the output of the Mamdani FLC.
 
         Args:
             rule_activations: The rule activations, or firing levels.
+            observations: The observations that activated the rules (does nothing here).
 
         Returns:
             The defuzzified output of a Mamdani FLC.
