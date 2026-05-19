@@ -12,7 +12,8 @@ from torch._C import Size
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import NestedTorchJitModule, check_path_to_save_torch_module
 from fuzzy.utils.classes import Loggable
-from fuzzy.utils.functions import log_classmethod, log_method
+
+# from fuzzy.utils.functions import log_classmethod, log_method
 
 
 class BinaryLinks(torch.nn.Module, Loggable):
@@ -139,7 +140,7 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         self,
         *args,
         modules_list: Union[None, List[torch.nn.Module]],
-        debug: bool = False,
+        # debug: bool = False,
         callback: Optional[Callable[[], None]] = None,
         **kwargs,
     ):
@@ -154,14 +155,38 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         # self.streams = [torch.cuda.Stream() for _ in range(len(self.modules_list))]
 
     @property
-    def shape(self):
+    def shape(self) -> Size:
+        """
+        Get the shape of the current linkage.
+
+        Returns:
+            The shape of the current linkage, represented via a Size object.
+        """
         return self._cached_shape
 
-    def append(self, module: torch.nn.Module):
+    def append(self, module: torch.nn.Module) -> None:
+        """
+        Append a module to the end of the list.
+
+        Args:
+            module: The module to be appended.
+
+        Returns:
+            None
+        """
         self.modules_list.append(module)
         self._compute_shape_cache()
 
-    def extend(self, modules: List[torch.nn.Module]):
+    def extend(self, modules: List[torch.nn.Module]) -> None:
+        """
+        Extend the available linkage to incorporate the new list of modules.
+
+        Args:
+            modules: A list of modules that should be appended.
+
+        Returns:
+            None
+        """
         self.modules_list.extend(modules)
         self._compute_shape_cache()
 

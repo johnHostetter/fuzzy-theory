@@ -18,18 +18,19 @@ The code was modified from the public repository of the authors:
 to make it compatible with this fuzzy-theory library.
 """
 
-from abc import ABC
+import abc
 from typing import Union
 
 import numpy as np
 import sympy
 import torch
 
-from ..abstract import FuzzySet
-from ..membership import Membership
+from fuzzy.sets.abstract import FuzzySet
+from fuzzy.sets.impl.gauss_variants.cmf import Gaussian, LogGaussian
+from fuzzy.sets.membership import Membership
 
 
-class DimensionDependent(FuzzySet, ABC):
+class DimensionDependent(FuzzySet, abc.ABC):
     """
     This class represents a Dimension-Dependent fuzzy set. It is an abstract base class that
     provides the basic structure for Dimension-Dependent fuzzy sets, such as Gaussian DMF and
@@ -48,21 +49,20 @@ class DimensionDependent(FuzzySet, ABC):
     ):
         super().__init__(centers=centers, widths=widths, device=device, **kwargs)
         self.n_inputs: torch.Tensor = torch.tensor(
-            [centers.shape[0]], dtype=torch.float32, device=device
+            [centers.shape[0]], dtype=torch.int8, device=device
         )  # count of input variables/features/dimensions
         self.rho: torch.Tensor = (
-            self._calculate_rho(n_inputs=self.n_inputs.item(), device=device)
+            self._calculate_rho(n_inputs=self.n_inputs, device=device)
             if rho is None
             else torch.tensor([rho], dtype=torch.float32, device=device)
         )
 
     @staticmethod
-    def _calculate_rho(n_inputs: int, device: torch.device) -> torch.Tensor:
+    def _calculate_rho(n_inputs: torch.Tensor, device: torch.device) -> torch.Tensor:
         with torch.no_grad():
             return (
                 torch.ones(1, device=device)
-                - torch.tensor([745], device=device).log()
-                / torch.tensor([n_inputs], device=device).log()
+                - torch.tensor([745], device=device).log() / n_inputs.log()
             )
 
 
@@ -78,7 +78,7 @@ class GaussianNoExpDMF(DimensionDependent):
         centers: torch.Tensor,
         widths: torch.Tensor,
         n_inputs: torch.Tensor,
-        rho: torch.Tensor = None,
+        rho: torch.Tensor,
     ) -> torch.Tensor:
         """
         Calculate the membership of the observations to the Dimension-Dependent fuzzy set.
@@ -99,12 +99,11 @@ class GaussianNoExpDMF(DimensionDependent):
             The membership degrees of the observations for the Gaussian DMF fuzzy set.
         """
 
-        return -1.0 * (
-            torch.pow(
-                observations - centers,
-                2,
-            )
-            / (torch.pow(n_inputs, rho) + torch.pow(widths, 2) + 1e-32)
+        return LogGaussian.internal_calculate_membership(
+            observations=observations,
+            centers=centers,
+            widths=widths,
+            width_multiplier=torch.pow(n_inputs, rho).item(),
         )
 
     @classmethod
@@ -142,7 +141,6 @@ class GaussianNoExpDMF(DimensionDependent):
     def forward(self, observations) -> Membership:
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
-        # we do not need torch.float64 for observations
         degrees: torch.Tensor = self.calculate_membership(observations.float())
 
         # assert (
@@ -153,8 +151,6 @@ class GaussianNoExpDMF(DimensionDependent):
         # ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            # elements=observations.squeeze(dim=-1),  # remove the last
-            # dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
             mask=self.get_mask(),
         )
@@ -172,7 +168,7 @@ class GaussianDMF(DimensionDependent):
         centers: torch.Tensor,
         widths: torch.Tensor,
         n_inputs: torch.Tensor,
-        rho: torch.Tensor = None,
+        rho: torch.Tensor,
     ) -> torch.Tensor:
         """
         Calculate the membership of the observations to the Dimension-Dependent fuzzy set.
@@ -193,16 +189,23 @@ class GaussianDMF(DimensionDependent):
             The membership degrees of the observations for the Gaussian DMF fuzzy set.
         """
 
-        return torch.exp(
-            -1.0
-            * (
-                torch.pow(
-                    observations - centers,
-                    2,
-                )
-                / (torch.pow(n_inputs, rho) + torch.pow(widths, 2) + 1e-32)
-            )
+        return Gaussian.internal_calculate_membership(
+            observations=observations,
+            centers=centers,
+            widths=widths,
+            width_multiplier=torch.pow(n_inputs, rho).item(),
         )
+        # ORIGINAL:
+        # return torch.exp(
+        #     -1.0
+        #     * (
+        #         torch.pow(
+        #             observations - centers,
+        #             2,
+        #         )
+        #         / (torch.pow(n_inputs, rho) + torch.pow(widths, 2) + 1e-32)
+        #     )
+        # )
 
     @classmethod
     @torch.jit.ignore
@@ -230,7 +233,6 @@ class GaussianDMF(DimensionDependent):
     def forward(self, observations) -> Membership:
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
-        # we do not need torch.float64 for observations
         degrees: torch.Tensor = self.calculate_membership(observations.float())
 
         # assert (
@@ -241,8 +243,6 @@ class GaussianDMF(DimensionDependent):
         # ), "Infinite values detected in the membership degrees."
 
         return Membership(
-            # elements=observations.squeeze(dim=-1),  # remove the last
-            # dimension
             degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
             mask=self.get_mask(),
         )

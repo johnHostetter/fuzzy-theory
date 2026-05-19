@@ -1,3 +1,9 @@
+"""
+This script contains various classes that allow the customization of any t-norm operation for the
+purposes of enabling rapid research exploration.
+"""
+
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, MutableMapping
 
@@ -15,7 +21,14 @@ from fuzzy.utils.options.impl.impl_options import (
 )
 
 
+@dataclass
 class CustomTNormOptions(GroupedOptions):
+    """
+    A dataclass that strips away irrelevant members from a larger class called
+    NeuroFuzzyNetworkHyperparameters, so that only the essential members for t-norm operations are
+    retained in the new object.
+    """
+
     def __init__(
         self, hyperparameters: NeuroFuzzyNetworkHyperparameters = None, **kwargs
     ):
@@ -29,6 +42,11 @@ class CustomTNormOptions(GroupedOptions):
 
 
 class TNormPipeline(torch.nn.Module):
+    """
+    A generic sequential process that outlines a convenient interface to customize t-norm
+    operations in order to enable rapid research exploration.
+    """
+
     def __init__(
         self,
         configuration: CustomTNormOptions,
@@ -38,8 +56,8 @@ class TNormPipeline(torch.nn.Module):
     ):
         super().__init__()
         self.n_relations = n_relations
-        self._agg = configuration.premise.aggregation.func
-        self._act = configuration.premise.activation.func
+        self._agg = configuration.premise.aggregation.func()
+        self._act = configuration.premise.activation.func()
         self.layer_norm = None
         if "layer_norm" in kwargs and isinstance(
             kwargs["layer_norm"], torch.nn.LayerNorm
@@ -60,6 +78,15 @@ class TNormPipeline(torch.nn.Module):
             )
 
     def save(self, path: Path) -> MutableMapping[str, Any]:
+        """
+        Save the custom n-ary relation to a dictionary given a path.
+
+        Args:
+            path: The (requested) path to save the n-ary relation. This path must be a directory.
+
+        Returns:
+            The dictionary representation of the custom n-ary relation.
+        """
         state_dict: MutableMapping[str, Any] = self.state_dict()
         state_dict["n_relations"] = self.n_relations
         if self.certainty is not None:
@@ -97,6 +124,16 @@ class TNormPipeline(torch.nn.Module):
         raise ValueError(f"Invalid path: {path}")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the custom n-ary t-norm operation.
+
+        Args:
+            x: The input to the n-ary t-norm operation, likely a tensor representing membership
+            degrees that are to be manipulated.
+
+        Returns:
+            Membership degrees determined based on the custom n-ary t-norm operation.
+        """
         # x = self._agg(x)
         if self.layer_norm is not None:
             x = self.layer_norm(x)

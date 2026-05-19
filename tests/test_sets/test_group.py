@@ -9,6 +9,7 @@ from pathlib import Path
 import torch
 
 from fuzzy.sets import Membership
+from fuzzy.sets.abstract import FuzzySetInitMethod, FuzzySetShape
 from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.impl import Gaussian
 from fuzzy.utils.functions import get_object_attributes
@@ -28,10 +29,14 @@ class TestFuzzySetGroup(unittest.TestCase):
         self.grouped_fuzzy_sets: FuzzySetGroup = FuzzySetGroup(
             modules_list=[
                 Gaussian.create(
-                    n_variables=2, n_terms=3, device=AVAILABLE_DEVICE, method="linear"
+                    shape=FuzzySetShape(n_variables=2, n_terms=3),
+                    device=AVAILABLE_DEVICE,
+                    method=FuzzySetInitMethod.LINEAR,
                 ),
                 Gaussian.create(
-                    n_variables=2, n_terms=3, device=AVAILABLE_DEVICE, method="linear"
+                    shape=FuzzySetShape(n_variables=2, n_terms=3),
+                    device=AVAILABLE_DEVICE,
+                    method=FuzzySetInitMethod.LINEAR,
                 ),
             ]
         )

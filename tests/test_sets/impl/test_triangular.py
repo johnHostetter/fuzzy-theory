@@ -7,6 +7,7 @@ import unittest
 import numpy as np
 import torch
 
+from fuzzy.sets.abstract import FuzzySetInitMethod, FuzzySetShape
 from fuzzy.sets.impl import Triangular
 
 from .common import get_test_elements
@@ -245,7 +246,12 @@ class TestTriangular(unittest.TestCase):
             None
         """
         triangular_mf = Triangular.create(
-            n_variables=4, n_terms=4, device=AVAILABLE_DEVICE, method="random"
+            shape=FuzzySetShape(
+                n_variables=4,
+                n_terms=4,
+            ),
+            device=AVAILABLE_DEVICE,
+            method=FuzzySetInitMethod.RANDOM,
         )
         element = np.array([[0.0001712, 0.00393354, -0.03641258, -0.01936134]])
         target_membership_degrees = triangular_numpy(

@@ -7,7 +7,6 @@ This Python module also contains functions for extracting information from a kno
 and fuzzy logic rule matrices. These components may then be used to create a fuzzy inference system.
 """
 
-import pickle
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any, List, MutableMapping, Type, Union
@@ -79,7 +78,7 @@ class FuzzyLogicController(torch.nn.Sequential):
         self.disable_parameters_and_build(
             modules=OrderedDict(
                 [
-                    ("input", granulation_layers["input"]),
+                    ("input_granulation", granulation_layers["input"]),
                     ("engine", engine),
                     ("defuzzification", defuzzification),
                 ]
@@ -114,7 +113,7 @@ class FuzzyLogicController(torch.nn.Sequential):
         state_dict["shape"] = tuple(self.shape)
         # save the FLC state dictionary
         torch.save(state_dict, path / "flc.pt")
-        self.input.save(
+        self.input_granulation.save(
             path / "input"
         )  # save the input granulation layer (drop the extension)
         self.engine.save(path / "engine.pt")  # save the inference engine
@@ -257,7 +256,9 @@ class FuzzyLogicController(torch.nn.Sequential):
             targets=None if len(results_lst) < 2 else results_lst[1],
         )
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, input: torch.Tensor  # pylint: disable=redefined-builtin
+    ) -> torch.Tensor:
         """
         Forward pass for the FLC. This is the main method that will be called when the FLC is used
         in a forward pass. This method will perform the fuzzy inference process, which includes
@@ -271,7 +272,7 @@ class FuzzyLogicController(torch.nn.Sequential):
         """
         # return self.net(input)
         # fuzzification
-        granulated_input = self.input(input)
+        granulated_input = self.input_granulation(input)
         # A = torch.ones((self.shape.n_inputs, self.shape.n_outputs), device=input.device)
         # return torch.mm(granulated_input.degrees.mean(dim=-1), A)
 
@@ -282,7 +283,7 @@ class FuzzyLogicController(torch.nn.Sequential):
 
         # defuzzification
         try:  # TSK
-            return self.defuzzification(input, rule_strengths)
+            return self.defuzzification(rule_strengths, observations=input)
         except TypeError:  # Mamdani, ZeroOrder, etc.
             return self.defuzzification(rule_strengths)
 

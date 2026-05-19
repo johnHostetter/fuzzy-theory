@@ -1,14 +1,23 @@
+"""
+Additional code to test and validate the LogGaussian class works as expected.
+"""
+
 import unittest
 
 import numpy as np
 import torch
 
 from fuzzy.sets.impl import LogGaussian
+from fuzzy.sets.impl.gauss_variants.cmf import GaussianKernel
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class TestLogGaussian(unittest.TestCase):
+    """
+    Test and validate the LogGaussian class works as expected.
+    """
+
     def test_bad_width_multiplier(self) -> None:
         """
         Test that the width multiplier must be either 1.0 or 2.0.
@@ -22,7 +31,10 @@ class TestLogGaussian(unittest.TestCase):
             centers=np.ones(1),
             widths=np.ones(1),
             device=AVAILABLE_DEVICE,
-            width_multiplier=0.0,
+            gaussian_kernel=GaussianKernel(
+                width_multiplier=0.0,
+                slope_multiplier=1.0,
+            ),
         )
         self.assertRaises(
             ValueError,
@@ -30,7 +42,10 @@ class TestLogGaussian(unittest.TestCase):
             centers=np.ones(1),
             widths=np.ones(1),
             device=AVAILABLE_DEVICE,
-            width_multiplier=3.0,
+            gaussian_kernel=GaussianKernel(
+                width_multiplier=3.0,
+                slope_multiplier=1.0,
+            ),
         )
         self.assertRaises(
             ValueError,
@@ -38,5 +53,8 @@ class TestLogGaussian(unittest.TestCase):
             centers=np.ones(1),
             widths=np.ones(1),
             device=AVAILABLE_DEVICE,
-            width_multiplier=-1.0,
+            gaussian_kernel=GaussianKernel(
+                width_multiplier=-1.0,
+                slope_multiplier=1.0,
+            ),
         )

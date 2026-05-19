@@ -1,39 +1,27 @@
+"""
+This script contains various ready-to-use classes that can handle primitive options, where the
+values may only involve either categories, integers, or floats. Additionally, it provides the
+capability to group options together to form more comprehensive option selection as well as
+better organization. The benefit of using this options interface is that code handling complex
+branching in neural architectures can rapidly be developed and accessible to external
+hyperparameter optimization via libraries such as optuna.
+"""
+
 import pickle
 from pathlib import Path
 from typing import Tuple, Union
 
-from fuzzy.utils.options.abstract.meta import IterableOptions, Options
+from fuzzy.utils.options.abstract.meta import EnumPromoter, IterableOptions, Options
 
 
-class CategoricalOptions(IterableOptions, Options):
-    def __init__(self, *values: Union[str, int, float]):
-        super().__init__(values)
-        self._value: Union[None, str, int, float] = None
+class IntOptions(IterableOptions):
+    """
+    An abstract class definition of the concept behind 'options' for integer values. This class
+    offers a convenient interface to select from various options and retain this selection in
+    perpetuity. In particular, this is a useful class to reliably reference integer options for
+    hyperparameter optimization libraries, such as optuna.
+    """
 
-    @staticmethod
-    def load(path: Path, cls=None) -> "CategoricalOptions":
-        if cls is None:
-            cls = CategoricalOptions
-        with open(path, "rb") as file:
-            loaded_dict = pickle.load(file)
-        categorical_options = cls(*loaded_dict["options"])
-        if loaded_dict["_value"] is not None:
-            categorical_options.selection = loaded_dict["_value"]
-
-        for key, value in loaded_dict.items():
-            if key not in {"options", "_value"}:
-                setattr(categorical_options, key, value)
-        return categorical_options
-
-    def assign(self, trial, name) -> Union[str, int, float]:
-        @self.assign_once
-        def suggest():
-            return trial.suggest_categorical(name, self.options)
-
-        return suggest()
-
-
-class IntOptions(IterableOptions, Options):
     def __init__(self, start: int, end: int, step: int = 1):
         super().__init__(range(start, end, step))
         self.start: int = start
@@ -68,6 +56,13 @@ class IntOptions(IterableOptions, Options):
 
 
 class FloatOptions(Options):
+    """
+    An abstract class definition of the concept behind 'options' for float values. This class
+    offers a convenient interface to select from various options and retain this selection in
+    perpetuity. In particular, this is a useful class to reliably reference float options for
+    hyperparameter optimization libraries, such as optuna.
+    """
+
     def __init__(self, start: float, end: float):
         super().__init__()
         self._value: Union[None, float] = None
@@ -99,7 +94,76 @@ class FloatOptions(Options):
         return suggest()
 
 
+class CategoricalOptions(IterableOptions):
+    """
+    An abstract class definition of the concept behind 'options' for categorical values. This class
+    offers a convenient interface to select from various options and retain this selection in
+    perpetuity. In particular, this is a useful class to reliably reference categorical options for
+    hyperparameter optimization libraries, such as optuna.
+    """
+
+    def __init__(self, *values: Union[str, int, float]):
+        super().__init__(values)
+        self._value: Union[None, str, int, float] = None
+
+    @staticmethod
+    def load(path: Path, cls=None) -> "CategoricalOptions":
+        if cls is None:
+            cls = CategoricalOptions
+        with open(path, "rb") as file:
+            loaded_dict = pickle.load(file)
+        categorical_options = cls(*loaded_dict["options"])
+        if loaded_dict["_value"] is not None:
+            categorical_options.selection = loaded_dict["_value"]
+
+        for key, value in loaded_dict.items():
+            if key not in {"options", "_value"}:
+                setattr(categorical_options, key, value)
+        return categorical_options
+
+    def assign(self, trial, name) -> Union[str, int, float]:
+        @self.assign_once
+        def suggest():
+            return trial.suggest_categorical(name, self.options)
+
+        return suggest()
+
+
+class CategoricalEnumOptions(CategoricalOptions, EnumPromoter):
+    """
+    A class that exposes a set of categorical options that should also be treated as members of
+    the CategoricalOptions object (i.e., similar behavior to an Enum).
+    """
+
+    enum_cls = None  # required
+
+    def __init__(self, *args, **kwargs):
+        EnumPromoter.__init_subclass__(enum_cls=self.enum_cls)
+        super().__init__(*self.options, *args, **kwargs)
+
+    @staticmethod
+    def load(path: Path, cls=None) -> "CategoricalEnumOptions":
+        """
+        The function to load a CategoricalEnumOptions object. The 'cls' argument is ignored but
+        kept for consistency with the static load method from 'CategoricalOptions'.
+        Args:
+            path: The path where the CategoricalEnumOptions object is located.
+            cls: An ignored argument; kept for interface consistency.
+
+        Returns:
+            An instance of CategoricalEnumOptions.
+        """
+        loaded_object = super().load(path=path, cls=CategoricalEnumOptions)
+        if isinstance(loaded_object, CategoricalEnumOptions):
+            return loaded_object
+        raise ValueError(f"Failed to load from: {path}")
+
+
 class GroupedOptions(Options):
+    """
+    A class that allows related options to be grouped together for greater organization.
+    """
+
     def __init__(self, **kwargs):
         super().__init__()
         for key, value in kwargs.items():

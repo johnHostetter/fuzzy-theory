@@ -1,14 +1,14 @@
 """
-This script contain classes that inherit from ExtendedEnum which outline the different names
+This script contain classes that inherit from str as well as Enum to outline the different names
 of various design options for their accompanying neural architecture. These are ideal for a
 consistent interface to reference the selection of a particular feature inside a neural
 architecture. If interested in selecting from these options, see design_options.py
 """
 
-from fuzzy.utils.options.abstract.ext_enum import ExtendedEnum
+from enum import Enum
 
 
-class PremiseAggregationEnum(ExtendedEnum):
+class PremiseAggregationEnum(str, Enum):
     """
     The aggregation method for premise activations.
     """
@@ -17,7 +17,7 @@ class PremiseAggregationEnum(ExtendedEnum):
     MEAN = "mean"
 
 
-class PremiseEliminationEnum(ExtendedEnum):
+class PremiseEliminationEnum(str, Enum):
     """
     Elimination, or drop out, of premise terms from fuzzy logic rules.
     """
@@ -28,7 +28,7 @@ class PremiseEliminationEnum(ExtendedEnum):
     # function)
 
 
-class BoundAlphaEntmaxEnum(ExtendedEnum):
+class BoundAlphaEntmaxEnum(str, Enum):
     """
     What technique we should use to keep the alpha within (1, 2) when using entmax_bisect.
     """
@@ -38,7 +38,7 @@ class BoundAlphaEntmaxEnum(ExtendedEnum):
     SOFTPLUS = "softplus_add_shift"
 
 
-class PremiseActivationEnum(ExtendedEnum):
+class PremiseActivationEnum(str, Enum):
     """
     Completes calculating the membership degrees of each premise term assuming Gaussian functions
     were used without their exp.
@@ -54,7 +54,7 @@ class PremiseActivationEnum(ExtendedEnum):
     # implemented)
 
 
-class SamplingEnum(ExtendedEnum):
+class SamplingEnum(str, Enum):
     """
     How to complete the one-hot differentiable sampling of a discrete stochastic process.
     """
@@ -64,7 +64,7 @@ class SamplingEnum(ExtendedEnum):
     ST = "straight_through"  # no noise
 
 
-class RuleWeightsEnum(ExtendedEnum):
+class RuleWeightsEnum(str, Enum):
     """
     This allows for the disabling/enabling of rule weights (e.g., certainty factors).
     """
@@ -73,7 +73,7 @@ class RuleWeightsEnum(ExtendedEnum):
     CERTAINTY_FACTORS = "certainty_factors"
 
 
-class RuleEliminationEnum(ExtendedEnum):
+class RuleEliminationEnum(str, Enum):
     """
     This allows for the disabling/enabling of rule elimination in an attempt to improve
     interpretability of fuzzy inference.
@@ -86,7 +86,7 @@ class RuleEliminationEnum(ExtendedEnum):
     # consequence to be ineffective (essentially dropping it from influence)
 
 
-class RuleElevationEnum(ExtendedEnum):
+class RuleElevationEnum(str, Enum):
     """
     This allows for the disabling/enabling of layer normalization in an attempt to alleviate the
     curse of dimensionality's impact on fuzzy logic rule activation. In essence, it elevates the

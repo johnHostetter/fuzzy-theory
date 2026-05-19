@@ -7,14 +7,15 @@ function).
 import inspect
 import os
 import unittest
-from collections import OrderedDict
 from pathlib import Path
-from typing import MutableMapping
+from typing import Any, MutableMapping
 
 import torch
 
-from fuzzy.sets.abstract import FuzzySet
-from fuzzy.sets.impl.cmf import Gaussian, NoOp
+from fuzzy.sets import Membership
+from fuzzy.sets.abstract import FuzzySet, FuzzySetInitMethod, FuzzySetShape
+from fuzzy.sets.impl.basic import NoOp
+from fuzzy.sets.impl.gauss_variants.cmf import Gaussian
 
 AVAILABLE_DEVICE: torch.device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
@@ -35,7 +36,9 @@ class TestFuzzySet(unittest.TestCase):
         """
         with self.assertRaises(NotImplementedError):
             FuzzySet.create(
-                n_variables=4, n_terms=2, device=torch.device("cpu"), method="linear"
+                shape=FuzzySetShape(n_variables=4, n_terms=2),
+                device=torch.device("cpu"),
+                method=FuzzySetInitMethod.LINEAR,
             )
 
     def test_save_and_load(self) -> None:
@@ -49,7 +52,9 @@ class TestFuzzySet(unittest.TestCase):
             if inspect.isabstract(subclass) or subclass == NoOp:
                 continue
             membership_func = subclass.create(
-                n_variables=4, n_terms=4, device=AVAILABLE_DEVICE, method="linear"
+                shape=FuzzySetShape(n_variables=4, n_terms=4),
+                device=AVAILABLE_DEVICE,
+                method=FuzzySetInitMethod.LINEAR,
             )
             state_dict: MutableMapping = membership_func.state_dict()
 
@@ -64,7 +69,7 @@ class TestFuzzySet(unittest.TestCase):
                 membership_func.save(Path("test.pth"))
 
             # test that saving the state dict works
-            saved_state_dict: OrderedDict = membership_func.save(
+            saved_state_dict: MutableMapping[str, Any] = membership_func.save(
                 Path("membership_func.pt")
             )
 
@@ -110,5 +115,42 @@ class TestFuzzySet(unittest.TestCase):
             # delete the file
             os.remove("membership_func.pt")
 
-    def test_save_and_load_of_no_op(self):
-        pass  # TODO: implement the save and load of NoOp
+    def test_save_and_load_of_no_op(self) -> None:
+        """
+        Test that saving and loading a NoOp (i.e., no operation) works as intended.
+
+        Returns:
+            None
+        """
+        no_op = NoOp(n_elements=10, membership=0.75, device=AVAILABLE_DEVICE)
+        membership = no_op(
+            torch.tensor([[0.1, 0.2, 0.3, 0.4]], device=AVAILABLE_DEVICE)
+        )
+        self.save_and_load_of_no_op_helper(membership, no_op)
+        # test saving and loading of the NoOp
+        tmp_file = Path("tmp.pt")
+        no_op.save(tmp_file)
+        loaded_no_op = NoOp.load(tmp_file, device=AVAILABLE_DEVICE)
+        # delete the temporary file
+        tmp_file.unlink()
+
+        self.save_and_load_of_no_op_helper(membership, loaded_no_op)
+
+    def save_and_load_of_no_op_helper(
+        self, membership: Membership, no_op: "FuzzySet"
+    ) -> None:
+        """
+        A simple helper method to check the behavior of no operation (i.e., do nothing)
+        membership function works as intended both before and after saving/loading.
+
+        Args:
+            membership: The membership degrees.
+            no_op: The no operation.
+
+        Returns:
+            None
+        """
+        self.assertEqual(no_op.get_centers().size()[0], 10)
+        self.assertEqual(membership.degrees.size()[1], 4)
+        self.assertNotEqual(no_op.get_centers().size()[0], membership.degrees.size()[1])
+        self.assertAlmostEqual(no_op.membership, membership.degrees.mean().item())

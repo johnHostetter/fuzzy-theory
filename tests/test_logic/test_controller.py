@@ -112,14 +112,14 @@ class TestTSK(unittest.TestCase):
 
         # check that the input granulation was correctly created
         assert torch.allclose(
-            self.fuzzy_logic_controller.input.centers,
+            self.fuzzy_logic_controller.input_granulation.centers,
             torch.tensor(
                 [[1.2000, 3.0000, 5.0000, 7.0000], [0.2000, 0.6000, 0.9000, 1.2000]],
                 device=AVAILABLE_DEVICE,
             ),
         )
         assert torch.allclose(
-            self.fuzzy_logic_controller.input.widths,
+            self.fuzzy_logic_controller.input_granulation.widths,
             torch.tensor(
                 [[0.1000, 0.4000, 0.6000, 0.8000], [0.4000, 0.4000, 0.5000, 0.4500]],
                 device=AVAILABLE_DEVICE,
@@ -150,13 +150,17 @@ class TestTSK(unittest.TestCase):
             ],
             device=AVAILABLE_DEVICE,
         )
-        assert self.fuzzy_logic_controller.input(data_with_missing).degrees.shape == (
+        assert self.fuzzy_logic_controller.input_granulation(
+            data_with_missing
+        ).degrees.shape == (
             6,
             2,
             4,
         )  # 6 samples, 2 features, 4 granules
         assert torch.allclose(
-            self.fuzzy_logic_controller.input(data_with_missing).degrees.to_dense(),
+            self.fuzzy_logic_controller.input_granulation(
+                data_with_missing
+            ).degrees.to_dense(),
             torch.tensor(
                 [
                     [
@@ -192,7 +196,7 @@ class TestTSK(unittest.TestCase):
         )
         self.fuzzy_logic_controller.engine.nan_replacement = 0.0
         lower_rule_activations: Membership = self.fuzzy_logic_controller.engine(
-            self.fuzzy_logic_controller.input(data_with_missing)
+            self.fuzzy_logic_controller.input_granulation(data_with_missing)
         )
         assert torch.allclose(
             lower_rule_activations.degrees,
@@ -214,7 +218,7 @@ class TestTSK(unittest.TestCase):
         self.fuzzy_logic_controller.engine.nan_replacement = 1.0
         temp_upper_rule_activations: torch.Tensor = (
             self.fuzzy_logic_controller.engine.apply_mask(
-                self.fuzzy_logic_controller.input(data_with_missing)
+                self.fuzzy_logic_controller.input_granulation(data_with_missing)
             )
         )
         assert torch.allclose(
@@ -253,7 +257,7 @@ class TestTSK(unittest.TestCase):
             equal_nan=True,
         )
         upper_rule_activations: Membership = self.fuzzy_logic_controller.engine(
-            self.fuzzy_logic_controller.input(data_with_missing)
+            self.fuzzy_logic_controller.input_granulation(data_with_missing)
         )
         assert torch.allclose(
             upper_rule_activations.degrees,
@@ -460,7 +464,7 @@ class TestMamdani(unittest.TestCase):
         #     self.fuzzy_logic_controller.engine.calc_intermediate_output(
         #         self.fuzzy_logic_controller.engine(
         #             self.fuzzy_logic_controller.dispersion(
-        #                 self.fuzzy_logic_controller.input(
+        #                 self.fuzzy_logic_controller.input_granulation(
         #                     input_data
         #                 )
         #             )
@@ -549,13 +553,15 @@ class TestMamdani(unittest.TestCase):
             ],
             device=AVAILABLE_DEVICE,
         )
-        assert self.fuzzy_logic_controller.input(data_with_missing).degrees.shape == (
+        assert self.fuzzy_logic_controller.input_granulation(
+            data_with_missing
+        ).degrees.shape == (
             6,
             2,
             4,
         )  # 6 samples, 2 features, 4 granules
         assert torch.allclose(
-            self.fuzzy_logic_controller.input(data_with_missing)
+            self.fuzzy_logic_controller.input_granulation(data_with_missing)
             .degrees.to_dense()
             .float(),
             torch.tensor(
@@ -593,7 +599,7 @@ class TestMamdani(unittest.TestCase):
         )
         self.fuzzy_logic_controller.engine.nan_replacement = 0.0
         lower_rule_activations: Membership = self.fuzzy_logic_controller.engine(
-            self.fuzzy_logic_controller.input(data_with_missing)
+            self.fuzzy_logic_controller.input_granulation(data_with_missing)
         )
         assert torch.allclose(
             lower_rule_activations.degrees.sort().values,
@@ -615,7 +621,7 @@ class TestMamdani(unittest.TestCase):
         self.fuzzy_logic_controller.engine.nan_replacement = 1.0
         temp_upper_rule_activations: torch.Tensor = (
             self.fuzzy_logic_controller.engine.apply_mask(
-                self.fuzzy_logic_controller.input(data_with_missing)
+                self.fuzzy_logic_controller.input_granulation(data_with_missing)
             )
         )
         assert torch.allclose(
@@ -654,7 +660,7 @@ class TestMamdani(unittest.TestCase):
             equal_nan=True,
         )
         upper_rule_activations: Membership = self.fuzzy_logic_controller.engine(
-            self.fuzzy_logic_controller.input(data_with_missing)
+            self.fuzzy_logic_controller.input_granulation(data_with_missing)
         )
         assert torch.allclose(
             upper_rule_activations.degrees,
@@ -684,14 +690,14 @@ class TestMamdani(unittest.TestCase):
         # check that the antecedents of the Mamdani FLC refer to the input
         # granulation layer (i.e., the fuzzy sets defined in the input space)
         assert torch.equal(
-            self.fuzzy_logic_controller.input.centers,
+            self.fuzzy_logic_controller.input_granulation.centers,
             torch.tensor(
                 [[1.2000, 3.0000, 5.0000, 7.0000], [0.2000, 0.6000, 0.9000, 1.2000]],
                 device=AVAILABLE_DEVICE,
             ),
         )
         assert torch.equal(
-            self.fuzzy_logic_controller.input.widths,
+            self.fuzzy_logic_controller.input_granulation.widths,
             torch.tensor(
                 [[0.1000, 0.4000, 0.6000, 0.8000], [0.4000, 0.4000, 0.5000, 0.4500]],
                 device=AVAILABLE_DEVICE,
@@ -778,15 +784,15 @@ class TestMamdani(unittest.TestCase):
             None
         """
         expected_input_links = torch.tensor(
-            [[[1.0, 0.0, 0.0], [0.0, 1.0, 1.0]], [[1.0, 1.0, 0.0], [0.0, 0.0, 1.0]]],
+            [[[1, 0, 0], [0, 1, 1]], [[1, 1, 0], [0, 0, 1]]],
             dtype=torch.int8,
             device=AVAILABLE_DEVICE,
         )
         expected_output_links = torch.tensor(
             [
-                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
-                [[0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
-                [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+                [[1, 0, 0], [0, 1, 0]],
+                [[0, 1, 0], [0, 0, 1]],
+                [[1, 0, 0], [1, 0, 0]],
             ],
             dtype=torch.int8,
             device=AVAILABLE_DEVICE,

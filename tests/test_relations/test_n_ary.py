@@ -17,7 +17,7 @@ from fuzzy.relations.compound import Compound
 from fuzzy.relations.linkage import BinaryLinks, GroupedLinks
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.relations.t_norm import Minimum, Product
-from fuzzy.sets.abstract import FuzzySet
+from fuzzy.sets.abstract import FuzzySet, FuzzySetInitMethod, FuzzySetShape
 from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.impl import Gaussian
 from fuzzy.sets.membership import Membership
@@ -121,15 +121,23 @@ class TestNAryRelation(unittest.TestCase):
         # the forward pass should not be implemented
         self.assertRaises(NotImplementedError, n_ary.forward, None)
         # check that the matrix shape is correct
-        self.assertEqual(n_ary._coo_matrix[0].shape, (2, 2))
+        self.assertEqual(
+            n_ary._coo_matrix[0].shape, (2, 2)  # pylint: disable=protected-access
+        )
         # check that the original shape is stored
-        self.assertEqual(n_ary._original_shape[0], (2, 2))
+        self.assertEqual(
+            n_ary._original_shape[0], (2, 2)  # pylint: disable=protected-access
+        )
         # matrix size can increase (in-place) for more potential rows (vars)
         # and columns (terms)
-        n_ary._coo_matrix[0].resize(3, 3)
-        self.assertEqual(n_ary._coo_matrix[0].shape, (3, 3))
+        n_ary._coo_matrix[0].resize(3, 3)  # pylint: disable=protected-access
+        self.assertEqual(
+            n_ary._coo_matrix[0].shape, (3, 3)  # pylint: disable=protected-access
+        )
         # check that the original shape is still kept after resizing
-        self.assertEqual(n_ary._original_shape[0], (2, 2))
+        self.assertEqual(
+            n_ary._original_shape[0], (2, 2)  # pylint: disable=protected-access
+        )
 
     def test_duplicates(self) -> None:
         """
@@ -296,12 +304,18 @@ class TestNAryRelation(unittest.TestCase):
                 n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense()
             )
         )
+        # pylint: disable=protected-access
         self.assertTrue(
             np.allclose(
-                n_ary._coo_matrix[0].toarray(), loaded_n_ary._coo_matrix[0].toarray()
+                n_ary._coo_matrix[0].toarray(),
+                loaded_n_ary._coo_matrix[0].toarray(),
             )
         )
-        self.assertEqual(n_ary._coo_matrix[0].shape, loaded_n_ary._coo_matrix[0].shape)
+        self.assertEqual(
+            n_ary._coo_matrix[0].shape,
+            loaded_n_ary._coo_matrix[0].shape,
+        )
+        # pylint: enable=protected-access
         # remove the file
         Path(f"{file_name}.pt").unlink()
 
@@ -543,15 +557,16 @@ class TestMinimum(TestNAryRelation):
         Returns:
             None
         """
-        data = torch.tensor(
+        input_data: torch.Tensor = torch.tensor(
             [
-                [1.5409961, -0.2934289],
-                [-2.1787894, 0.56843126],
-                [-1.0845224, -1.3985955],
-                [0.40334684, 0.83802634],
+                [0.27, -0.75],
+                [3.0, -0.1],
+                [-0.567, -1.87],
+                [0.334, 0.996],
             ],
             device=AVAILABLE_DEVICE,
         )
+
         minimum = Minimum(
             [(0, 0), (1, 0)],
             [(0, 0), (1, 1)],
@@ -561,20 +576,38 @@ class TestMinimum(TestNAryRelation):
             device=AVAILABLE_DEVICE,
         )
 
-        membership: Membership = self.hypercube(data)
+        membership: Membership = self.hypercube(input_data)
         min_membership: Membership = minimum(membership)
         expected_degrees = torch.tensor(
             [
-                [0.00157003, 0.00157003, 0.09304529, 0.09304529, 0.09304529],
                 [
-                    8.5436940e-02,
-                    2.4918883e-01,
-                    8.6766202e-03,
-                    8.6766e-03,
-                    8.6766202e-03,
+                    1.99308798e-01,
+                    1.99308798e-01,
+                    9.29693758e-01,
+                    5.69782794e-01,
+                    4.67706248e-02,
                 ],
-                [0.8531001, 0.14141318, 0.3084521, 0.14141318, 0.00317242],
-                [0.034104, 0.13954304, 0.034104, 0.49545035, 0.8498557],
+                [
+                    1.12535176e-07,
+                    1.12535176e-07,
+                    1.23409802e-04,
+                    1.23409802e-04,
+                    1.23409802e-04,
+                ],
+                [
+                    4.69118446e-01,
+                    3.02911401e-02,
+                    4.69118446e-01,
+                    3.02911401e-02,
+                    2.64703733e-04,
+                ],
+                [
+                    1.86107438e-02,
+                    1.68713033e-01,
+                    1.86107438e-02,
+                    3.70828360e-01,
+                    8.94441307e-01,
+                ],
             ],
             dtype=torch.float32,
             device=AVAILABLE_DEVICE,
@@ -675,7 +708,12 @@ class TestComputationalAbilities(unittest.TestCase):
         )
         # example membership
         membership_function: FuzzySet = Gaussian.create(
-            self.n_variables, self.n_terms, device=AVAILABLE_DEVICE, method="random"
+            FuzzySetShape(
+                n_variables=self.n_variables,
+                n_terms=self.n_terms,
+            ),
+            device=AVAILABLE_DEVICE,
+            method=FuzzySetInitMethod.RANDOM,
         )
         # max terms used in the above N-ary relation
         membership: Membership = membership_function(
