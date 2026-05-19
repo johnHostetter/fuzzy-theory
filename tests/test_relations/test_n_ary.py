@@ -304,18 +304,18 @@ class TestNAryRelation(unittest.TestCase):
                 n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense()
             )
         )
+        # pylint: disable=protected-access
         self.assertTrue(
             np.allclose(
-                n_ary._coo_matrix[0].toarray(),  # pylint: disable=protected-access
-                loaded_n_ary._coo_matrix[  # pylint: disable=protected-access
-                    0
-                ].toarray(),
+                n_ary._coo_matrix[0].toarray(),
+                loaded_n_ary._coo_matrix[0].toarray(),
             )
         )
         self.assertEqual(
-            n_ary._coo_matrix[0].shape,  # pylint: disable=protected-access
-            loaded_n_ary._coo_matrix[0].shape,  # pylint: disable=protected-access
+            n_ary._coo_matrix[0].shape,
+            loaded_n_ary._coo_matrix[0].shape,
         )
+        # pylint: enable=protected-access
         # remove the file
         Path(f"{file_name}.pt").unlink()
 

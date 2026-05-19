@@ -43,7 +43,8 @@ class PremiseAggregation(
     Outlines the available premise aggregation strategies and their implementations.
     """
 
-    # type hints for Pylint - not required for functionality but only static code analysis
+    # type hints for Pylint - not required for functionality but only static
+    # code analysis
     SUM: PremiseAggregationEnum
     MEAN: PremiseAggregationEnum
 
@@ -67,7 +68,8 @@ class PremiseAggregation(
             raise ValueError("A selection has not yet been made.")
         if isinstance(self.selection, Enum):
             return self._fn[self.selection.value]
-        return self._fn[self.selection]  # self.selection is 'str' if optuna assigns
+        # self.selection is 'str' if optuna assigns
+        return self._fn[self.selection]
 
 
 class PremiseElimination(
@@ -77,7 +79,8 @@ class PremiseElimination(
     Outlines the available premise elimination strategies.
     """
 
-    # type hints for Pylint - not required for functionality but only static code analysis
+    # type hints for Pylint - not required for functionality but only static
+    # code analysis
     NONE: PremiseEliminationEnum
     NO_OP: PremiseEliminationEnum
 
@@ -169,7 +172,8 @@ class PremiseActivation(
             raise ValueError("A selection has not yet been made.")
         if isinstance(self.selection, Enum):
             return self._fn[self.selection.value]
-        return self._fn[self.selection]  # self.selection is 'str' if optuna assigns
+        # self.selection is 'str' if optuna assigns
+        return self._fn[self.selection]
 
     def assign(self, trial, name) -> Tuple[str, str]:
         super_assignment = super().assign(trial=trial, name=name)
@@ -389,7 +393,8 @@ class GumbelConfig(GroupedOptions):
         self.noise_delay: CategoricalOptions = (
             CategoricalOptions(
                 1,
-                # means no delay in updating the GMT noise (since it's about modulo)
+                # means no delay in updating the GMT noise (since it's about
+                # modulo)
                 32,
                 64,
                 128,
@@ -465,7 +470,8 @@ class NeurogenesisConfig(GroupedOptions):
         # how much to delay adding new premises; int range [1, 5] w/ step=2
         self.add_premise_delay: IntOptions = (
             IntOptions(
-                1,  # means no delay in adding fuzzy sets (since it's about modulo)
+                1,
+                # means no delay in adding fuzzy sets (since it's about modulo)
                 5,
                 2,
             )
