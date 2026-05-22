@@ -136,6 +136,8 @@ class ZeroOrder(Defuzzification):
             consequences = torch.as_tensor(source.centers, device=self.device)
         else:
             consequences = torch.as_tensor(source, device=self.device)
+        assert consequences.shape[0] == self.shape.n_rules
+        assert consequences.shape[1] == self.shape.n_outputs
         self.consequences = torch.nn.Parameter(consequences)
 
     def save(self, path: Path) -> MutableMapping[str, Any]:
