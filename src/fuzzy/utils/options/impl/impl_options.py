@@ -7,13 +7,14 @@ Furthermore, some of these classes will also store the accompanying function for
 they inherit from torch.nn.Module and can be used accordingly).
 """
 
-from dataclasses import dataclass, field, Field, fields
+from dataclasses import Field, dataclass, field, fields
 from enum import Enum
-from typing import Callable, Tuple, Type, Union, ClassVar, List
+from typing import Callable, ClassVar, List, Tuple, Type, Union
 
 import torch
 import torch.nn.functional as F
 from entmax import entmax15  # , entmax_bisect
+from scipy.stats import loguniform, randint, uniform
 from torch.nn import Module
 
 from fuzzy.utils.options.abstract.meta import EnumPromoter, Options
@@ -24,6 +25,7 @@ from fuzzy.utils.options.abstract.primitive import (
 )
 from fuzzy.utils.options.impl.impl_enums import (
     BoundAlphaEntmaxEnum,
+    NeurogenesisEnum,
     PremiseActivationEnum,
     PremiseAggregationEnum,
     PremiseEliminationEnum,
@@ -31,20 +33,17 @@ from fuzzy.utils.options.impl.impl_enums import (
     RuleEliminationEnum,
     RuleWeightsEnum,
     SamplingEnum,
-    NeurogenesisEnum,
 )
 
+_64_BIT_INT: int = 2 ^ 63 - 1  # max magnitude of a 64-bit integer
 
-from scipy.stats import loguniform, uniform, randint
-
-_64_BIT_INT: int = 2^63 - 1  # max magnitude of a 64-bit integer
 
 @dataclass(frozen=True)
 class Range:
-    low:  Union[float, int]
+    low: Union[float, int]
     high: Union[float, int]
-    log:  bool = False      # log scale for floats
-    step: Union[None, int]  = None       # for integers with a step size
+    log: bool = False  # log scale for floats
+    step: Union[None, int] = None  # for integers with a step size
 
     def to_scipy(self):
         if self.step:
@@ -53,7 +52,17 @@ class Range:
             return loguniform(self.low, self.high)
         return uniform(self.low, self.high - self.low)
 
-    def to_optuna(self, trial, name: str):
+    def to_optuna(self, trial, name: str) -> None:
+        """
+        Conveniently translate this range instance to Optuna for hyperparameter search.
+
+        Args:
+            trial: The instance of Trial.
+            name: The reference name.
+
+        Returns:
+            None
+        """
         if self.step:
             return trial.suggest_int(name, self.low, self.high, step=self.step)
         if self.log:
@@ -291,6 +300,7 @@ class PremiseConfig(GroupedOptions):
     elimination, and SOFTMAX for activation (standard if Gaussian fuzzy sets are used, but no exp
     has been applied to them yet).
     """
+
     aggregation: PremiseAggregationEnum = field(
         default=PremiseAggregationEnum.SUM,
     )
@@ -351,6 +361,7 @@ class RuleConfig(GroupedOptions):
     whether to eliminate any, and/or whether to elevate their firing levels. Default is NONE for
     all.
     """
+
     weights: RuleWeightsEnum = field(
         default=RuleWeightsEnum.NONE,
     )
@@ -410,13 +421,13 @@ class InferenceConfig:
         default_factory=PremiseConfig,
         metadata={
             "help": "How premises should be aggregated, eliminated and elevated.",
-        }
+        },
     )
     rule: RuleConfig = field(
         default_factory=RuleConfig,
         metadata={
             "help": "How rules should be aggregated, eliminated, and elevated.",
-        }
+        },
     )
 
 
@@ -427,6 +438,7 @@ class GumbelConfig(GroupedOptions):
     resampling the Gumbel noise, and what temperature to use for the Gumbel distribution.
     Default options and values replicate those explored in Hostetter's dissertation.
     """
+
     sampling: SamplingEnum = field(
         default=SamplingEnum.ST_GUMBEL_SOFTMAX,
     )
@@ -436,7 +448,7 @@ class GumbelConfig(GroupedOptions):
             "help": "How much temperature should be used for the Gumbel distribution.",
             "range": Range(low=1, high=float("inf")),
             "search": Range(low=0.25, high=1.25),
-        }
+        },
     )
     epsilon_filter: float = field(
         default=0.0,
@@ -444,22 +456,22 @@ class GumbelConfig(GroupedOptions):
             "help": "Whether to constrain the Straight-Through Gumbel Softmax Estimator.",
             "range": Range(low=0, high=1.0),
             "choices": [0.0, 0.1],
-        }
+        },
     )
     noise_delay: int = field(
         default=1,
         metadata={
             "help": "The number of forward passes to process before resampling noise from the "
-                    "Gumbel distribution.",
+            "Gumbel distribution.",
             "range": Range(low=1, high=_64_BIT_INT, step=1),
             "choices": [
-                1, # no delay in updating noise (since it's about modulo)
+                1,  # no delay in updating noise (since it's about modulo)
                 32,
                 64,
                 128,
                 256,
-            ]
-        }
+            ],
+        },
     )
 
     @property
@@ -511,6 +523,7 @@ class NeurogenesisConfig(GroupedOptions):
     How to set up neurogenesis, such as whether it should be delayed and how it should be
     triggered. Default options and values replicate those explored in Hostetter's dissertation.
     """
+
     neurogenesis: NeurogenesisEnum = field(
         default=NeurogenesisEnum.NONE,
     )
@@ -518,10 +531,10 @@ class NeurogenesisConfig(GroupedOptions):
         default=0.5,
         metadata={
             "help": "The desired membership degree that should be satisfied by all elements to "
-                    "achieve epsilon-completeness.",
+            "achieve epsilon-completeness.",
             "range": Range(low=0, high=1.0),
-            "search": Range(low=0.1, high=0.5)
-        }
+            "search": Range(low=0.1, high=0.5),
+        },
     )
     add_premise_delay: int = field(
         default=1,
@@ -529,8 +542,8 @@ class NeurogenesisConfig(GroupedOptions):
             "help": "How long to wait before adding new premises to the neuro-fuzzy network.",
             # 1 = no delay to add fuzzy sets (since it's about modulo)
             "range": Range(low=1, high=_64_BIT_INT, step=1),
-            "search": Range(low=1, high=5, step=2)
-        }
+            "search": Range(low=1, high=5, step=2),
+        },
     )
 
     @property
@@ -578,18 +591,20 @@ class EvolutionConfig:
     """
     Dictates how the neuro-fuzzy network will evolve.
     """
+
     premise: NeurogenesisConfig = field(
         default_factory=NeurogenesisConfig,
         metadata={
             "help": "A modified and delayed version of Welford's method for computing variance.",
-        }
+        },
     )
     rule: GumbelConfig = field(
         default_factory=GumbelConfig,
         metadata={
             "help": "How to set up the Straight-Through Gumbel Softmax Estimator."
-        }
+        },
     )
+
 
 @dataclass
 class ParameterConfig:
@@ -604,12 +619,13 @@ class ParameterConfig:
         Determines how to initialize parameters of the neuro-fuzzy network with respect to the
         premise layer.
         """
+
         init_width: float = field(
             default=0.5,
             metadata={
                 "help": "Initial width of fuzzy sets upon initialization.",
                 "range": Range(low=0, high=float("inf"), step=1),
-            }
+            },
         )
 
     @dataclass
@@ -628,22 +644,19 @@ class ParameterConfig:
 
     premise: PremiseParameterConfig = field(
         default_factory=PremiseParameterConfig,
-        metadata={
-            "help": "How to initialize the premise layer's parameters."
-        }
+        metadata={"help": "How to initialize the premise layer's parameters."},
     )
     rule: RuleParameterConfig = field(
         default_factory=RuleParameterConfig,
         metadata={
             "help": "How to initialize the rule layer's parameters (if applicable)."
-        }
+        },
     )
     consequence: ConsequenceParameterConfig = field(
         default_factory=ConsequenceParameterConfig,
-        metadata={
-            "help": "How to initialize the consequence layer's parameters."
-        }
+        metadata={"help": "How to initialize the consequence layer's parameters."},
     )
+
 
 @dataclass
 class StructureConfig:
@@ -664,13 +677,14 @@ class StructureConfig:
         Determines how to initialize structure of the neuro-fuzzy network with respect to the
         rule layer, if applicable.
         """
+
         n_rules: int = field(
             default=128,
             metadata={
                 "help": "The number of non-unique rules available to the neuro-fuzzy network.",
                 "range": Range(low=0, high=10000, step=1),
-                "search": Range(low=64, high=256, step=64)
-            }
+                "search": Range(low=64, high=256, step=64),
+            },
         )
 
     @dataclass
@@ -682,21 +696,17 @@ class StructureConfig:
 
     premise: PremiseStructureConfig = field(
         default_factory=PremiseStructureConfig,
-        metadata={
-            "help": "How to initialize the premise layer's structure."
-        }
+        metadata={"help": "How to initialize the premise layer's structure."},
     )
     rule: RuleStructureConfig = field(
         default_factory=RuleStructureConfig,
         metadata={
             "help": "How to initialize the rule layer's structure (if applicable)."
-        }
+        },
     )
     consequence: ConsequenceStructureConfig = field(
         default_factory=ConsequenceStructureConfig,
-        metadata={
-            "help": "How to initialize the consequence layer's structure."
-        }
+        metadata={"help": "How to initialize the consequence layer's structure."},
     )
 
 
@@ -706,8 +716,12 @@ class ApproximatorHyperparameters:
     A standard data class format with attributes that are expected throughout PySoft optuna
     experiments.
     """
-    display_name: str = field(init=False, default="")  # the display name of the approximator
-    abbrev_name: str  = field(init=False, default="")  # an abbreviated name of the approximator
+
+    display_name: str = field(
+        init=False, default=""
+    )  # the display name of the approximator
+    # an abbreviated name of the approximator
+    abbrev_name: str = field(init=False, default="")
 
 
 @dataclass
@@ -716,30 +730,31 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
     An all-encompassing class for exposing all available hyperparameters or design-choices of
     neuro-fuzzy networks.
     """
+
     _initialized: ClassVar[bool] = False
     structure: StructureConfig = field(
         default_factory=StructureConfig,
         metadata={
             "help": "How to design the initial structure of the neuro-fuzzy networks.",
-        }
+        },
     )
     parameter: ParameterConfig = field(
         default_factory=ParameterConfig,
         metadata={
             "help": "How to initialize the parameters of the neuro-fuzzy network."
-        }
+        },
     )
     inference: InferenceConfig = field(
         default_factory=InferenceConfig,
         metadata={
             "help": "Inference configuration for neuro-fuzzy networks.",
-        }
+        },
     )
     evolution: EvolutionConfig = field(
         default_factory=EvolutionConfig,
         metadata={
             "help": "Evolution configuration for neuro-fuzzy networks.",
-        }
+        },
     )
 
     def __post_init__(self):
@@ -753,6 +768,7 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
     @property
     def fields(self) -> List[Field]:
         return [
-            hyperparameter for hyperparameter in fields(self)
+            hyperparameter
+            for hyperparameter in fields(self)
             if hyperparameter not in fields(ApproximatorHyperparameters)
         ]

@@ -12,11 +12,11 @@ import torch
 from fuzzy.relations.confidence import CertaintyFactors
 from fuzzy.utils.options.abstract.primitive import GroupedOptions
 from fuzzy.utils.options.impl.impl_options import (
+    InferenceConfig,
+    PremiseActivation,
+    PremiseAggregation,
     RuleElevationEnum,
     RuleWeightsEnum,
-    InferenceConfig,
-    PremiseAggregation,
-    PremiseActivation,
 )
 
 
@@ -35,20 +35,14 @@ class TNormPipeline(torch.nn.Module):
     ):
         super().__init__()
         self.n_relations = n_relations
-        self._agg = PremiseAggregation._fn[
-            configuration.premise.aggregation.value
-        ]
-        self._act = PremiseActivation._fn[
-            configuration.premise.activation.value
-        ]
+        self._agg = PremiseAggregation._fn[configuration.premise.aggregation.value]
+        self._act = PremiseActivation._fn[configuration.premise.activation.value]
         self.layer_norm = None
         if "layer_norm" in kwargs and isinstance(
             kwargs["layer_norm"], torch.nn.LayerNorm
         ):
             self.layer_norm = kwargs["layer_norm"]
-        elif (
-            configuration.rule.elevation == RuleElevationEnum.LAYER_NORMALIZATION
-        ):
+        elif configuration.rule.elevation == RuleElevationEnum.LAYER_NORMALIZATION:
             self.layer_norm = torch.nn.LayerNorm([self.n_relations], device=device)
 
         self.certainty = None

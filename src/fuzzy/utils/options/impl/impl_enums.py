@@ -53,13 +53,16 @@ class PremiseActivationEnum(str, Enum):
     # BUDGET_BISECT = "budget_bisect",  # differentiable w.r.t. X (not
     # implemented)
 
+
 class NeurogenesisEnum(str, Enum):
     """
     How to create and add new fuzzy sets to the neuro-fuzzy network.
     """
 
     NONE = "none"  # static premise layer
-    MODIFIED_DELAYED_WELFORD = "modified_delayed_welford"  # Hostetter's 2025 dissertation
+    # Hostetter's 2025 dissertation
+    MODIFIED_DELAYED_WELFORD = "modified_delayed_welford"
+
 
 class SamplingEnum(str, Enum):
     """

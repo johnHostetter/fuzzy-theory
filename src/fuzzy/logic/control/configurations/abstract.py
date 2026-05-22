@@ -65,7 +65,9 @@ class FuzzySystem(abc.ABC):
             shape=self.shape,
             # use the output granulation layer if Mamdani inference is selected, otherwise,
             # ignore the output granulation layer (i.e., the fuzzy sets in output space)
-            source=granulation_layers["output"] if issubclass(cls_type, Mamdani) else None,
+            source=(
+                granulation_layers["output"] if issubclass(cls_type, Mamdani) else None
+            ),
             device=device,
             rule_base=self.rule_base if hasattr(self, "rule_base") else None,
         )

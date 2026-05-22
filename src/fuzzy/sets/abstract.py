@@ -134,7 +134,8 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
             raise TypeError(f"Expected a torch.nn.Parameter, but got {type(value)}")
 
         # 2. Update the internal tracker
-        # If using nn.ParameterList, it handles module registration automatically.
+        # If using nn.ParameterList, it handles module registration
+        # automatically.
         self.params[idx] = value
 
         # 3. Optional: Give it a unique string key name on the parent module
