@@ -7,9 +7,9 @@ Furthermore, some of these classes will also store the accompanying function for
 they inherit from torch.nn.Module and can be used accordingly).
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field, Field, fields
 from enum import Enum
-from typing import Callable, Tuple, Type, Union
+from typing import Callable, Tuple, Type, Union, ClassVar, List
 
 import torch
 import torch.nn.functional as F
@@ -20,9 +20,7 @@ from fuzzy.utils.options.abstract.meta import EnumPromoter, Options
 from fuzzy.utils.options.abstract.primitive import (
     CategoricalEnumOptions,
     CategoricalOptions,
-    FloatOptions,
     GroupedOptions,
-    IntOptions,
 )
 from fuzzy.utils.options.impl.impl_enums import (
     BoundAlphaEntmaxEnum,
@@ -33,7 +31,62 @@ from fuzzy.utils.options.impl.impl_enums import (
     RuleEliminationEnum,
     RuleWeightsEnum,
     SamplingEnum,
+    NeurogenesisEnum,
 )
+
+
+from scipy.stats import loguniform, uniform, randint
+
+_64_BIT_INT: int = 2^63 - 1  # max magnitude of a 64-bit integer
+
+@dataclass(frozen=True)
+class Range:
+    low:  Union[float, int]
+    high: Union[float, int]
+    log:  bool = False      # log scale for floats
+    step: Union[None, int]  = None       # for integers with a step size
+
+    def to_scipy(self):
+        if self.step:
+            return randint(self.low, self.high)
+        if self.log:
+            return loguniform(self.low, self.high)
+        return uniform(self.low, self.high - self.low)
+
+    def to_optuna(self, trial, name: str):
+        if self.step:
+            return trial.suggest_int(name, self.low, self.high, step=self.step)
+        if self.log:
+            return trial.suggest_float(name, self.low, self.high, log=True)
+        return trial.suggest_float(name, self.low, self.high)
+
+    def contains(self, val) -> bool:
+        return self.low <= val <= self.high
+
+    def to_dict(self) -> dict:
+        d = {"low": self.low, "high": self.high}
+        if self.log:
+            d["log"] = self.log
+        if self.step is not None:
+            d["step"] = self.step
+        return d
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Range":
+        return cls(
+            low=d["low"],
+            high=d["high"],
+            log=d.get("log", False),
+            step=d.get("step", None),
+        )
+
+    def __repr__(self):
+        parts = [f"low={self.low}", f"high={self.high}"]
+        if self.log:
+            parts.append("log=true")
+        if self.step:
+            parts.append(f"step={self.step}")
+        return f"Range({', '.join(parts)})"
 
 
 class PremiseAggregation(
@@ -229,7 +282,7 @@ class RuleElevation(CategoricalEnumOptions):
     enum_cls = RuleElevationEnum
 
 
-# @dataclass
+@dataclass
 class PremiseConfig(GroupedOptions):
     """
     How to set up the premise terms, whether we should use standard implementation (e.g.,
@@ -238,23 +291,15 @@ class PremiseConfig(GroupedOptions):
     elimination, and SOFTMAX for activation (standard if Gaussian fuzzy sets are used, but no exp
     has been applied to them yet).
     """
-
-    def __init__(
-        self,
-        aggregation: Union[None, PremiseAggregation] = None,
-        elimination: Union[None, PremiseElimination] = None,
-        activation: Union[None, PremiseActivation] = None,
-    ):
-        super().__init__()
-        self.aggregation: PremiseAggregation = (
-            PremiseAggregation() if aggregation is None else aggregation
-        )
-        self.elimination: PremiseElimination = (
-            PremiseElimination() if elimination is None else elimination
-        )
-        self.activation: PremiseActivation = (
-            PremiseActivation() if activation is None else activation
-        )
+    aggregation: PremiseAggregationEnum = field(
+        default=PremiseAggregationEnum.SUM,
+    )
+    elimination: PremiseEliminationEnum = field(
+        default=PremiseEliminationEnum.NONE,
+    )
+    activation: PremiseActivationEnum = field(
+        default=PremiseActivationEnum.SOFTMAX,
+    )
 
     @property
     def selection(self):
@@ -299,28 +344,22 @@ class PremiseConfig(GroupedOptions):
         self.activation.selection = activation
 
 
-# @dataclass
+@dataclass
 class RuleConfig(GroupedOptions):
     """
     How to set up the fuzzy logic rules, whether they should be weighed (e.g., certainty factors),
     whether to eliminate any, and/or whether to elevate their firing levels. Default is NONE for
     all.
     """
-
-    def __init__(
-        self,
-        weights: Union[None, RuleWeights] = None,
-        elimination: Union[None, RuleElimination] = None,
-        elevation: Union[None, RuleElevation] = None,
-    ):
-        super().__init__()
-        self.weights: RuleWeights = RuleWeights() if weights is None else weights
-        self.elimination: RuleElimination = (
-            RuleElimination() if elimination is None else elimination
-        )
-        self.elevation: RuleElevation = (
-            RuleElevation() if elevation is None else elevation
-        )
+    weights: RuleWeightsEnum = field(
+        default=RuleWeightsEnum.NONE,
+    )
+    elimination: RuleEliminationEnum = field(
+        default=RuleEliminationEnum.NONE,
+    )
+    elevation: RuleElevationEnum = field(
+        default=RuleElevationEnum.NONE,
+    )
 
     @property
     def selection(self):
@@ -365,44 +404,63 @@ class RuleConfig(GroupedOptions):
         self.elevation.selection = elevation
 
 
+@dataclass
+class InferenceConfig:
+    premise: PremiseConfig = field(
+        default_factory=PremiseConfig,
+        metadata={
+            "help": "How premises should be aggregated, eliminated and elevated.",
+        }
+    )
+    rule: RuleConfig = field(
+        default_factory=RuleConfig,
+        metadata={
+            "help": "How rules should be aggregated, eliminated, and elevated.",
+        }
+    )
+
+
+@dataclass
 class GumbelConfig(GroupedOptions):
     """
     How to set up the Gumbel Softmax, whether it should be constrained, how long to delay
     resampling the Gumbel noise, and what temperature to use for the Gumbel distribution.
     Default options and values replicate those explored in Hostetter's dissertation.
     """
-
-    def __init__(
-        self,
-        temperature: Union[None, FloatOptions] = None,
-        epsilon_filter: Union[None, CategoricalOptions] = None,
-        noise_delay: Union[None, CategoricalOptions] = None,
-    ):
-        super().__init__()
-        self.temperature: FloatOptions = (
-            FloatOptions(
-                0.25,
-                1.25,
-            )
-            if temperature is None
-            else temperature
-        )
-        self.epsilon_filter: CategoricalOptions = (
-            CategoricalOptions(0.0, 0.1) if epsilon_filter is None else epsilon_filter
-        )
-        self.noise_delay: CategoricalOptions = (
-            CategoricalOptions(
-                1,
-                # means no delay in updating the GMT noise (since it's about
-                # modulo)
+    sampling: SamplingEnum = field(
+        default=SamplingEnum.ST_GUMBEL_SOFTMAX,
+    )
+    temperature: float = field(
+        default=1.0,
+        metadata={
+            "help": "How much temperature should be used for the Gumbel distribution.",
+            "range": Range(low=1, high=float("inf")),
+            "search": Range(low=0.25, high=1.25),
+        }
+    )
+    epsilon_filter: float = field(
+        default=0.0,
+        metadata={
+            "help": "Whether to constrain the Straight-Through Gumbel Softmax Estimator.",
+            "range": Range(low=0, high=1.0),
+            "choices": [0.0, 0.1],
+        }
+    )
+    noise_delay: int = field(
+        default=1,
+        metadata={
+            "help": "The number of forward passes to process before resampling noise from the "
+                    "Gumbel distribution.",
+            "range": Range(low=1, high=_64_BIT_INT, step=1),
+            "choices": [
+                1, # no delay in updating noise (since it's about modulo)
                 32,
                 64,
                 128,
                 256,
-            )
-            if noise_delay is None
-            else noise_delay
-        )
+            ]
+        }
+    )
 
     @property
     def selection(self):
@@ -447,37 +505,33 @@ class GumbelConfig(GroupedOptions):
         self.noise_delay.selection = noise_delay
 
 
+@dataclass
 class NeurogenesisConfig(GroupedOptions):
     """
     How to set up neurogenesis, such as whether it should be delayed and how it should be
     triggered. Default options and values replicate those explored in Hostetter's dissertation.
     """
-
-    def __init__(
-        self,
-        epsilon: Union[None, FloatOptions] = None,
-        add_premise_delay: Union[None, IntOptions] = None,
-    ):
-        super().__init__()
-        self.epsilon: FloatOptions = (
-            FloatOptions(
-                0.1,
-                0.5,
-            )
-            if epsilon is None
-            else epsilon
-        )
-        # how much to delay adding new premises; int range [1, 5] w/ step=2
-        self.add_premise_delay: IntOptions = (
-            IntOptions(
-                1,
-                # means no delay in adding fuzzy sets (since it's about modulo)
-                5,
-                2,
-            )
-            if add_premise_delay is None
-            else add_premise_delay
-        )
+    neurogenesis: NeurogenesisEnum = field(
+        default=NeurogenesisEnum.NONE,
+    )
+    epsilon: float = field(
+        default=0.5,
+        metadata={
+            "help": "The desired membership degree that should be satisfied by all elements to "
+                    "achieve epsilon-completeness.",
+            "range": Range(low=0, high=1.0),
+            "search": Range(low=0.1, high=0.5)
+        }
+    )
+    add_premise_delay: int = field(
+        default=1,
+        metadata={
+            "help": "How long to wait before adding new premises to the neuro-fuzzy network.",
+            # 1 = no delay to add fuzzy sets (since it's about modulo)
+            "range": Range(low=1, high=_64_BIT_INT, step=1),
+            "search": Range(low=1, high=5, step=2)
+        }
+    )
 
     @property
     def selection(self):
@@ -520,18 +574,140 @@ class NeurogenesisConfig(GroupedOptions):
 
 
 @dataclass
+class EvolutionConfig:
+    """
+    Dictates how the neuro-fuzzy network will evolve.
+    """
+    premise: NeurogenesisConfig = field(
+        default_factory=NeurogenesisConfig,
+        metadata={
+            "help": "A modified and delayed version of Welford's method for computing variance.",
+        }
+    )
+    rule: GumbelConfig = field(
+        default_factory=GumbelConfig,
+        metadata={
+            "help": "How to set up the Straight-Through Gumbel Softmax Estimator."
+        }
+    )
+
+@dataclass
+class ParameterConfig:
+    """
+    Determines how to initialize parameters of the neuro-fuzzy network (e.g., premise, weights,
+    consequences, etc.).
+    """
+
+    @dataclass
+    class PremiseParameterConfig:
+        """
+        Determines how to initialize parameters of the neuro-fuzzy network with respect to the
+        premise layer.
+        """
+        init_width: float = field(
+            default=0.5,
+            metadata={
+                "help": "Initial width of fuzzy sets upon initialization.",
+                "range": Range(low=0, high=float("inf"), step=1),
+            }
+        )
+
+    @dataclass
+    class RuleParameterConfig:
+        """
+        Determines how to initialize parameters of the neuro-fuzzy network with respect to the
+        rule layer, if applicable (i.e., assuming rule sampling is implemented).
+        """
+
+    @dataclass
+    class ConsequenceParameterConfig:
+        """
+        Determines how to initialize parameters of the neuro-fuzzy network with respect to the
+        consequence layer.
+        """
+
+    premise: PremiseParameterConfig = field(
+        default_factory=PremiseParameterConfig,
+        metadata={
+            "help": "How to initialize the premise layer's parameters."
+        }
+    )
+    rule: RuleParameterConfig = field(
+        default_factory=RuleParameterConfig,
+        metadata={
+            "help": "How to initialize the rule layer's parameters (if applicable)."
+        }
+    )
+    consequence: ConsequenceParameterConfig = field(
+        default_factory=ConsequenceParameterConfig,
+        metadata={
+            "help": "How to initialize the consequence layer's parameters."
+        }
+    )
+
+@dataclass
+class StructureConfig:
+    """
+    Determines how to initialize structure of the neuro-fuzzy network (e.g., rule count).
+    """
+
+    @dataclass
+    class PremiseStructureConfig:
+        """
+        Determines how to initialize structure of the neuro-fuzzy network with respect to the
+        premise layer.
+        """
+
+    @dataclass
+    class RuleStructureConfig:
+        """
+        Determines how to initialize structure of the neuro-fuzzy network with respect to the
+        rule layer, if applicable.
+        """
+        n_rules: int = field(
+            default=128,
+            metadata={
+                "help": "The number of non-unique rules available to the neuro-fuzzy network.",
+                "range": Range(low=0, high=10000, step=1),
+                "search": Range(low=64, high=256, step=64)
+            }
+        )
+
+    @dataclass
+    class ConsequenceStructureConfig:
+        """
+        Determines how to initialize structure of the neuro-fuzzy network with respect to the
+        consequence layer.
+        """
+
+    premise: PremiseStructureConfig = field(
+        default_factory=PremiseStructureConfig,
+        metadata={
+            "help": "How to initialize the premise layer's structure."
+        }
+    )
+    rule: RuleStructureConfig = field(
+        default_factory=RuleStructureConfig,
+        metadata={
+            "help": "How to initialize the rule layer's structure (if applicable)."
+        }
+    )
+    consequence: ConsequenceStructureConfig = field(
+        default_factory=ConsequenceStructureConfig,
+        metadata={
+            "help": "How to initialize the consequence layer's structure."
+        }
+    )
+
+
+@dataclass
 class ApproximatorHyperparameters:
     """
     A standard data class format with attributes that are expected throughout PySoft optuna
     experiments.
     """
-
-    display_name: str  # the display name of the approximator
-    abbrev_name: str  # an abbreviated name of the approximator
-
-    def __init__(self, display_name, abbrev_name):
-        self.display_name = display_name
-        self.abbrev_name = abbrev_name
+    display_name: str = field(init=False, default="")  # the display name of the approximator
+    abbrev_name: str  = field(init=False, default="")  # an abbreviated name of the approximator
 
 
 @dataclass
@@ -540,19 +716,43 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
     An all-encompassing class for exposing all available hyperparameters or design-choices of
     neuro-fuzzy networks.
     """
+    _initialized: ClassVar[bool] = False
+    structure: StructureConfig = field(
+        default_factory=StructureConfig,
+        metadata={
+            "help": "How to design the initial structure of the neuro-fuzzy networks.",
+        }
+    )
+    parameter: ParameterConfig = field(
+        default_factory=ParameterConfig,
+        metadata={
+            "help": "How to initialize the parameters of the neuro-fuzzy network."
+        }
+    )
+    inference: InferenceConfig = field(
+        default_factory=InferenceConfig,
+        metadata={
+            "help": "Inference configuration for neuro-fuzzy networks.",
+        }
+    )
+    evolution: EvolutionConfig = field(
+        default_factory=EvolutionConfig,
+        metadata={
+            "help": "Evolution configuration for neuro-fuzzy networks.",
+        }
+    )
 
-    def __init__(self):
-        super().__init__(
-            display_name="Concurrent Optimization of Fuzzy Inference Systems",
-            abbrev_name="CO-FIS",
-        )
-        self.n_rules: IntOptions = IntOptions(
-            64, 256, 64
-        )  # int range [64, 256] w/ step=64
-        self.init_width: float = 0.5  # the initial width for the fuzzy sets
-        self.premise: PremiseConfig = PremiseConfig()
-        self.premise_sampling: Sampling = Sampling()  # how to sample premises
-        self.rule: RuleConfig = RuleConfig()
-        self.gumbel: GumbelConfig = GumbelConfig()
-        self.gumbel.epsilon_filter.selection = 0.0  # disable the constraint
-        self.neurogenesis: NeurogenesisConfig = NeurogenesisConfig()
+    def __post_init__(self):
+        self.display_name = "Concurrent Optimization of Fuzzy Inference Systems"
+        self.abbrev_name = "CO-FIS"
+
+        if not NeuroFuzzyNetworkHyperparameters._initialized:
+            self.evolution.rule.epsilon_filter = 0.0  # disable the constraint
+            NeuroFuzzyNetworkHyperparameters._initialized = True
+
+    @property
+    def fields(self) -> List[Field]:
+        return [
+            hyperparameter for hyperparameter in fields(self)
+            if hyperparameter not in fields(ApproximatorHyperparameters)
+        ]
