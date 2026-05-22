@@ -7,7 +7,7 @@ import abc
 
 import torch
 
-from fuzzy.logic.control.defuzzification import Defuzzification
+from fuzzy.logic.control.defuzzification import Defuzzification, Mamdani
 from fuzzy.relations.t_norm import TNorm
 
 from .data import GranulationLayers, Shape
@@ -63,7 +63,9 @@ class FuzzySystem(abc.ABC):
         granulation_layers: GranulationLayers = self.granulation_layers
         return cls_type(
             shape=self.shape,
-            source=granulation_layers["output"],
+            # use the output granulation layer if Mamdani inference is selected, otherwise,
+            # ignore the output granulation layer (i.e., the fuzzy sets in output space)
+            source=granulation_layers["output"] if issubclass(cls_type, Mamdani) else None,
             device=device,
             rule_base=self.rule_base if hasattr(self, "rule_base") else None,
         )
