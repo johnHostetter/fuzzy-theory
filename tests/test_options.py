@@ -164,13 +164,13 @@ class TestOptions(unittest.TestCase):
         self.assertIsNotNone(premise_config)
         premise_config.default()
         self.assertEqual(
-            PremiseAggregationEnum.SUM, premise_config.aggregation.selection
+            PremiseAggregationEnum.SUM, premise_config.aggregation
         )
         self.assertEqual(
-            PremiseEliminationEnum.NONE, premise_config.elimination.selection
+            PremiseEliminationEnum.NONE, premise_config.elimination
         )
         self.assertEqual(
-            PremiseActivationEnum.SOFTMAX, premise_config.activation.selection
+            PremiseActivationEnum.SOFTMAX, premise_config.activation
         )
 
     def test_rule_config(self) -> None:
@@ -183,9 +183,9 @@ class TestOptions(unittest.TestCase):
         rule_config: RuleConfig = RuleConfig()
         self.assertIsNotNone(rule_config)
         rule_config.default()
-        self.assertEqual(RuleWeightsEnum.NONE, rule_config.weights.selection)
-        self.assertEqual(RuleEliminationEnum.NONE, rule_config.elimination.selection)
-        self.assertEqual(RuleElevationEnum.NONE, rule_config.elevation.selection)
+        self.assertEqual(RuleWeightsEnum.NONE, rule_config.weights)
+        self.assertEqual(RuleEliminationEnum.NONE, rule_config.elimination)
+        self.assertEqual(RuleElevationEnum.NONE, rule_config.elevation)
 
     def test_create_neuro_fuzzy_network_hyperparameters(self) -> None:
         """
