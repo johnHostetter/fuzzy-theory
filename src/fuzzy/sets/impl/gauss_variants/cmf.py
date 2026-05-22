@@ -4,12 +4,13 @@ primarily variations of the Gaussian formula.
 """
 
 from dataclasses import dataclass
+from typing import Union, Type
 
 import numpy as np
 import sympy
 import torch
 
-from ...abstract import FuzzySet
+from ...abstract import FuzzySet, DynamicParameterList
 from ...membership import Membership
 
 
@@ -173,7 +174,12 @@ class LogGaussian(FuzzySet):
         gaussian_kernel: GaussianKernel = GaussianKernel(),
         **kwargs,
     ):
-        super().__init__(centers=centers, widths=widths, device=device, **kwargs)
+        super().__init__(
+            centers=centers,
+            widths=widths,
+            device=device,
+            **kwargs
+        )
         self._gaussian_kernel = gaussian_kernel
         self.width_multiplier = self._gaussian_kernel.width_multiplier
         self._buffer = None

@@ -128,6 +128,22 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
     def __getitem__(self, item):
         return self.params[item]
 
+    def __setitem__(self, idx, value):
+        # 1. Enforce that the incoming value is a valid PyTorch Parameter
+        if not isinstance(value, torch.nn.Parameter):
+            raise TypeError(f"Expected a torch.nn.Parameter, but got {type(value)}")
+
+        # 2. Update the internal tracker
+        # If using nn.ParameterList, it handles module registration automatically.
+        self.params[idx] = value
+
+        # 3. Optional: Give it a unique string key name on the parent module
+        # if your custom class relies on named parameters attribute binding.
+        # setattr(self, f"param_{idx}", value)
+
+        # 4. Invalidate the cached tensor
+        self._cached_tensor = None
+
     def add_parameter(self, tensor: Union[np.ndarray, torch.Tensor]):
         """
         Add a new Parameter and invalidate cached tensor.
