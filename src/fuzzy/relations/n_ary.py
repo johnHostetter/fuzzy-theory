@@ -13,18 +13,19 @@ import igraph
 import numpy as np
 import scipy.sparse as sps
 import torch
+import yaml
+from fuzzy.sets.membership import Membership
+from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
+from pydantic import TypeAdapter
 
 # from line_profiler import profile
 from torch import Size, Tensor
-
-from fuzzy.sets.membership import Membership
-from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
-from fuzzy.utils.options.abstract.primitive import GroupedOptions
 
 from ..utils.classes import Loggable
 
 # , log_classmethod, log_func, log_method
 from ..utils.functions import exp_sum_log
+from ..utils.options.impl.impl_options import InferenceConfig
 from .linkage import BinaryLinks, GroupedLinks
 
 
@@ -301,7 +302,6 @@ class NAryRelation(TorchJitModule, Loggable):
         cls,
         path: Path,
         device: torch.device,
-        t_norm_callback: Union[None, Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
     ) -> "NAryRelation":
         """
         Load the n-ary relation from a file and put it on the specified device.
@@ -309,8 +309,6 @@ class NAryRelation(TorchJitModule, Loggable):
         Args:
             path: The path to load the t-norm relation.
             device: The physical device to load the t-norm relation onto.
-            t_norm_callback: A function to call to dynamically modify the keyword arguments
-                passed onto the TNorm subclass after it has been identified.
 
         Returns:
             The n-ary relation.
@@ -334,12 +332,16 @@ class NAryRelation(TorchJitModule, Loggable):
             return fuzzy_cls(*indices, **kwargs)
         grouped_links: Path = state_dict.pop("grouped_links")
         grouped_links_kwargs: Dict[str, Any] = {"device": device}
+        configuration: Union[None, InferenceConfig] = None
         if (grouped_links / "configuration").exists():
+            with open(grouped_links.parent / "configuration.yaml", "r") as f:
+                data = yaml.safe_load(f)
+
+            adapter = TypeAdapter(InferenceConfig)
+            configuration = adapter.validate_python(data)
+
             # order matters here; GroupedLinks cannot load before
             # GumbelSoftmaxOptions.load
-            configuration: GroupedOptions = GroupedOptions.load(
-                grouped_links / "configuration"
-            )
             # this directory cannot exist when calling GroupedLinks.load
             shutil.rmtree(grouped_links / "configuration")
             grouped_links_kwargs["configuration"] = configuration
@@ -347,8 +349,8 @@ class NAryRelation(TorchJitModule, Loggable):
             grouped_links, **grouped_links_kwargs
         )
 
-        if t_norm_callback is not None:
-            kwargs = t_norm_callback(kwargs)
+        if configuration is not None:
+            kwargs["configuration"] = configuration
 
         obj = fuzzy_cls(**kwargs)
         # add other attributes that may be specific to the subclass
@@ -427,13 +429,11 @@ class NAryRelation(TorchJitModule, Loggable):
         # re-create the self.matrix
         self.create_ndarray(shape[0], shape[1])
         # update the self.grouped_links to reflect the new shape
-        # these links are used to zero out the values that are not part of the
-        # relation
+        # these links zero out the values that are not part of the relation
         self.grouped_links = GroupedLinks(
             modules_list=[BinaryLinks(links=self.matrix, device=self.device)]
         )
-        # re-create the self.graph (has to happen after self.grouped_links is
-        # created)
+        # re-create self.graph (has to happen after self.grouped_links is created)
         self.create_igraph()
 
     # @log_method

@@ -32,20 +32,11 @@ class TNorm(NAryRelation, ABC):
             return " AND ".join([f"({i}, {j})" for i, j in self.indices[0]])
         return super().__str__()
 
-    def save(self, path: Path) -> MutableMapping[str, Any]:
-        state_dict = super().save(path=path)  # path is a file that ends in .pt
-        if hasattr(self, "configuration"):
-            self.configuration.save(path.parent / "engine" / "configuration")
-        if hasattr(self, "_func"):
-            self._func.save(path.parent / "engine" / "_func")
-        return state_dict
-
     @classmethod
     def load(
         cls,
         path: Path,
         device: torch.device,
-        t_norm_callback: Union[None, Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
     ) -> "NAryRelation":
         """
         Load a TNorm from saved files. This override to NAryRelation.load passes a callback
@@ -57,39 +48,13 @@ class TNorm(NAryRelation, ABC):
         Args:
             path: The path to load the t-norm relation.
             device: The physical device to load the t-norm relation onto.
-            t_norm_callback: A function to call to dynamically modify the keyword arguments
-                passed onto the TNorm subclass after it has been identified.
 
         Returns:
             The t-norm (n-ary) relation.
         """
 
-        def default_t_norm_callback(
-            t_norm_pending_keyword_arguments: Dict[str, Any],
-        ) -> Dict[str, Any]:
-            """
-            Accepts a keyword argument dictionary and modifies it to include two additional keyword
-            arguments, if they existed: (1) a GroupedOptions object, and (2) a TNormPipeline.
-
-            Args:
-                t_norm_pending_keyword_arguments: The keyword argument dictionary to be modified.
-
-            Returns:
-                A modified keyword argument dictionary.
-            """
-            if (path / "configuration").exists():
-                configuration: GroupedOptions = GroupedOptions.load(
-                    path / "configuration"
-                )
-                t_norm_pending_keyword_arguments["configuration"] = configuration
-
-            if (path / "_func").exists():
-                _func: TNormPipeline = TNormPipeline.load(path / "_func", device=device)
-                t_norm_pending_keyword_arguments["_func"] = _func
-            return t_norm_pending_keyword_arguments
-
         return super().load(
-            path=path, device=device, t_norm_callback=default_t_norm_callback
+            path=path, device=device
         )
 
 
