@@ -7,9 +7,10 @@ Furthermore, some of these classes will also store the accompanying function for
 they inherit from torch.nn.Module and can be used accordingly).
 """
 
-from dataclasses import Field, dataclass, field, fields
+from dataclasses import Field, field, fields
+from pydantic.dataclasses import dataclass
 from enum import Enum
-from typing import Callable, ClassVar, List, Tuple, Type, Union
+from typing import Callable, ClassVar, List, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -17,11 +18,9 @@ from entmax import entmax15  # , entmax_bisect
 from scipy.stats import loguniform, randint, uniform
 from torch.nn import Module
 
-from fuzzy.utils.options.abstract.meta import EnumPromoter, Options
+from fuzzy.utils.options.abstract.meta import EnumPromoter
 from fuzzy.utils.options.abstract.primitive import (
-    CategoricalEnumOptions,
     CategoricalOptions,
-    GroupedOptions,
 )
 from fuzzy.utils.options.impl.impl_enums import (
     BoundAlphaEntmaxEnum,
@@ -111,8 +110,8 @@ class PremiseAggregation(
     MEAN: PremiseAggregationEnum
 
     _fn = {
-        PremiseAggregationEnum.SUM.value: lambda x: -1 * x.sum(dim=1),
-        PremiseAggregationEnum.MEAN.value: lambda x: -1 * x.mean(dim=1),
+        PremiseAggregationEnum.SUM: lambda x: -1 * x.sum(dim=1),
+        PremiseAggregationEnum.MEAN: lambda x: -1 * x.mean(dim=1),
     }
 
     def __init__(self):
@@ -133,18 +132,6 @@ class PremiseAggregation(
         # self.selection is 'str' if optuna assigns
         return self._fn[self.selection]
 
-
-class PremiseElimination(
-    CategoricalEnumOptions, EnumPromoter, enum_cls=PremiseEliminationEnum
-):
-    """
-    Outlines the available premise elimination strategies.
-    """
-
-    # type hints for Pylint - not required for functionality but only static
-    # code analysis
-    NONE: PremiseEliminationEnum
-    NO_OP: PremiseEliminationEnum
 
 
 class BoundAlphaEntmax(
@@ -200,8 +187,8 @@ class PremiseActivation(
     """
 
     _fn = {
-        PremiseActivationEnum.ENTMAX15.value: entmax15,
-        PremiseActivationEnum.SOFTMAX.value: torch.nn.functional.softmax,
+        PremiseActivationEnum.ENTMAX15: entmax15,
+        PremiseActivationEnum.SOFTMAX: torch.nn.functional.softmax,
     }
 
     def __init__(
@@ -259,40 +246,8 @@ class PremiseActivation(
     #     )
 
 
-class Sampling(CategoricalEnumOptions):
-    """
-    Outlines the available sampling strategies.
-    """
-
-    enum_cls = SamplingEnum
-
-
-class RuleWeights(CategoricalEnumOptions):
-    """
-    Outlines the available rule weighing strategies.
-    """
-
-    enum_cls = RuleWeightsEnum
-
-
-class RuleElimination(CategoricalEnumOptions):
-    """
-    Outlines the available rule elimination strategies.
-    """
-
-    enum_cls = RuleEliminationEnum
-
-
-class RuleElevation(CategoricalEnumOptions):
-    """
-    Outlines the available rule elevation strategies.
-    """
-
-    enum_cls = RuleElevationEnum
-
-
 @dataclass
-class PremiseConfig(GroupedOptions):
+class PremiseConfig:
     """
     How to set up the premise terms, whether we should use standard implementation (e.g.,
     sum and softmax) or try something more experimental (e.g., mean and 1.5-entmax), as well as
@@ -311,51 +266,9 @@ class PremiseConfig(GroupedOptions):
         default=PremiseActivationEnum.SOFTMAX,
     )
 
-    @property
-    def selection(self):
-        return (
-            option.selection
-            for _, option in vars(self).items()
-            if isinstance(option, Options)
-        )
-
-    def default(self) -> None:
-        """
-        Select the 'default' settings for a TSK neuro-fuzzy network with respect to premises.
-
-        Returns:
-            None
-        """
-        self.select(
-            aggregation=PremiseAggregation.SUM,
-            elimination=PremiseElimination.NONE,
-            activation=PremiseActivation.SOFTMAX,
-        )
-
-    def select(
-        self,
-        aggregation: Type[PremiseAggregation],
-        elimination: Type[PremiseElimination],
-        activation: Type[PremiseActivation],
-    ) -> None:
-        """
-        Select the assignments based on the given arguments.
-
-        Args:
-            aggregation: A premise aggregation enum member.
-            elimination: A premise elimination enum member.
-            activation: A premise activation enum member.
-
-        Returns:
-            None
-        """
-        self.aggregation.selection = aggregation
-        self.elimination.selection = elimination
-        self.activation.selection = activation
-
 
 @dataclass
-class RuleConfig(GroupedOptions):
+class RuleConfig:
     """
     How to set up the fuzzy logic rules, whether they should be weighed (e.g., certainty factors),
     whether to eliminate any, and/or whether to elevate their firing levels. Default is NONE for
@@ -371,48 +284,6 @@ class RuleConfig(GroupedOptions):
     elevation: RuleElevationEnum = field(
         default=RuleElevationEnum.NONE,
     )
-
-    @property
-    def selection(self):
-        return (
-            option.selection
-            for _, option in vars(self).items()
-            if isinstance(option, Options)
-        )
-
-    def default(self) -> None:
-        """
-        Select the 'default' settings for a TSK neuro-fuzzy network with respect to rules.
-
-        Returns:
-            None
-        """
-        self.select(
-            weights=RuleWeightsEnum.NONE,
-            elimination=RuleEliminationEnum.NONE,
-            elevation=RuleElevationEnum.NONE,
-        )
-
-    def select(
-        self,
-        weights: Type[RuleWeights],
-        elimination: Type[RuleElimination],
-        elevation: Type[RuleElevation],
-    ):
-        """
-        Select the assignments based on the given arguments.
-
-        Args:
-            weights: A rule weights enum member.
-            elimination: A rule elimination enum member.
-            elevation: A rule elevation enum member.
-
-        Returns:
-            None
-        """
-        self.weights.selection = weights
-        self.elimination.selection = elimination
-        self.elevation.selection = elevation
 
 
 @dataclass
@@ -432,7 +303,7 @@ class InferenceConfig:
 
 
 @dataclass
-class GumbelConfig(GroupedOptions):
+class GumbelConfig:
     """
     How to set up the Gumbel Softmax, whether it should be constrained, how long to delay
     resampling the Gumbel noise, and what temperature to use for the Gumbel distribution.
@@ -474,51 +345,9 @@ class GumbelConfig(GroupedOptions):
         },
     )
 
-    @property
-    def selection(self):
-        return (
-            option.selection
-            for _, option in vars(self).items()
-            if isinstance(option, Options)
-        )
-
-    def default(self) -> None:
-        """
-        Select 'default' settings for a neuro-fuzzy network with respect to the Gumbel Softmax.
-
-        Returns:
-            None
-        """
-        self.select(
-            temperature=1.0,
-            epsilon_filter=0.0,
-            noise_delay=1,
-        )
-
-    def select(
-        self,
-        temperature: float,
-        epsilon_filter: float,
-        noise_delay: int,
-    ):
-        """
-        Select the assignments based on the given arguments.
-
-        Args:
-            temperature: The temperature of the Gumbel distribution.
-            epsilon_filter: Whether to constrain the Gumbel Softmax and by how much.
-            noise_delay: Whether to delay resampling of the Gumbel Softmax noise, and for how long.
-
-        Returns:
-            None
-        """
-        self.temperature.selection = temperature
-        self.epsilon_filter.selection = epsilon_filter
-        self.noise_delay.selection = noise_delay
-
 
 @dataclass
-class NeurogenesisConfig(GroupedOptions):
+class NeurogenesisConfig:
     """
     How to set up neurogenesis, such as whether it should be delayed and how it should be
     triggered. Default options and values replicate those explored in Hostetter's dissertation.
@@ -545,45 +374,6 @@ class NeurogenesisConfig(GroupedOptions):
             "search": Range(low=1, high=5, step=2),
         },
     )
-
-    @property
-    def selection(self):
-        return (
-            option.selection
-            for _, option in vars(self).items()
-            if isinstance(option, Options)
-        )
-
-    def default(self) -> None:
-        """
-        Select 'default' settings for a neuro-fuzzy network with respect to the Gumbel Softmax.
-
-        Returns:
-            None
-        """
-        self.select(
-            epsilon=0.5,
-            add_premise_delay=1,
-        )
-
-    def select(
-        self,
-        epsilon: float,
-        add_premise_delay: int,
-    ):
-        """
-        Select the assignments based on the given arguments.
-
-        Args:
-            epsilon: The minimum membership degree that must be achieved; otherwise, neurogenesis
-            will be triggered.
-            add_premise_delay: Whether to delay adding a new premise term, and for how long.
-
-        Returns:
-            None
-        """
-        self.epsilon.selection = epsilon
-        self.add_premise_delay.selection = add_premise_delay
 
 
 @dataclass

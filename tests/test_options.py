@@ -162,7 +162,6 @@ class TestOptions(unittest.TestCase):
         """
         premise_config: PremiseConfig = PremiseConfig()
         self.assertIsNotNone(premise_config)
-        premise_config.default()
         self.assertEqual(
             PremiseAggregationEnum.SUM, premise_config.aggregation
         )
@@ -182,7 +181,6 @@ class TestOptions(unittest.TestCase):
         """
         rule_config: RuleConfig = RuleConfig()
         self.assertIsNotNone(rule_config)
-        rule_config.default()
         self.assertEqual(RuleWeightsEnum.NONE, rule_config.weights)
         self.assertEqual(RuleEliminationEnum.NONE, rule_config.elimination)
         self.assertEqual(RuleElevationEnum.NONE, rule_config.elevation)
