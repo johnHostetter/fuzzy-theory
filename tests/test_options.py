@@ -21,7 +21,7 @@ from fuzzy.utils.options.impl.impl_enums import (
     PremiseEliminationEnum,
     RuleElevationEnum,
     RuleEliminationEnum,
-    RuleWeightsEnum,
+    RuleWeightsEnum, SamplingEnum, NeurogenesisEnum,
 )
 from fuzzy.utils.options.impl.impl_options import (
     NeuroFuzzyNetworkHyperparameters,
@@ -185,14 +185,36 @@ class TestOptions(unittest.TestCase):
         self.assertEqual(RuleEliminationEnum.NONE, rule_config.elimination)
         self.assertEqual(RuleElevationEnum.NONE, rule_config.elevation)
 
-    def test_create_neuro_fuzzy_network_hyperparameters(self) -> None:
+    def test_default_neuro_fuzzy_network_hyperparameters(self) -> None:
         """
-        Test that an instance of NeuroFuzzyNetworkHyperparameters can be created.
+        Test that an instance of NeuroFuzzyNetworkHyperparameters has the correct default values.
 
         Returns:
             None
         """
-        self.assertIsNotNone(NeuroFuzzyNetworkHyperparameters())
+        nfn = NeuroFuzzyNetworkHyperparameters()
+        # default structure settings --- #
+        self.assertEqual(nfn.structure.rule.n_rules, 128)
+
+        # default parameter settings --- #
+        self.assertEqual(nfn.parameter.premise.init_width, 0.5)
+
+        # --- default evolution settings --- #
+        self.assertEqual(nfn.evolution.premise.neurogenesis, NeurogenesisEnum.NONE)
+        self.assertEqual(nfn.evolution.premise.epsilon, 0.5)
+        self.assertEqual(nfn.evolution.premise.add_premise_delay, 1)
+        self.assertEqual(nfn.evolution.rule.sampling, SamplingEnum.ST_GUMBEL_SOFTMAX)
+        self.assertEqual(nfn.evolution.rule.temperature, 1.0)
+        self.assertEqual(nfn.evolution.rule.epsilon_filter, 0.0)
+        self.assertEqual(nfn.evolution.rule.noise_delay, 1)
+
+        # --- default inference settings --- #
+        self.assertEqual(nfn.inference.premise.aggregation, PremiseAggregationEnum.SUM)
+        self.assertEqual(nfn.inference.premise.elimination, PremiseEliminationEnum.NONE)
+        self.assertEqual(nfn.inference.premise.activation, PremiseActivationEnum.SOFTMAX)
+        self.assertEqual(nfn.inference.rule.weights, RuleWeightsEnum.NONE)
+        self.assertEqual(nfn.inference.rule.elimination, RuleEliminationEnum.NONE)
+        self.assertEqual(nfn.inference.rule.elevation, RuleEliminationEnum.NONE)
 
     @staticmethod
     def create_grouped_options_from_kwargs(
