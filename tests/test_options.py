@@ -16,12 +16,14 @@ from fuzzy.utils.options.abstract.primitive import (
     IntOptions,
 )
 from fuzzy.utils.options.impl.impl_enums import (
+    NeurogenesisEnum,
     PremiseActivationEnum,
     PremiseAggregationEnum,
     PremiseEliminationEnum,
     RuleElevationEnum,
     RuleEliminationEnum,
-    RuleWeightsEnum, SamplingEnum, NeurogenesisEnum,
+    RuleWeightsEnum,
+    SamplingEnum,
 )
 from fuzzy.utils.options.impl.impl_options import (
     NeuroFuzzyNetworkHyperparameters,
@@ -162,15 +164,9 @@ class TestOptions(unittest.TestCase):
         """
         premise_config: PremiseConfig = PremiseConfig()
         self.assertIsNotNone(premise_config)
-        self.assertEqual(
-            PremiseAggregationEnum.SUM, premise_config.aggregation
-        )
-        self.assertEqual(
-            PremiseEliminationEnum.NONE, premise_config.elimination
-        )
-        self.assertEqual(
-            PremiseActivationEnum.SOFTMAX, premise_config.activation
-        )
+        self.assertEqual(PremiseAggregationEnum.SUM, premise_config.aggregation)
+        self.assertEqual(PremiseEliminationEnum.NONE, premise_config.elimination)
+        self.assertEqual(PremiseActivationEnum.SOFTMAX, premise_config.activation)
 
     def test_rule_config(self) -> None:
         """
@@ -211,7 +207,9 @@ class TestOptions(unittest.TestCase):
         # --- default inference settings --- #
         self.assertEqual(nfn.inference.premise.aggregation, PremiseAggregationEnum.SUM)
         self.assertEqual(nfn.inference.premise.elimination, PremiseEliminationEnum.NONE)
-        self.assertEqual(nfn.inference.premise.activation, PremiseActivationEnum.SOFTMAX)
+        self.assertEqual(
+            nfn.inference.premise.activation, PremiseActivationEnum.SOFTMAX
+        )
         self.assertEqual(nfn.inference.rule.weights, RuleWeightsEnum.NONE)
         self.assertEqual(nfn.inference.rule.elimination, RuleEliminationEnum.NONE)
         self.assertEqual(nfn.inference.rule.elevation, RuleEliminationEnum.NONE)

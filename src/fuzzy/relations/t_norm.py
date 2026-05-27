@@ -6,14 +6,11 @@ relations are implemented here.
 
 from abc import ABC
 from pathlib import Path
-from typing import Any, Callable, Dict, MutableMapping, Union
 
 import torch
 
-from fuzzy.relations.custom_t_norm import TNormPipeline
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.sets.membership import Membership
-from fuzzy.utils.options.abstract.primitive import GroupedOptions
 
 
 class TNorm(NAryRelation, ABC):
@@ -53,9 +50,7 @@ class TNorm(NAryRelation, ABC):
             The t-norm (n-ary) relation.
         """
 
-        return super().load(
-            path=path, device=device
-        )
+        return super().load(path=path, device=device)
 
 
 class Minimum(TNorm):

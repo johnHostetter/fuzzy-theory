@@ -14,12 +14,11 @@ import numpy as np
 import scipy.sparse as sps
 import torch
 import yaml
+from pydantic import TypeAdapter
+from torch import Size, Tensor
+
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
-from pydantic import TypeAdapter
-
-# from line_profiler import profile
-from torch import Size, Tensor
 
 from ..utils.classes import Loggable
 
@@ -27,6 +26,8 @@ from ..utils.classes import Loggable
 from ..utils.functions import exp_sum_log
 from ..utils.options.impl.impl_options import InferenceConfig
 from .linkage import BinaryLinks, GroupedLinks
+
+# from line_profiler import profile
 
 
 class NAryMaskMethods(str, Enum):
@@ -321,11 +322,12 @@ class NAryRelation(TorchJitModule, Loggable):
             state_dict: MutableMapping = torch.load(
                 path / "state_dict.pt", weights_only=False
             )
-        nan_replacement = state_dict.pop("nan_replacement")
-        kwargs: Dict[str, Any] = {"nan_replacement": nan_replacement, "device": device}
+        kwargs: Dict[str, Any] = {
+            "nan_replacement": state_dict.pop("nan_replacement"),
+            "device": device,
+        }
 
-        class_name = state_dict.pop("class_name")
-        fuzzy_cls = cls.get_subclass(class_name)
+        fuzzy_cls = cls.get_subclass(class_name=state_dict.pop("class_name"))
 
         if "indices" in state_dict:
             indices = state_dict.pop("indices")
@@ -334,11 +336,12 @@ class NAryRelation(TorchJitModule, Loggable):
         grouped_links_kwargs: Dict[str, Any] = {"device": device}
         configuration: Union[None, InferenceConfig] = None
         if (grouped_links / "configuration").exists():
-            with open(grouped_links.parent / "configuration.yaml", "r") as f:
+            with open(
+                grouped_links.parent / "configuration.yaml", "r", encoding="utf-8"
+            ) as f:
                 data = yaml.safe_load(f)
 
-            adapter = TypeAdapter(InferenceConfig)
-            configuration = adapter.validate_python(data)
+            configuration = TypeAdapter(InferenceConfig).validate_python(data)
 
             # order matters here; GroupedLinks cannot load before
             # GumbelSoftmaxOptions.load
@@ -433,7 +436,8 @@ class NAryRelation(TorchJitModule, Loggable):
         self.grouped_links = GroupedLinks(
             modules_list=[BinaryLinks(links=self.matrix, device=self.device)]
         )
-        # re-create self.graph (has to happen after self.grouped_links is created)
+        # re-create self.graph (has to happen after self.grouped_links is
+        # created)
         self.create_igraph()
 
     # @log_method

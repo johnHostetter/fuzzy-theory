@@ -7,21 +7,20 @@ Furthermore, some of these classes will also store the accompanying function for
 they inherit from torch.nn.Module and can be used accordingly).
 """
 
-from dataclasses import Field, field, fields
-from pydantic.dataclasses import dataclass
+from dataclasses import Field, field
+from dataclasses import fields as dataclasses_fields
 from enum import Enum
-from typing import Callable, ClassVar, List, Tuple, Union
+from typing import Callable, ClassVar, List, Union
 
+import scipy.stats
 import torch
 import torch.nn.functional as F
 from entmax import entmax15  # , entmax_bisect
-from scipy.stats import loguniform, randint, uniform
+from pydantic.dataclasses import dataclass
 from torch.nn import Module
 
 from fuzzy.utils.options.abstract.meta import EnumPromoter
-from fuzzy.utils.options.abstract.primitive import (
-    CategoricalOptions,
-)
+from fuzzy.utils.options.abstract.primitive import CategoricalOptions
 from fuzzy.utils.options.impl.impl_enums import (
     BoundAlphaEntmaxEnum,
     NeurogenesisEnum,
@@ -39,17 +38,27 @@ _64_BIT_INT: int = 2 ^ 63 - 1  # max magnitude of a 64-bit integer
 
 @dataclass(frozen=True)
 class Range:
+    """
+    A range of possible values.
+    """
+
     low: Union[float, int]
     high: Union[float, int]
     log: bool = False  # log scale for floats
     step: Union[None, int] = None  # for integers with a step size
 
-    def to_scipy(self):
+    def to_scipy(self) -> object:
+        """
+        Conveniently translate this range instance to scipy.
+
+        Returns:
+            A scipy.stats.range instance.
+        """
         if self.step:
-            return randint(self.low, self.high)
+            return scipy.stats.randint(self.low, self.high)
         if self.log:
-            return loguniform(self.low, self.high)
-        return uniform(self.low, self.high - self.low)
+            return scipy.stats.loguniform(self.low, self.high)
+        return scipy.stats.uniform(self.low, self.high - self.low)
 
     def to_optuna(self, trial, name: str) -> None:
         """
@@ -68,24 +77,48 @@ class Range:
             return trial.suggest_float(name, self.low, self.high, log=True)
         return trial.suggest_float(name, self.low, self.high)
 
-    def contains(self, val) -> bool:
+    def contains(self, val: Union[int, float]) -> bool:
+        """
+        A method to check if a value is in the range.
+
+        Args:
+            val: The value of interest.
+
+        Returns:
+            Whether the value is in the range.
+        """
         return self.low <= val <= self.high
 
     def to_dict(self) -> dict:
-        d = {"low": self.low, "high": self.high}
+        """
+        Convert the instance of Range to a dictionary.
+
+        Returns:
+            The dictionary representing the Range object.
+        """
+        entry = {"low": self.low, "high": self.high}
         if self.log:
-            d["log"] = self.log
+            entry["log"] = self.log
         if self.step is not None:
-            d["step"] = self.step
-        return d
+            entry["step"] = self.step
+        return entry
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Range":
+    def from_dict(cls, entry: dict) -> "Range":
+        """
+        An implementation that allows the conversion of a dictionary entry to an instance of Range.
+
+        Args:
+            entry: The dictionary entry.
+
+        Returns:
+            An instance of Range.
+        """
         return cls(
-            low=d["low"],
-            high=d["high"],
-            log=d.get("log", False),
-            step=d.get("step", None),
+            low=entry["low"],
+            high=entry["high"],
+            log=entry.get("log", False),
+            step=entry.get("step", None),
         )
 
     def __repr__(self):
@@ -131,7 +164,6 @@ class PremiseAggregation(
             return self._fn[self.selection.value]
         # self.selection is 'str' if optuna assigns
         return self._fn[self.selection]
-
 
 
 class BoundAlphaEntmax(
@@ -224,7 +256,9 @@ class PremiseActivation(
         # self.selection is 'str' if optuna assigns
         return self._fn[self.selection]
 
-    def assign(self, trial, name) -> Tuple[str, str]:
+    def assign(
+        self, trial, name
+    ) -> tuple[Union[str, int, float], Union[str, int, float]]:
         super_assignment = super().assign(trial=trial, name=name)
         bound_alpha_assignment = self.bound_alpha.assign(
             trial=trial, name=f"{name}.bound_alpha"
@@ -288,6 +322,10 @@ class RuleConfig:
 
 @dataclass
 class InferenceConfig:
+    """
+    A configuration for fuzzy logic rule inference.
+    """
+
     premise: PremiseConfig = field(
         default_factory=PremiseConfig,
         metadata={
@@ -555,10 +593,18 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
             self.evolution.rule.epsilon_filter = 0.0  # disable the constraint
             NeuroFuzzyNetworkHyperparameters._initialized = True
 
+    # noinspection PyTypeChecker
     @property
     def fields(self) -> List[Field]:
+        """
+        Return only the fields that are unique to this subclass.
+
+        Returns:
+            A list of fields that are unique to this subclass.
+        """
         return [
             hyperparameter
-            for hyperparameter in fields(self)
-            if hyperparameter not in fields(ApproximatorHyperparameters)
+            for hyperparameter in dataclasses_fields(self)
+            if hyperparameter
+            not in dataclasses_fields(type(ApproximatorHyperparameters))
         ]
