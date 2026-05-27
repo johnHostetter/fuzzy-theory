@@ -266,20 +266,13 @@ class TestNAryRelation(unittest.TestCase):
             None
         """
         indices: tuple = ((0, 1), (1, 0))
-        file_name: str = "n_ary_relation"
+        dir_path: Path = Path("n_ary_relation")
         n_ary = NAryRelation(*indices, device=AVAILABLE_DEVICE)
-        self.assertRaises(
-            ValueError, n_ary.save, Path(f"{file_name}.txt")
-        )  # wrong extension
-        self.assertRaises(
-            ValueError, n_ary.save, Path(f"{file_name}.pth")
-        )  # bad extension
-        self.assertRaises(ValueError, n_ary.save, Path(f"{file_name}"))  # no extension
-        state_dict: MutableMapping[str, Any] = n_ary.save(Path(f"{file_name}.pt"))
+        state_dict: MutableMapping[str, Any] = n_ary.save(path=dir_path)
         # check that the file was created and exists
-
+        self.assertTrue(dir_path.exists())
+        self.assertTrue(dir_path.is_dir())
         # check that the state dict contains the necessary keys
-        self.assertTrue(Path(f"{file_name}.pt").exists())
         for key in ("indices", "class_name", "nan_replacement"):
             self.assertTrue(
                 key in state_dict
@@ -293,9 +286,7 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(indices, state_dict["indices"])
         self.assertEqual("NAryRelation", state_dict["class_name"])
         self.assertEqual(n_ary.nan_replacement, state_dict["nan_replacement"])
-        loaded_n_ary = NAryRelation.load(
-            Path(f"{file_name}.pt"), device=AVAILABLE_DEVICE
-        )
+        loaded_n_ary = NAryRelation.load(path=dir_path, device=AVAILABLE_DEVICE)
         self.assertEqual(n_ary.indices, loaded_n_ary.indices)
         self.assertEqual(n_ary.nan_replacement, loaded_n_ary.nan_replacement)
         # the applied_mask is the resulting output from grouped_links()
@@ -316,8 +307,8 @@ class TestNAryRelation(unittest.TestCase):
             loaded_n_ary._coo_matrix[0].shape,
         )
         # pylint: enable=protected-access
-        # remove the file
-        Path(f"{file_name}.pt").unlink()
+        # remove the directory
+        shutil.rmtree(dir_path)
 
     def test_save_and_load_from_grouped_links(self) -> None:
         """
@@ -333,18 +324,14 @@ class TestNAryRelation(unittest.TestCase):
                 BinaryLinks(np.eye(N_TERMS, N_TERMS), device=AVAILABLE_DEVICE),
             ]
         )
-        file_name: str = "n_ary_relation"
         n_ary = NAryRelation(grouped_links=grouped_links, device=AVAILABLE_DEVICE)
-        self.assertRaises(ValueError, n_ary.save, Path(f"{file_name}.txt"))
-        self.assertRaises(ValueError, n_ary.save, Path(f"{file_name}.pth"))
-        intended_destination: Path = Path(__file__).parent / f"{file_name}.pt"
+        intended_destination: Path = Path(__file__).parent / "n_ary_relation"
         n_ary.save(path=intended_destination)
         # note a .pt file is NOT created, but a directory is created instead
         # (to save the grouped links)
-        actual_destination: Path = Path(__file__).parent / file_name
-        self.assertTrue(actual_destination.exists())
-        self.assertTrue(actual_destination.is_dir())
-        loaded_n_ary = NAryRelation.load(actual_destination, device=AVAILABLE_DEVICE)
+        self.assertTrue(intended_destination.exists())
+        self.assertTrue(intended_destination.is_dir())
+        loaded_n_ary = NAryRelation.load(intended_destination, device=AVAILABLE_DEVICE)
         self.assertTrue(
             torch.allclose(
                 n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense()
@@ -359,7 +346,7 @@ class TestNAryRelation(unittest.TestCase):
             # method
             self.assertEqual(actual_module, loaded_module)
         # remove the directory and its contents
-        shutil.rmtree(actual_destination)
+        shutil.rmtree(intended_destination)
 
 
 class TestProduct(TestNAryRelation):

@@ -16,6 +16,7 @@ import torch
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.sets.abstract import FuzzySet
 
+from ...relations.n_ary import NAryRelation
 from ...relations.t_norm import TNorm
 from ...sets import FuzzySetGroup
 from .configurations.abstract import FuzzySystem
@@ -136,8 +137,11 @@ class FuzzyLogicController(torch.nn.Sequential):
         """
         # load the components from their respective directories
         input_granules = FuzzySetGroup.load(path / "input", device=device)
-        engine = TNorm.load(path / "engine", device=device)
+        engine: NAryRelation = TNorm.load(path / "engine", device=device)
         defuzzification = Defuzzification.load(path / "defuzzification", device=device)
+        assert isinstance(
+            engine, TNorm
+        ), "The loaded engine must be an instance of TNorm."
 
         # load the FLC state dictionary for the remaining components
         state_dict: MutableMapping[str, Any] = torch.load(

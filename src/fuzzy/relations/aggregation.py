@@ -3,7 +3,6 @@ Implements aggregation operators in fuzzy theory.
 """
 
 import torch
-
 from fuzzy.utils.classes import Loggable
 
 # from fuzzy.utils.functions import log_method

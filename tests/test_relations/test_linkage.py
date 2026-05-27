@@ -149,10 +149,6 @@ class TestGroupedLinks(unittest.TestCase):
         Returns:
             None
         """
-        # illegal path name
-        self.assertRaises(ValueError, self.grouped_links.save, Path("test.txt"))
-        # bad path name
-        self.assertRaises(ValueError, self.grouped_links.save, Path("test.pth"))
         # good path (folder) name
         path = Path("grouped_links")
         self.grouped_links.save(path)

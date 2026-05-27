@@ -174,14 +174,12 @@ class NestedTorchJitModule(torch.nn.Module):
         Note: This does not preserve ParameterList structures, but rather concatenates the
         parameters into a single tensor, which is then saved to a file.
 
+        Args:
+            path: The path to save the NestedTorchJitModule to; it must be a directory.
+
         Returns:
             None
         """
-        if "." in path.name:
-            raise ValueError(
-                f"The path to save the {self.__class__} must not have a file extension, "
-                f"but got {path.name}"
-            )
         # get the attributes that are local to the class, but not inherited
         # from the super class
         local_attributes_only = get_object_attributes(self)
@@ -318,5 +316,5 @@ class NestedTorchJitModule(torch.nn.Module):
                     # load the module
                     modules_list.append(torch.load(module_path, weights_only=False))
             else:
-                raise UserWarning(f"Unexpected file found in {path}: {subdirectory}")
+                pass  # Unexpected file found (might be a *.yaml)
         return modules_list

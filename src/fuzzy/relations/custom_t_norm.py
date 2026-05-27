@@ -8,9 +8,7 @@ from typing import Any, MutableMapping
 
 import scienceplots  # noqa # pylint: disable=unused-import
 import torch
-
 from fuzzy.relations.confidence import CertaintyFactors
-from fuzzy.utils.options.abstract.primitive import GroupedOptions
 from fuzzy.utils.options.impl.impl_options import (
     InferenceConfig,
     PremiseActivation,
@@ -35,8 +33,8 @@ class TNormPipeline(torch.nn.Module):
     ):
         super().__init__()
         self.n_relations = n_relations
-        self._agg = PremiseAggregation._fn[configuration.premise.aggregation]
-        self._act = PremiseActivation._fn[configuration.premise.activation]
+        self._agg = PremiseAggregation.func(configuration.premise.aggregation)
+        self._act = PremiseActivation.func(configuration.premise.activation)
         self.layer_norm = None
         if "layer_norm" in kwargs and isinstance(
             kwargs["layer_norm"], torch.nn.LayerNorm
@@ -86,18 +84,16 @@ class TNormPipeline(torch.nn.Module):
                 path / "state_dict.pt", weights_only=False
             )
             n_relations: int = state_dict.pop("n_relations")
-            configuration = InferenceConfig.load(path=path.parent / "configuration")
-
-            if isinstance(configuration, GroupedOptions):
-                t_norm_pipeline = TNormPipeline(
-                    configuration=configuration, n_relations=n_relations, device=device
-                )
-                t_norm_pipeline.load_state_dict(state_dict)
-                return t_norm_pipeline
-
-            raise ValueError(
-                f"Expected instance of InferenceConfig, but got: {type(configuration)}"
+            configuration = InferenceConfig.load(
+                path=path.parent / "configuration.yaml"
             )
+
+            t_norm_pipeline = TNormPipeline(
+                configuration=configuration, n_relations=n_relations, device=device
+            )
+            t_norm_pipeline.load_state_dict(state_dict)
+            return t_norm_pipeline
+
         raise ValueError(f"Invalid path: {path}")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

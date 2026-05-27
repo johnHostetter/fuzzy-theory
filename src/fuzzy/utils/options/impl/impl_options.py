@@ -9,16 +9,14 @@ they inherit from torch.nn.Module and can be used accordingly).
 
 from dataclasses import Field, field
 from dataclasses import fields as dataclasses_fields
-from enum import Enum
+from pathlib import Path
 from typing import Callable, ClassVar, List, Union
 
 import scipy.stats
 import torch
 import torch.nn.functional as F
+import yaml
 from entmax import entmax15  # , entmax_bisect
-from pydantic.dataclasses import dataclass
-from torch.nn import Module
-
 from fuzzy.utils.options.abstract.meta import EnumPromoter
 from fuzzy.utils.options.abstract.primitive import CategoricalOptions
 from fuzzy.utils.options.impl.impl_enums import (
@@ -32,6 +30,9 @@ from fuzzy.utils.options.impl.impl_enums import (
     RuleWeightsEnum,
     SamplingEnum,
 )
+from pydantic import TypeAdapter
+from pydantic.dataclasses import dataclass
+from torch.nn import Module
 
 _64_BIT_INT: int = 2 ^ 63 - 1  # max magnitude of a 64-bit integer
 
@@ -150,20 +151,20 @@ class PremiseAggregation(
     def __init__(self):
         super().__init__(*self.options)
 
-    # @property
-    def func(self) -> Callable[[torch.Tensor], torch.Tensor]:
+    @classmethod
+    def func(
+        cls, selection: PremiseAggregationEnum
+    ) -> Callable[[torch.Tensor], torch.Tensor]:
         """
         Obtain the appropriate premise aggregation function based on the stored selection.
+
+        Args:
+            selection: A selection made from the set of options in PremiseAggregationEnum.
 
         Returns:
             A callable function that expects a torch.Tensor and will return a torch.Tensor.
         """
-        if self.assignable:
-            raise ValueError("A selection has not yet been made.")
-        if isinstance(self.selection, Enum):
-            return self._fn[self.selection.value]
-        # self.selection is 'str' if optuna assigns
-        return self._fn[self.selection]
+        return cls._fn[selection]
 
 
 class BoundAlphaEntmax(
@@ -241,29 +242,20 @@ class PremiseActivation(
             else (BoundAlphaEntmax(device=self.device, alpha=alpha))
         )
 
-    # @property
-    def func(self) -> Callable[[torch.Tensor], torch.Tensor]:
+    @classmethod
+    def func(
+        cls, selection: PremiseActivationEnum
+    ) -> Callable[[torch.Tensor], torch.Tensor]:
         """
         Obtain the appropriate premise aggregation function based on the stored selection.
+
+        Args:
+            selection: A selection made from the set of options in PremiseActivationEnum.
 
         Returns:
             A callable function that expects a torch.Tensor and will return a torch.Tensor.
         """
-        if self.assignable:
-            raise ValueError("A selection has not yet been made.")
-        if isinstance(self.selection, Enum):
-            return self._fn[self.selection.value]
-        # self.selection is 'str' if optuna assigns
-        return self._fn[self.selection]
-
-    def assign(
-        self, trial, name
-    ) -> tuple[Union[str, int, float], Union[str, int, float]]:
-        super_assignment = super().assign(trial=trial, name=name)
-        bound_alpha_assignment = self.bound_alpha.assign(
-            trial=trial, name=f"{name}.bound_alpha"
-        )
-        return super_assignment, bound_alpha_assignment
+        return cls._fn[selection]
 
     # def forward(self, input):
     #     if self.selection == PremiseActivationEnum.ENTMAX15:
@@ -280,8 +272,62 @@ class PremiseActivation(
     #     )
 
 
+class YAMLConfig:
+    """
+    Allows a convenient interface to save and load dataclass configurations with pydantic.
+    """
+
+    @staticmethod
+    def __path_validation(path: Path) -> None:
+        """
+        Ensure the given path is a valid YAML file.
+
+        Args:
+            path: The path to validate. It must end with a *.yaml extension.
+
+        Returns:
+            None
+        """
+        assert not path.is_dir(), "The given path must be designated as a file."
+        assert path.name.endswith(
+            ".yaml"
+        ), "Only paths that end with '.yaml' are allowed."
+
+    def save(self, path: Path) -> None:
+        """
+        Save the current configuration to a *.yaml file.
+
+        Args:
+            path: The path to use. It must end with a *.yaml extension.
+
+        Returns:
+            None
+        """
+        self.__path_validation(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        adapter = TypeAdapter(type=type(self))
+        with open(path, "w", encoding="utf-8") as f:
+            yaml.dump(adapter.dump_python(self, mode="json"), f)
+
+    @classmethod
+    def load(cls, path: Path) -> "YAMLConfig":
+        """
+        Load the dataclass configuration from a *.yaml file and instantiate its appropriate class.
+
+        Args:
+            path: The path to use. It must end with a *.yaml extension.
+
+        Returns:
+            An instance of YAMLConfig class.
+        """
+        cls.__path_validation(path)
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        return TypeAdapter(cls).validate_python(data)
+
+
 @dataclass
-class PremiseConfig:
+class PremiseConfig(YAMLConfig):
     """
     How to set up the premise terms, whether we should use standard implementation (e.g.,
     sum and softmax) or try something more experimental (e.g., mean and 1.5-entmax), as well as
@@ -302,7 +348,7 @@ class PremiseConfig:
 
 
 @dataclass
-class RuleConfig:
+class RuleConfig(YAMLConfig):
     """
     How to set up the fuzzy logic rules, whether they should be weighed (e.g., certainty factors),
     whether to eliminate any, and/or whether to elevate their firing levels. Default is NONE for
@@ -321,7 +367,7 @@ class RuleConfig:
 
 
 @dataclass
-class InferenceConfig:
+class InferenceConfig(YAMLConfig):
     """
     A configuration for fuzzy logic rule inference.
     """
@@ -341,7 +387,7 @@ class InferenceConfig:
 
 
 @dataclass
-class GumbelConfig:
+class GumbelConfig(YAMLConfig):
     """
     How to set up the Gumbel Softmax, whether it should be constrained, how long to delay
     resampling the Gumbel noise, and what temperature to use for the Gumbel distribution.
@@ -385,7 +431,7 @@ class GumbelConfig:
 
 
 @dataclass
-class NeurogenesisConfig:
+class NeurogenesisConfig(YAMLConfig):
     """
     How to set up neurogenesis, such as whether it should be delayed and how it should be
     triggered. Default options and values replicate those explored in Hostetter's dissertation.
@@ -415,7 +461,7 @@ class NeurogenesisConfig:
 
 
 @dataclass
-class EvolutionConfig:
+class EvolutionConfig(YAMLConfig):
     """
     Dictates how the neuro-fuzzy network will evolve.
     """
@@ -435,14 +481,14 @@ class EvolutionConfig:
 
 
 @dataclass
-class ParameterConfig:
+class ParameterConfig(YAMLConfig):
     """
     Determines how to initialize parameters of the neuro-fuzzy network (e.g., premise, weights,
     consequences, etc.).
     """
 
     @dataclass
-    class PremiseParameterConfig:
+    class PremiseParameterConfig(YAMLConfig):
         """
         Determines how to initialize parameters of the neuro-fuzzy network with respect to the
         premise layer.
@@ -457,14 +503,14 @@ class ParameterConfig:
         )
 
     @dataclass
-    class RuleParameterConfig:
+    class RuleParameterConfig(YAMLConfig):
         """
         Determines how to initialize parameters of the neuro-fuzzy network with respect to the
         rule layer, if applicable (i.e., assuming rule sampling is implemented).
         """
 
     @dataclass
-    class ConsequenceParameterConfig:
+    class ConsequenceParameterConfig(YAMLConfig):
         """
         Determines how to initialize parameters of the neuro-fuzzy network with respect to the
         consequence layer.
@@ -487,20 +533,20 @@ class ParameterConfig:
 
 
 @dataclass
-class StructureConfig:
+class StructureConfig(YAMLConfig):
     """
     Determines how to initialize structure of the neuro-fuzzy network (e.g., rule count).
     """
 
     @dataclass
-    class PremiseStructureConfig:
+    class PremiseStructureConfig(YAMLConfig):
         """
         Determines how to initialize structure of the neuro-fuzzy network with respect to the
         premise layer.
         """
 
     @dataclass
-    class RuleStructureConfig:
+    class RuleStructureConfig(YAMLConfig):
         """
         Determines how to initialize structure of the neuro-fuzzy network with respect to the
         rule layer, if applicable.
@@ -516,7 +562,7 @@ class StructureConfig:
         )
 
     @dataclass
-    class ConsequenceStructureConfig:
+    class ConsequenceStructureConfig(YAMLConfig):
         """
         Determines how to initialize structure of the neuro-fuzzy network with respect to the
         consequence layer.
@@ -539,7 +585,7 @@ class StructureConfig:
 
 
 @dataclass
-class ApproximatorHyperparameters:
+class ApproximatorHyperparameters(YAMLConfig):
     """
     A standard data class format with attributes that are expected throughout PySoft optuna
     experiments.
