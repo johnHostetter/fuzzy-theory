@@ -12,16 +12,13 @@ import igraph
 import numpy as np
 import scipy.sparse as sps
 import torch
-from soft_computing.utilities.paths import module_class
-from torch import Size
-
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule
 
 from ..utils.classes import Loggable
 
 # , log_classmethod, log_func, log_method
-from ..utils.functions import exp_sum_log
+from ..utils.functions import exp_sum_log, module_class
 from .linkage import BinaryLinks, GroupedLinks
 
 # from line_profiler import profile
@@ -557,7 +554,7 @@ class NAryRelation(TorchJitModule, Loggable):
         """
         # WARNING: this will not work for information with missing data
         # (notice that there is no use of self.nan_replacement)
-        membership_shape: Size = membership.degrees.shape
+        membership_shape: torch.Size = membership.degrees.shape
         batch_size, var_count, term_count = (
             membership_shape[0],
             membership_shape[1],

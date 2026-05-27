@@ -7,9 +7,43 @@ import logging
 import time
 from functools import wraps
 from pathlib import Path
-from typing import Any, Dict, Set
+from typing import Any, Dict, Set, Type
 
 import torch
+
+
+def module_class(instance: object) -> str:
+    """
+    Given an instance of a class, obtain the name of its class and append it to a string
+    representation of its module path.
+
+    Args:
+        instance: An instance of a class.
+
+    Returns:
+        A string representation of the module path.
+    """
+    cls_type = type(instance)
+    return f"{cls_type.__module__}.{cls_type.__name__}"
+
+
+def load_module_class(module_path: str) -> Type[object]:
+    """
+    Given a module path, load the class and return it.
+
+    Args:
+        module_path: The module path, which includes the class name; this is usually prepared by
+        the function called module_class.
+
+    Returns:
+        The loaded class.
+    """
+    split_file_path = module_path.split(".")
+    class_name: str = split_file_path[-1]
+    module_path: str = ".".join(split_file_path[:-1])  # drop the Class name
+    # https://stackoverflow.com/questions/547829/how-to-dynamically-load-a-python-class
+    mod = __import__(module_path, fromlist=[class_name])
+    return getattr(mod, class_name)
 
 
 @torch.jit.script
