@@ -5,7 +5,6 @@ relations are implemented here.
 """
 
 from abc import ABC
-from pathlib import Path
 
 import torch
 
@@ -28,29 +27,6 @@ class TNorm(NAryRelation, ABC):
         if len(self.indices) == 1:
             return " AND ".join([f"({i}, {j})" for i, j in self.indices[0]])
         return super().__str__()
-
-    @classmethod
-    def load(
-        cls,
-        path: Path,
-        device: torch.device,
-    ) -> "NAryRelation":
-        """
-        Load a TNorm from saved files. This override to NAryRelation.load passes a callback
-        function to load a GroupedOptions from storage and also accepts arbitrary keyword
-        arguments that may be needed. The reason why a GroupedOptions object may have existed for a
-        subclass of TNorm, or that keyword arguments might be needed, is it may be a custom
-        implementation requiring specialized, multistep features.
-
-        Args:
-            path: The path to load the t-norm relation.
-            device: The physical device to load the t-norm relation onto.
-
-        Returns:
-            The t-norm (n-ary) relation.
-        """
-
-        return super().load(path=path, device=device)
 
 
 class Minimum(TNorm):

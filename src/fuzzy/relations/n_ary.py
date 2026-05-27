@@ -4,7 +4,6 @@ are used to combine multiple membership values into a single value. The n-ary re
 differing types) can then be combined into a compound relation.
 """
 
-import shutil
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, MutableMapping, Tuple, Union
@@ -13,18 +12,16 @@ import igraph
 import numpy as np
 import scipy.sparse as sps
 import torch
-import yaml
-from pydantic import TypeAdapter
-from torch import Size, Tensor
+from soft_computing.utilities.paths import module_class
+from torch import Size
 
 from fuzzy.sets.membership import Membership
-from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
+from fuzzy.utils import TorchJitModule
 
 from ..utils.classes import Loggable
 
 # , log_classmethod, log_func, log_method
 from ..utils.functions import exp_sum_log
-from ..utils.options.impl.impl_options import InferenceConfig
 from .linkage import BinaryLinks, GroupedLinks
 
 # from line_profiler import profile
@@ -258,7 +255,9 @@ class NAryRelation(TorchJitModule, Loggable):
         if len(self.indices) == 0:
             # we will rebuild from the grouped_links, so we do not need to save
             # the indices
-            grouped_links_dir: Path = path / "grouped_links"
+            grouped_links_dir: Path = (
+                path / f"grouped_links:{module_class(self.grouped_links)}"
+            )
             self.grouped_links.save(path=grouped_links_dir)
             state_dict["grouped_links"] = (
                 grouped_links_dir  # save the path to the grouped_links
@@ -283,18 +282,9 @@ class NAryRelation(TorchJitModule, Loggable):
         Returns:
             The dictionary representation of the n-ary relation.
         """
-        check_path_to_save_torch_module(path)
-        dir_path: Path = path.parent / path.name.split(".")[0]
-        state_dict: MutableMapping[str, Any] = self._state_dict(path=dir_path)
-
-        # where to save the state_dict depends on whether the indices are given
-        # or not
-        save_location: Path = (
-            dir_path / "state_dict.pt" if len(self.indices) == 0 else path
-        )
-
-        torch.save(state_dict, save_location)
-
+        path.mkdir(parents=True, exist_ok=True)
+        state_dict: MutableMapping[str, Any] = self._state_dict(path=path)
+        torch.save(state_dict, path / "state_dict.pt")
         return state_dict
 
     @classmethod
@@ -332,28 +322,9 @@ class NAryRelation(TorchJitModule, Loggable):
         if "indices" in state_dict:
             indices = state_dict.pop("indices")
             return fuzzy_cls(*indices, **kwargs)
+
         grouped_links: Path = state_dict.pop("grouped_links")
-        grouped_links_kwargs: Dict[str, Any] = {"device": device}
-        configuration: Union[None, InferenceConfig] = None
-        if (grouped_links / "configuration").exists():
-            with open(
-                grouped_links.parent / "configuration.yaml", "r", encoding="utf-8"
-            ) as f:
-                data = yaml.safe_load(f)
-
-            configuration = TypeAdapter(InferenceConfig).validate_python(data)
-
-            # order matters here; GroupedLinks cannot load before
-            # GumbelSoftmaxOptions.load
-            # this directory cannot exist when calling GroupedLinks.load
-            shutil.rmtree(grouped_links / "configuration")
-            grouped_links_kwargs["configuration"] = configuration
-        kwargs["grouped_links"] = GroupedLinks.load(
-            grouped_links, **grouped_links_kwargs
-        )
-
-        if configuration is not None:
-            kwargs["configuration"] = configuration
+        kwargs["grouped_links"] = GroupedLinks.load(grouped_links, device=device)
 
         obj = fuzzy_cls(**kwargs)
         # add other attributes that may be specific to the subclass
@@ -432,7 +403,8 @@ class NAryRelation(TorchJitModule, Loggable):
         # re-create the self.matrix
         self.create_ndarray(shape[0], shape[1])
         # update the self.grouped_links to reflect the new shape
-        # these links zero out the values that are not part of the relation
+        # these links are used to zero out the values that are not part of the
+        # relation
         self.grouped_links = GroupedLinks(
             modules_list=[BinaryLinks(links=self.matrix, device=self.device)]
         )
@@ -524,7 +496,7 @@ class NAryRelation(TorchJitModule, Loggable):
             f"{type(self)}."
         )
 
-    def _prod_apply_mask(self, membership: Membership) -> Tensor:
+    def _prod_apply_mask(self, membership: Membership) -> torch.Tensor:
         """
         The default resolution strategy for applying the mask to the given fuzzy relation.
 
@@ -543,7 +515,7 @@ class NAryRelation(TorchJitModule, Loggable):
         )
         return prod_result
 
-    def _exp_sum_log_apply_mask(self, membership: Membership) -> Tensor:
+    def _exp_sum_log_apply_mask(self, membership: Membership) -> torch.Tensor:
         """
         A possibly more efficient resolution strategy for applying the mask to the given
         fuzzy relation; it is mathematically equivalent to the product technique.
@@ -569,7 +541,7 @@ class NAryRelation(TorchJitModule, Loggable):
         # assert torch.allclose(exp_sum_log_impl_result, exp_sum_log_func_result)
         return exp_sum_log_func_result
 
-    def _linear_sum_apply_mask(self, membership: Membership) -> Tensor:
+    def _linear_sum_apply_mask(self, membership: Membership) -> torch.Tensor:
         """
         A very efficient resolution strategy for applying the mask to the given fuzzy relation if
         the summation is taken immediately afterward; it is *NOT* mathematically equivalent to the
@@ -604,16 +576,16 @@ class NAryRelation(TorchJitModule, Loggable):
         return linear_result
 
     # @log_method
-    def forward(self, membership: Membership) -> torch.Tensor:
+    def forward(self, membership: Membership) -> Membership:
         """
         Apply the n-ary relation to the given memberships.
 
         Args:
-            membership: The membership values to apply the minimum n-ary relation to.
+            membership: The membership values to apply the n-ary relation to.
 
         Returns:
-            The minimum membership value, according to the n-ary relation (i.e., which truth values
-            to actually consider).
+            The resulting membership values, according to the n-ary relation (i.e., which truth
+            values to actually consider).
         """
         raise NotImplementedError(
             f"The {self.__class__.__name__} has no defined forward function. Please create a class "
