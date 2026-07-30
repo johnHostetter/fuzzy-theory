@@ -16,7 +16,7 @@ import scipy.stats
 import torch
 import torch.nn.functional as F
 import yaml
-from entmax import entmax15  # , entmax_bisect
+from entmax import entmax15, entmax_bisect
 from fuzzy.utils.options.abstract.meta import EnumPromoter
 from fuzzy.utils.options.abstract.primitive import CategoricalOptions
 from fuzzy.utils.options.impl.impl_enums import (
@@ -29,6 +29,7 @@ from fuzzy.utils.options.impl.impl_enums import (
     RuleEliminationEnum,
     RuleWeightsEnum,
     SamplingEnum,
+    DefuzzificationMethodEnum,
 )
 from pydantic import TypeAdapter
 from pydantic.dataclasses import dataclass
@@ -46,7 +47,7 @@ class Range:
     low: Union[float, int]
     high: Union[float, int]
     log: bool = False  # log scale for floats
-    step: Union[None, int] = None  # for integers with a step size
+    step: Union[None, float, int] = None  # if step size is given, options are discrete
 
     def to_scipy(self) -> object:
         """
@@ -167,26 +168,31 @@ class PremiseAggregation(
         return cls._fn[selection]
 
 
-class BoundAlphaEntmax(
-    CategoricalOptions, torch.nn.Module, EnumPromoter, enum_cls=BoundAlphaEntmaxEnum
-):
+class BoundAlphaEntmax(torch.nn.Module):
     """
     Outlines the available strategies for bounding the alpha value used in the entmax_bisect and
     their implementations.
     """
 
     def __init__(
-        self, *args, device=None, alpha: Union[None, torch.Tensor] = None, **kwargs
+        self,
+        bounding_strategy: BoundAlphaEntmaxEnum,
+        device=None,
+        dim: int = -1,
+        alpha: Union[None, torch.Tensor] = None,
+        *args,
+        **kwargs
     ):
-        super().__init__(*self.options)
-        Module.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.bounding_strategy = bounding_strategy
         self.device = torch.get_default_device() if device is None else device
+        self.dim = dim
         if alpha is None:
             alpha = torch.empty(1, dtype=torch.float32, device=self.device)
             torch.nn.init.normal_(alpha)
         self.alpha = torch.nn.Parameter(alpha, requires_grad=True)
 
-    def forward(self, alpha: Union[None, torch.Tensor] = None) -> torch.Tensor:
+    def bound_alpha(self, alpha: Union[None, torch.Tensor] = None) -> torch.Tensor:
         """
         Bound the alpha parameter to abide by the constraint that it must exist within (1, 2) so it
         does not devolve to softmax or sparsemax, respectively.
@@ -197,11 +203,13 @@ class BoundAlphaEntmax(
         """
         if alpha is None:
             alpha = self.alpha
-        if self.selection == BoundAlphaEntmaxEnum.SIGMOID:
+        if self.bounding_strategy == BoundAlphaEntmaxEnum.SIGMOID:
             return 1.0 + torch.sigmoid(alpha)
-        if self.selection == BoundAlphaEntmaxEnum.TANH:
+        if self.bounding_strategy == BoundAlphaEntmaxEnum.TANH:
             return 1.5 + (0.5 * torch.tanh(alpha))
-        if self.selection == BoundAlphaEntmaxEnum.SOFTPLUS:
+        if self.bounding_strategy == BoundAlphaEntmaxEnum.HARD_TANH:
+            return 1.5 + (0.5 * torch.nn.functional.hardtanh(alpha))
+        if self.bounding_strategy == BoundAlphaEntmaxEnum.SOFTPLUS:
             softplus_alpha = F.softplus(alpha)  # pylint: disable=not-callable
             return 1.0 + (softplus_alpha / (1 + softplus_alpha))
 
@@ -210,6 +218,14 @@ class BoundAlphaEntmax(
             "(sigmoid_reparameterization), Scaled tanh (scaled_tanh), and "
             "Softplus + Shift (softplus_add_shift)"
         )
+
+    def forward(self, tensor: torch.Tensor, dim: Union[None, int] = None) -> torch.Tensor:
+        if dim is None:
+            dim = self.dim  # use internal referenced dim for the forward
+        bounded_alpha = self.bound_alpha()
+        if tensor.device != bounded_alpha.device:
+            bounded_alpha = bounded_alpha.to(tensor.device)
+        return entmax_bisect(tensor, alpha=bounded_alpha, dim=dim)
 
 
 class PremiseActivation(
@@ -220,8 +236,8 @@ class PremiseActivation(
     """
 
     _fn = {
+        PremiseActivationEnum.SOFTMAX: torch.nn.functional.softmax,  # default TSK behavior
         PremiseActivationEnum.ENTMAX15: entmax15,
-        PremiseActivationEnum.SOFTMAX: torch.nn.functional.softmax,
     }
 
     def __init__(
@@ -229,33 +245,41 @@ class PremiseActivation(
         *args,
         device=None,
         dim: int = -1,
-        alpha: Union[None, torch.Tensor] = None,
+        # alpha: Union[None, torch.Tensor] = None,
         **kwargs,
     ):
         super().__init__(*self.options)
         self.dim = dim
         Module.__init__(self, *args, **kwargs)
         self.device = torch.get_default_device() if device is None else device
-        self.bound_alpha = (
-            BoundAlphaEntmax(device=self.device)
-            if alpha is None
-            else (BoundAlphaEntmax(device=self.device, alpha=alpha))
-        )
+        # self.bound_alpha = (
+        #     BoundAlphaEntmax(device=self.device)
+        #     if alpha is None
+        #     else (BoundAlphaEntmax(device=self.device, alpha=alpha))
+        # )
 
     @classmethod
     def func(
-        cls, selection: PremiseActivationEnum
+        cls, transform: PremiseActivationEnum, bound: Union[None, BoundAlphaEntmaxEnum]
     ) -> Callable[[torch.Tensor], torch.Tensor]:
         """
-        Obtain the appropriate premise aggregation function based on the stored selection.
+        Obtain the appropriate premise activation function based on the selected transform.
 
         Args:
-            selection: A selection made from the set of options in PremiseActivationEnum.
+            transform: A selected transform from the set of options in PremiseActivationEnum.
+            bound: A selected bounding strategy from the set of options in BoundAlphaEntmaxEnum;
+            ignored if transform is NOT PremiseActivationEnum.ENTMAX_BISECT.
 
         Returns:
             A callable function that expects a torch.Tensor and will return a torch.Tensor.
         """
-        return cls._fn[selection]
+        if transform == PremiseActivationEnum.ENTMAX_BISECT:
+            assert isinstance(bound, BoundAlphaEntmaxEnum), (
+                "You must select a bounding strategy to limit the range of alpha when using "
+                "an adaptable entmax."
+            )
+            return BoundAlphaEntmax(bounding_strategy=bound)  # build a copy since it has params
+        return cls._fn[transform]
 
     # def forward(self, input):
     #     if self.selection == PremiseActivationEnum.ENTMAX15:
@@ -345,6 +369,9 @@ class PremiseConfig(YAMLConfig):
     activation: PremiseActivationEnum = field(
         default=PremiseActivationEnum.SOFTMAX,
     )
+    bound: BoundAlphaEntmaxEnum = field(
+        default=BoundAlphaEntmaxEnum.SIGMOID
+    )
 
 
 @dataclass
@@ -367,6 +394,24 @@ class RuleConfig(YAMLConfig):
 
 
 @dataclass
+class DefuzzificationConfig(YAMLConfig):
+    """
+    How to conduct defuzzification after the fuzzy logic rules are activated given the stimuli. For
+    instance, whether to use zero-order TSK, TSK, Mamdani, or other experimental methods.
+    """
+
+    method: DefuzzificationMethodEnum = field(default=DefuzzificationMethodEnum.TSK)
+    n_latent_space_dim: int = field(
+        default=32,
+        metadata={
+            "help": "The dimensionality of the latent space to utilize, if applicable.",
+            "range": Range(low=1, high=float("inf")),
+            "search": Range(low=32, high=128, step=32),
+        },
+    )
+
+
+@dataclass
 class InferenceConfig(YAMLConfig):
     """
     A configuration for fuzzy logic rule inference.
@@ -383,6 +428,10 @@ class InferenceConfig(YAMLConfig):
         metadata={
             "help": "How rules should be aggregated, eliminated, and elevated.",
         },
+    )
+    defuzzification: DefuzzificationConfig = field(
+        default_factory=DefuzzificationConfig,
+        metadata={"help": "Determines how to proceed with defuzzification."},
     )
 
 
@@ -438,7 +487,7 @@ class NeurogenesisConfig(YAMLConfig):
     """
 
     neurogenesis: NeurogenesisEnum = field(
-        default=NeurogenesisEnum.NONE,
+        default=NeurogenesisEnum.MODIFIED_DELAYED_WELFORD,
     )
     epsilon: float = field(
         default=0.5,
