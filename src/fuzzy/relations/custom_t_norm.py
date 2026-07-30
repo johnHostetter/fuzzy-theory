@@ -34,7 +34,10 @@ class TNormPipeline(torch.nn.Module):
         super().__init__()
         self.n_relations = n_relations
         self._agg = PremiseAggregation.func(configuration.premise.aggregation)
-        self._act = PremiseActivation.func(configuration.premise.activation)
+        self._act = PremiseActivation.func(
+            transform=configuration.premise.activation,
+            bound=configuration.premise.bound,
+        )
         self.layer_norm = None
         if "layer_norm" in kwargs and isinstance(
             kwargs["layer_norm"], torch.nn.LayerNorm
