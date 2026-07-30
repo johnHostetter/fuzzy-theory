@@ -86,6 +86,14 @@ class FuzzyLogicController(torch.nn.Sequential):
             )
         )
 
+        # bind the correct defuzzification call to avoid try/except on every forward
+        from .defuzzification import TSK
+
+        if isinstance(defuzzification, TSK):
+            self._defuzzify = self._defuzzify_tsk
+        else:
+            self._defuzzify = self._defuzzify_standard
+
     @property
     def shape(self) -> Shape:
         """
@@ -262,6 +270,18 @@ class FuzzyLogicController(torch.nn.Sequential):
             targets=None if len(results_lst) < 2 else results_lst[1],
         )
 
+    def _defuzzify_tsk(
+        self, input: torch.Tensor, rule_strengths
+    ) -> torch.Tensor:
+        return self.defuzzification(
+            observations=input, rule_activations=rule_strengths
+        )
+
+    def _defuzzify_standard(
+        self, input: torch.Tensor, rule_strengths
+    ) -> torch.Tensor:
+        return self.defuzzification(rule_strengths)
+
     def forward(
         self, input: torch.Tensor  # pylint: disable=redefined-builtin
     ) -> torch.Tensor:
@@ -276,23 +296,6 @@ class FuzzyLogicController(torch.nn.Sequential):
         Returns:
             The defuzzified output of the FLC.
         """
-        # return self.net(input)
-        # fuzzification
         granulated_input = self.input_granulation(input)
-        # A = torch.ones((self.shape.n_inputs, self.shape.n_outputs), device=input.device)
-        # return torch.mm(granulated_input.degrees.mean(dim=-1), A)
-
-        # rule evaluation
         rule_strengths = self.engine(granulated_input)
-
-        # return self.net(input)
-
-        # defuzzification
-        try:  # TSK
-            return self.defuzzification(
-                observations=input, rule_activations=rule_strengths
-            )
-        except TypeError:  # Mamdani, ZeroOrder, etc.
-            return self.defuzzification(rule_strengths)
-
-        # return self.net(input)
+        return self._defuzzify(input, rule_strengths)
