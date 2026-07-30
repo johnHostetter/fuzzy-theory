@@ -12,13 +12,13 @@ from pathlib import Path
 from typing import Any, List, MutableMapping, Type, Union
 
 import torch
-
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.sets.abstract import FuzzySet
 
 from ...relations.n_ary import NAryRelation
 from ...relations.t_norm import TNorm
 from ...sets import FuzzySetGroup
+from ...utils import load_module_class
 from .configurations.abstract import FuzzySystem
 from .configurations.data import GranulationLayers, Shape
 from .configurations.impl import Defined
@@ -117,7 +117,7 @@ class FuzzyLogicController(torch.nn.Sequential):
         self.input_granulation.save(
             path / "input"
         )  # save the input granulation layer (drop the extension)
-        self.engine.save(path / "engine.pt")  # save the inference engine
+        self.engine.save(path / "engine")  # save the inference engine
         self.defuzzification.save(
             path / "defuzzification"
         )  # save the defuzzification method
@@ -137,11 +137,13 @@ class FuzzyLogicController(torch.nn.Sequential):
         """
         # load the components from their respective directories
         input_granules = FuzzySetGroup.load(path / "input", device=device)
-        engine: NAryRelation = TNorm.load(path / "engine", device=device)
+        module_class_path: Path = next((path / "engine").iterdir())
+        klass = load_module_class(module_class_path.name)
+        assert issubclass(
+            klass, TNorm
+        ), "The loaded class type must be an instance of TNorm."
+        engine: NAryRelation = klass.load(module_class_path, device=device)
         defuzzification = Defuzzification.load(path / "defuzzification", device=device)
-        assert isinstance(
-            engine, TNorm
-        ), "The loaded engine must be an instance of TNorm."
 
         # load the FLC state dictionary for the remaining components
         state_dict: MutableMapping[str, Any] = torch.load(
@@ -287,7 +289,9 @@ class FuzzyLogicController(torch.nn.Sequential):
 
         # defuzzification
         try:  # TSK
-            return self.defuzzification(rule_strengths, observations=input)
+            return self.defuzzification(
+                observations=input, rule_activations=rule_strengths
+            )
         except TypeError:  # Mamdani, ZeroOrder, etc.
             return self.defuzzification(rule_strengths)
 
