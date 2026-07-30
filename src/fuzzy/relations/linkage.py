@@ -7,11 +7,10 @@ from typing import Any, Callable, List, MutableMapping, Optional, Union
 
 import numpy as np
 import torch
-from torch._C import Size
-
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import NestedTorchJitModule, check_path_to_save_torch_module
 from fuzzy.utils.classes import Loggable
+from torch._C import Size
 
 # from fuzzy.utils.functions import log_classmethod, log_method
 
@@ -48,14 +47,14 @@ class BinaryLinks(torch.nn.Module, Loggable):
         self.device: torch.device = device
 
     # @log_method
-    def __hash__(self) -> int:
-        return hash(self.links)
-
-    # @log_method
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, BinaryLinks) and torch.equal(
             self.links.to_dense(), other.links.to_dense()
         )
+
+    # @log_method
+    def __hash__(self) -> int:
+        return hash(self.links)
 
     @property
     # @log_method
@@ -153,6 +152,20 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         self.callback = callback
         self._compute_shape_cache()
         # self.streams = [torch.cuda.Stream() for _ in range(len(self.modules_list))]
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, GroupedLinks):
+            links = self.forward(membership=None)
+            other_links = self.forward(membership=None)
+            return (
+                links.shape == other_links.shape
+                and torch.allclose(links, other_links)
+                and self.membership_dimension == other.membership_dimension
+            )
+        return False
+
+    def __hash__(self) -> int:
+        return hash((self.forward(membership=None), self.membership_dimension))
 
     @property
     def shape(self) -> Size:
