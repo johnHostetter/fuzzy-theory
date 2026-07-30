@@ -125,6 +125,20 @@ class RuleElevationEnum(str, Enum):
     LAYER_NORMALIZATION = "layer_normalization"
 
 
+class ConsequenceInitEnum(str, Enum):
+    """
+    Initialization method for consequence parameters when no source data is provided.
+    """
+
+    XAVIER_NORMAL = "xavier_normal"
+    XAVIER_UNIFORM = "xavier_uniform"
+    KAIMING_NORMAL = "kaiming_normal"
+    KAIMING_UNIFORM = "kaiming_uniform"
+    ZEROS = "zeros"
+    NORMAL = "normal"
+    UNIFORM = "uniform"
+
+
 class DefuzzificationMethodEnum(str, Enum):
     """
     This allows for the selection of various implemented defuzzification methods in fuzzy inference.

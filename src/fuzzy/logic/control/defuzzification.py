@@ -15,6 +15,7 @@ from fuzzy.logic.rulebase import RuleBase
 from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule
+from fuzzy.utils.options.impl.impl_enums import ConsequenceInitEnum
 
 
 class Defuzzification(TorchJitModule, abc.ABC):
@@ -116,12 +117,23 @@ class ZeroOrder(Defuzzification):
     but with fuzzy singleton values as the consequences.
     """
 
+    _INIT_METHODS = {
+        ConsequenceInitEnum.XAVIER_NORMAL: torch.nn.init.xavier_normal_,
+        ConsequenceInitEnum.XAVIER_UNIFORM: torch.nn.init.xavier_uniform_,
+        ConsequenceInitEnum.KAIMING_NORMAL: torch.nn.init.kaiming_normal_,
+        ConsequenceInitEnum.KAIMING_UNIFORM: torch.nn.init.kaiming_uniform_,
+        ConsequenceInitEnum.ZEROS: torch.nn.init.zeros_,
+        ConsequenceInitEnum.NORMAL: torch.nn.init.normal_,
+        ConsequenceInitEnum.UNIFORM: torch.nn.init.uniform_,
+    }
+
     def __init__(
         self,
         shape: Shape,
         source: Union[None, np.ndarray, FuzzySetGroup],
         device: torch.device,
         *args,
+        init_method: ConsequenceInitEnum = ConsequenceInitEnum.XAVIER_NORMAL,
         **kwargs,
     ):
         super().__init__(shape=shape, source=source, device=device, *args, **kwargs)
@@ -129,9 +141,7 @@ class ZeroOrder(Defuzzification):
             consequences = torch.empty(
                 self.shape.n_rules, self.shape.n_outputs, device=self.device
             )
-            # pylint: disable=fixme
-            # TODO: Add support for different initialization methods
-            torch.nn.init.xavier_normal_(consequences)
+            self._INIT_METHODS[init_method](consequences)
         elif isinstance(source, FuzzySetGroup):
             consequences = torch.as_tensor(source.centers, device=self.device)
         else:
@@ -277,7 +287,7 @@ class NormalizedZeroOrder(ZeroOrder):
         Returns:
             The defuzzified output of the fuzzy logic controller.
         """
-        numerator: torch.Tensor = self.super().forward(
+        numerator: torch.Tensor = super().forward(
             rule_activations,
         )
         # unsqueeze must be there with or without confidences
