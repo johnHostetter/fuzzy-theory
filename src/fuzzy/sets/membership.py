@@ -13,7 +13,23 @@ be used in conjunction with the mask to filter out membership degrees that are n
 assist in performing advanced operations.
 """
 
-from collections import namedtuple
+from collections import namedtuple  # required instead of dataclass for torch.jit.script
+from typing import Union, List, Tuple
+
+import torch
+
+from fuzzy.utils.options.impl.impl_enums import DimensionEnum
+
+
+class NamedTensor(namedtuple(typename="NamedTensor", field_names=("data", "names"))):
+    def __new__(
+        cls,
+        data: torch.Tensor,
+        names: Union[List[str], Tuple[str, ...], Tuple[DimensionEnum, ...]],
+    ):
+        assert isinstance(data, torch.Tensor), "The data must be a torch.Tensor"
+        assert data.ndim == len(names), "The data must have the same shape as names"
+        return super().__new__(cls, data, names)
 
 
 class Membership(namedtuple(typename="Membership", field_names=("degrees", "mask"))):
@@ -35,3 +51,18 @@ class Membership(namedtuple(typename="Membership", field_names=("degrees", "mask
     with the mask to filter out membership degrees that are not real, as well as assist in
     performing advanced operations.
     """
+
+    def __new__(cls, degrees: torch.Tensor, mask: torch.Tensor):
+        # assert isinstance(
+        #     degrees, torch.Tensor
+        # ), "The membership degrees must be a torch.Tensor"
+        # assert isinstance(
+        #     mask, torch.Tensor
+        # ), "The membership mask must be a torch.Tensor"
+        # assert all(
+        #     name is not None for name in degrees.names
+        # ), f"All dimensions of the membership degree tensor must be named: {degrees.names}"
+        # assert all(
+        #     name is not None for name in mask.names
+        # ), f"All dimensions of the mask tensor must be named: {mask.names}"
+        return super().__new__(cls, degrees, mask)
