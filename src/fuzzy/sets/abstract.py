@@ -220,7 +220,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         self.__alloc_members(centers, use_sparse_tensor, widths)
 
     # @log_method
-    def __check_args(self, centers: np.ndarray, widths: np.ndarray) -> None:
+    @staticmethod
+    def __check_args(centers: np.ndarray, widths: np.ndarray) -> None:
         """
         Check that the provided argument values are accepted variable types and that their
         dimensionality is correct. This function will raise a ValueError if the argument values
