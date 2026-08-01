@@ -42,33 +42,36 @@ class CertaintyFactors(torch.nn.Module):
 
     def save(self, path: Path) -> MutableMapping[str, Any]:
         """
-        Save the current certainty factors to a file.
+        Save the current certainty factors to a directory.
 
         Args:
-            path: An instance of Path that describes a file path which ends with ".pt".
+            path: An instance of Path that describes a directory path.
 
         Returns:
             The mutable mapping, or state dictionary, that was saved to file.
         """
+        path.mkdir(parents=True, exist_ok=True)
         state_dict: MutableMapping[str, Any] = self.state_dict()
         torch.save(state_dict, path / "state_dict.pt")
         return state_dict
 
     @classmethod
-    # @log_classmethod
     def load(cls, path: Path, device: torch.device) -> "CertaintyFactors":
         """
-        Load the certainty factors from a file and put it on the specified device.
+        Load the certainty factors from a directory and put it on the specified device.
 
         Args:
-            path: An instance of Path that describes a file path which ends with ".pt".
+            path: An instance of Path that describes a directory path containing "state_dict.pt".
             device: The device on which the certainty factors should be loaded.
 
         Returns:
-            None
+            A CertaintyFactors object.
         """
-        if path.is_file() and path.suffix == ".pt":
-            state_dict: MutableMapping = torch.load(path, weights_only=False)
+        file_path = path / "state_dict.pt"
+        if file_path.is_file():
+            state_dict: MutableMapping = torch.load(
+                file_path, weights_only=False
+            )
             weights = state_dict.pop("weights")
             return CertaintyFactors(weights=weights, device=device)
         raise ValueError(f"Invalid path: {path}")
