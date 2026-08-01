@@ -138,6 +138,14 @@ class NAryRelation(TorchJitModule, Loggable):
             None  # created later (via self.apply_mask)
         )
 
+        self._use_gather: bool = False
+        self._gather_indices: Union[None, torch.Tensor] = None
+        self._gather_active: Union[None, torch.Tensor] = None
+        self._all_active: bool = False
+        self._cached_mask: Union[None, torch.Tensor] = None
+
+        self._precompute_gather_indices()
+
     # @log_method
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.indices})"
@@ -226,6 +234,10 @@ class NAryRelation(TorchJitModule, Loggable):
         self.device = device
         if self.grouped_links is not None:
             self.grouped_links.to(device)
+        if self._use_gather:
+            self._gather_indices = self._gather_indices.to(device)
+            self._gather_active = self._gather_active.to(device)
+            self._cached_mask = self._cached_mask.to(device)
         return self
 
     # @log_method
@@ -408,6 +420,7 @@ class NAryRelation(TorchJitModule, Loggable):
         # re-create self.graph (has to happen after self.grouped_links is
         # created)
         self.create_igraph()
+        self._precompute_gather_indices()
 
     # @log_method
     def resize(self, *shape) -> None:
@@ -492,6 +505,59 @@ class NAryRelation(TorchJitModule, Loggable):
             f"The given method '{self.method}' does not have an implemented behavior within "
             f"{type(self)}."
         )
+
+    def _precompute_gather_indices(self) -> None:
+        """
+        Precompute gather indices for an optimized mask application that avoids
+        the O(batch * vars * terms * rules) intermediate tensor. Only applicable
+        when all links are BinaryLinks and each (variable, rule) pair has at most
+        one active term.
+        """
+        self._use_gather = False
+        if self.grouped_links is None:
+            return
+        if self.method not in (NAryMaskMethods.PROD, NAryMaskMethods.EXP_SUM_LOG):
+            return
+
+        all_binary = all(
+            isinstance(m, BinaryLinks) for m in self.grouped_links.modules_list
+        )
+        if not all_binary:
+            return
+
+        mask = self.grouped_links(membership=None)
+        terms_per_var_rule = mask.sum(dim=1)
+        if terms_per_var_rule.max().item() > 1:
+            return
+
+        self._use_gather = True
+        self._gather_indices = mask.to(torch.long).argmax(dim=1)
+        self._gather_active = terms_per_var_rule.bool()
+        self._all_active = bool(self._gather_active.all().item())
+        self._cached_mask = mask
+        self._apply_mask_func = self._gather_apply_mask
+
+    def _gather_apply_mask(self, membership: Membership) -> torch.Tensor:
+        """
+        Optimized mask application using torch.gather. Produces a (batch, vars, rules)
+        tensor directly instead of materializing the full (batch, vars, terms, rules)
+        intermediate, reducing memory by a factor of n_terms.
+        """
+        self.applied_mask = self._cached_mask
+        degrees = membership.degrees
+        batch_size = degrees.shape[0]
+        idx = self._gather_indices.unsqueeze(0).expand(batch_size, -1, -1)
+        selected = torch.gather(degrees, dim=2, index=idx)
+        if not self._all_active:
+            # Preserve IEEE NaN propagation: inactive entries where the gathered
+            # degree is NaN must stay NaN (matching NaN * 0 + 1 = NaN behavior),
+            # while inactive entries with valid degrees become 1.0 (product identity).
+            selected = torch.where(
+                self._gather_active.unsqueeze(0) | selected.isnan(),
+                selected,
+                torch.ones(1, device=degrees.device, dtype=degrees.dtype),
+            )
+        return selected.nan_to_num(self.nan_replacement)
 
     def _prod_apply_mask(self, membership: Membership) -> torch.Tensor:
         """
