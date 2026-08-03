@@ -470,7 +470,7 @@ class NAryRelation(TorchJitModule, Loggable):
         Returns:
             True if every module backing this relation's links is a BinaryLinks.
         """
-        if self.grouped_links is None:
+        if self.grouped_links is None or not hasattr(self.grouped_links, "modules_list"):
             return False
         return all(
             isinstance(module, BinaryLinks)
