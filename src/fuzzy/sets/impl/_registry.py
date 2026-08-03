@@ -6,6 +6,7 @@ MEMBERSHIP_FUNCTIONS = [
     # "GaussianDMF",
     "NoOp",
     "Triangular",
+    "Trapezoidal",
     "LogGaussian",
     "Gaussian",
     "Lorentzian",
