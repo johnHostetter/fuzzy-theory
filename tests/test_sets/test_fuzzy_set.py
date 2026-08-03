@@ -10,10 +10,16 @@ import unittest
 from pathlib import Path
 from typing import Any, MutableMapping
 
+import numpy as np
 import torch
 
 from fuzzy.sets import Membership
-from fuzzy.sets.abstract import FuzzySet, FuzzySetInitMethod, FuzzySetShape
+from fuzzy.sets.abstract import (
+    DynamicParameterList,
+    FuzzySet,
+    FuzzySetInitMethod,
+    FuzzySetShape,
+)
 from fuzzy.sets.impl.basic import NoOp
 from fuzzy.sets.impl.gauss_variants.cmf import Gaussian
 
@@ -154,3 +160,80 @@ class TestFuzzySet(unittest.TestCase):
         self.assertEqual(membership.degrees.size()[1], 4)
         self.assertNotEqual(no_op.get_centers().size()[0], membership.degrees.size()[1])
         self.assertAlmostEqual(no_op.membership, membership.degrees.mean().item())
+
+    def test_hash_eq_contract(self) -> None:
+        """
+        Regression test: FuzzySet.__hash__ used to hash the centers/widths *tensors*
+        themselves, which torch.Tensor hashes by identity (id()) rather than by value. Since
+        __eq__ compares by value (torch.equal), two separately constructed but value-equal
+        fuzzy sets were '==' yet had different hashes - a violation of Python's hash contract
+        (equal objects must report equal hashes) that breaks their use as dict keys or set
+        members.
+
+        Returns:
+            None
+        """
+        for subclass in FuzzySet.__subclasses__():
+            if inspect.isabstract(subclass) or subclass == NoOp:
+                continue
+            first = subclass.create(
+                shape=FuzzySetShape(n_variables=2, n_terms=3),
+                device=AVAILABLE_DEVICE,
+                method=FuzzySetInitMethod.LINEAR,
+            )
+            second = subclass.create(
+                shape=FuzzySetShape(n_variables=2, n_terms=3),
+                device=AVAILABLE_DEVICE,
+                method=FuzzySetInitMethod.LINEAR,
+            )
+            # two separately constructed fuzzy sets, built the same way, have identical
+            # parameter values but are distinct objects (and therefore distinct underlying
+            # tensors) - this is exactly the case that must not violate the hash contract
+            self.assertEqual(
+                first,
+                second,
+                f"{subclass.__name__} instances with identical parameters should be equal",
+            )
+            self.assertEqual(
+                hash(first),
+                hash(second),
+                f"{subclass.__name__}.__hash__ violates the hash contract: "
+                f"equal instances must have equal hashes",
+            )
+            # a fuzzy set must also consistently hash the same as itself across repeated calls
+            self.assertEqual(hash(first), hash(first))
+
+    def test_dynamic_parameter_list_to_dtype_only(self) -> None:
+        """
+        Regression test: DynamicParameterList.to() assumed the first positional argument was
+        always a device (self._device = args[0] if args else self._device). torch.nn.Module.to()
+        also accepts a dtype-only call (e.g. .to(torch.float64)), which used to corrupt
+        _device with a dtype object - later breaking add_parameter() and the empty-list branch
+        of the 'tensor' property, both of which pass _device to torch.
+
+        Returns:
+            None
+        """
+        gaussian_mf = Gaussian(
+            centers=np.array([0.0, 1.0]), widths=np.array([1.0, 1.0]), device=AVAILABLE_DEVICE
+        )
+        # resolve the expected device the same way .to() would (e.g. an unindexed "cuda"
+        # resolves to a concrete "cuda:0" once actually applied to a tensor), so the
+        # comparison below is correct on both CPU-only and CUDA machines
+        resolved_device = torch.empty(0, device=AVAILABLE_DEVICE).device
+
+        gaussian_mf.to(torch.float64)
+
+        self.assertEqual(gaussian_mf._centers._device, resolved_device)
+        self.assertEqual(gaussian_mf._centers._dtype, torch.float64)
+        self.assertEqual(gaussian_mf.get_centers().dtype, torch.float64)
+
+        # adding a parameter afterward must use the up-to-date dtype, not a stale one
+        gaussian_mf._centers.add_parameter(np.array([[2.0, 3.0]]))
+        self.assertEqual(gaussian_mf._centers.params[-1].dtype, torch.float64)
+
+        # an empty DynamicParameterList must not raise when .to() is given a dtype only
+        empty = DynamicParameterList(device=AVAILABLE_DEVICE, dtype=torch.float32)
+        empty.to(torch.float64)
+        self.assertEqual(empty._dtype, torch.float64)
+        self.assertEqual(empty.tensor.dtype, torch.float64)

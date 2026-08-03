@@ -95,20 +95,31 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         membership cache can tell when a memoized result has been outdated by a parameter
         changing.
 
+        Each module's own parameter_signature() is preferred over hardcoding
+        get_centers()/get_widths()/get_mask() here, since a module may depend on additional
+        parameters of its own (e.g. Trapezoidal's plateaus). Hardcoding the trio would let
+        such a parameter change go unnoticed, silently serving a stale group-level result even
+        though the module's own individual cache would have correctly recomputed it.
+
         Returns:
-            A signature of every module's parameters, or None if some module does not expose
-            the get_centers/get_widths/get_mask trio that fuzzy sets are expected to (in which
-            case there is nothing to safely key a memoized result on, and caching is skipped).
+            A signature of every module's parameters, or None if some module exposes neither
+            parameter_signature() nor the get_centers/get_widths/get_mask trio that fuzzy sets
+            are expected to (in which case there is nothing to safely key a memoized result on,
+            and caching is skipped).
         """
-        tensors: List[torch.Tensor] = []
+        signature: ParameterSignature = []
         for module in self.__dict__["_modules"]["modules_list"]:
+            get_own_signature = getattr(module, "parameter_signature", None)
+            if get_own_signature is not None:
+                signature.extend(get_own_signature())
+                continue
             get_centers = getattr(module, "get_centers", None)
             get_widths = getattr(module, "get_widths", None)
             get_mask = getattr(module, "get_mask", None)
             if get_centers is None or get_widths is None or get_mask is None:
                 return None
-            tensors.extend([get_centers(), get_widths(), get_mask()])
-        return signature_of(tensors)
+            signature.extend(signature_of([get_centers(), get_widths(), get_mask()]))
+        return signature
 
     @torch.jit.ignore
     def _lookup_group_membership(

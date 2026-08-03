@@ -94,3 +94,44 @@ class TestFuzzySetGroup(unittest.TestCase):
         # read-only files
 
         shutil.rmtree(Path("test_grouped_fuzzy_sets"), ignore_errors=True)
+
+    def test_hash_eq_contract(self) -> None:
+        """
+        FuzzySetGroup.__hash__ delegates to hash(module) for each submodule, so it inherits
+        FuzzySet.__hash__'s correctness (or lack thereof). This confirms the contract holds
+        transitively: two separately constructed but value-equal groups must be both '=='
+        and have equal hashes.
+
+        Returns:
+            None
+        """
+        first = FuzzySetGroup(
+            modules_list=[
+                Gaussian.create(
+                    shape=FuzzySetShape(n_variables=2, n_terms=3),
+                    device=AVAILABLE_DEVICE,
+                    method=FuzzySetInitMethod.LINEAR,
+                ),
+                Gaussian.create(
+                    shape=FuzzySetShape(n_variables=2, n_terms=3),
+                    device=AVAILABLE_DEVICE,
+                    method=FuzzySetInitMethod.LINEAR,
+                ),
+            ]
+        )
+        second = FuzzySetGroup(
+            modules_list=[
+                Gaussian.create(
+                    shape=FuzzySetShape(n_variables=2, n_terms=3),
+                    device=AVAILABLE_DEVICE,
+                    method=FuzzySetInitMethod.LINEAR,
+                ),
+                Gaussian.create(
+                    shape=FuzzySetShape(n_variables=2, n_terms=3),
+                    device=AVAILABLE_DEVICE,
+                    method=FuzzySetInitMethod.LINEAR,
+                ),
+            ]
+        )
+        self.assertEqual(first, second)
+        self.assertEqual(hash(first), hash(second))

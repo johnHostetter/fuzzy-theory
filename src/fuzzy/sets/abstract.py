@@ -231,7 +231,15 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
         Override to move both ParameterList and cached tensor.
         """
         super().to(*args, **kwargs)
-        self._device = args[0] if args else self._device
+        # torch.nn.Module.to() accepts several call signatures - a device, a dtype, another
+        # tensor to match, or a combination - so args[0] is not reliably a device (e.g.
+        # .to(torch.float64) is a legitimate dtype-only call, and would otherwise corrupt
+        # _device with a dtype object). Replaying the same call against a throwaway tensor
+        # seeded with the current device/dtype and reading back what it resolved to avoids
+        # re-implementing that parsing here.
+        probe = torch.empty(0, dtype=self._dtype, device=self._device).to(*args, **kwargs)
+        self._device = probe.device
+        self._dtype = probe.dtype
         # the parameters were moved, so any concatenation of them refers to the old device;
         # rebuild it on next access rather than moving a copy that is about to go stale
         self._invalidate_cache()
@@ -470,10 +478,23 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         """
         Hash the fuzzy set.
 
+        This must agree with __eq__, which compares centers/widths by *value* (torch.equal).
+        Hashing the tensors themselves would hash by identity instead (torch.Tensor keeps
+        the default id()-based __hash__), so two separately constructed but value-equal fuzzy
+        sets would violate Python's hash contract - equal objects reporting different hashes -
+        which breaks their use as dict keys or set members. Hashing the flattened values (as
+        plain Python numbers, not tensors) keeps this consistent with __eq__.
+
         Returns:
             The hash of the fuzzy set.
         """
-        return hash((type(self), self.get_centers(), self.get_widths()))
+        return hash(
+            (
+                type(self),
+                tuple(self.get_centers().flatten().tolist()),
+                tuple(self.get_widths().flatten().tolist()),
+            )
+        )
 
     # @log_method
     def __eq__(self, other: Any) -> bool:

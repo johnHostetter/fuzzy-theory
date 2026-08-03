@@ -13,7 +13,7 @@ import weakref
 import numpy as np
 import torch
 
-from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.impl import Gaussian, Trapezoidal
 from fuzzy.sets.group import FuzzySetGroup
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -354,6 +354,60 @@ class TestFuzzySetGroupMembershipCache(unittest.TestCase):
             losses.append(loss.item())
 
         self.assertFalse(losses[0] == losses[1] == losses[2])
+
+    def test_submodule_extra_parameter_invalidates_group_cache(self) -> None:
+        """
+        Regression test: FuzzySetGroup._group_parameter_signature() used to hardcode
+        get_centers()/get_widths()/get_mask() for every submodule instead of deferring to
+        each submodule's own parameter_signature(). A submodule with an extra learnable
+        parameter beyond those three - such as Trapezoidal's plateaus - could then have that
+        parameter change without the group-level cache ever noticing, serving a stale
+        concatenated Membership even though the submodule's own individual cache was correct.
+
+        Returns:
+            None
+        """
+        group = FuzzySetGroup(
+            modules_list=[
+                Gaussian(
+                    centers=np.array([0.0, 1.0]),
+                    widths=np.array([1.0, 1.0]),
+                    device=AVAILABLE_DEVICE,
+                ),
+                Trapezoidal(
+                    centers=np.array([0.0, 1.0]),
+                    widths=np.array([1.0, 1.0]),
+                    plateaus=np.array([0.2, 0.2]),
+                    device=AVAILABLE_DEVICE,
+                ),
+            ]
+        )
+        observations = torch.rand(4, 1, device=AVAILABLE_DEVICE)
+
+        first = group(observations)
+        second = group(observations)
+        self.assertIs(
+            first.degrees,
+            second.degrees,
+            "expected a cache hit when nothing has changed",
+        )
+
+        trapezoidal_submodule = group.modules_list[1]
+        with torch.no_grad():
+            trapezoidal_submodule.get_plateaus().add_(0.3)  # mutate plateaus ONLY
+
+        third = group(observations)
+        self.assertIsNot(
+            first.degrees,
+            third.degrees,
+            "the group cache served a stale result after a submodule's plateaus changed",
+        )
+        self.assertFalse(
+            torch.allclose(
+                first.degrees.to_dense().detach(), third.degrees.to_dense().detach()
+            ),
+            "the group output did not reflect the updated plateaus",
+        )
 
 
 if __name__ == "__main__":
