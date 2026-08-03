@@ -137,6 +137,9 @@ class NAryRelation(TorchJitModule, Loggable):
         self.applied_mask: Union[None, torch.Tensor] = (
             None  # created later (via self.apply_mask)
         )
+        self._cached_links: Union[None, torch.Tensor] = None
+        self._cached_links_complement: Union[None, torch.Tensor] = None
+        self._cached_links_bool: Union[None, torch.Tensor] = None
 
     # @log_method
     def __str__(self) -> str:
@@ -226,6 +229,7 @@ class NAryRelation(TorchJitModule, Loggable):
         self.device = device
         if self.grouped_links is not None:
             self.grouped_links.to(device)
+        self.invalidate_links_cache()
         return self
 
     # @log_method
@@ -423,6 +427,26 @@ class NAryRelation(TorchJitModule, Loggable):
         for coo_matrix in self._coo_matrix:
             coo_matrix.resize(*shape)
         self._rebuild(*shape)
+        self.invalidate_links_cache()
+
+    def invalidate_links_cache(self) -> None:
+        """
+        Invalidate the cached links tensors. Must be called after any change to
+        the underlying links (e.g., resize, device move, Gumbel-Softmax resample).
+        """
+        self._cached_links = None
+        self._cached_links_complement = None
+        self._cached_links_bool = None
+
+    def _ensure_links_cache(self, membership: Membership) -> None:
+        """
+        Lazily compute and cache the links tensor and its derived forms.
+        """
+        if self._cached_links is None:
+            links = self.grouped_links(membership=membership)
+            self._cached_links = links
+            self._cached_links_bool = links.bool()
+            self._cached_links_complement = 1 - links
 
     def _apply_mask(
         self, membership: Membership, inplace: bool = False
@@ -439,13 +463,12 @@ class NAryRelation(TorchJitModule, Loggable):
         Returns:
             The applied mask based on the given membership.
         """
-        applied_mask: torch.Tensor = self.grouped_links(membership=membership)
-        # if applied_mask.is_sparse:
-        #     applied_mask: torch.Tensor = self.applied_mask.to_dense()
+        self._ensure_links_cache(membership)
+        applied_mask = self._cached_links
         if inplace:
             self.applied_mask = applied_mask
         after_mask = membership.degrees.unsqueeze(-1) * applied_mask
-        return after_mask + (1 - applied_mask)
+        return after_mask + self._cached_links_complement
 
     # @log_method
     # @profile
@@ -461,13 +484,7 @@ class NAryRelation(TorchJitModule, Loggable):
         """
         membership_shape: torch.Size = membership.degrees.shape
         if self.grouped_links.shape[:-1] != membership_shape[1:]:
-            # if len(membership_shape) > 2:
-            # this is for the case where masks have been stacked due to
-            # compound relations
-            # get the last two dimensions
-            membership_shape = membership_shape[1:]
-            self.resize(*membership_shape)
-        del membership_shape  # free up memory
+            self.resize(*membership_shape[1:])
 
         # the below is VALID but NOT compatible w/ autograd
         # indices = self.applied_mask.to(torch.int64)
@@ -552,24 +569,19 @@ class NAryRelation(TorchJitModule, Loggable):
         Returns:
             The fuzzy relation values.
         """
-        # WARNING: this will not work for information with missing data
-        # (notice that there is no use of self.nan_replacement)
         membership_shape: torch.Size = membership.degrees.shape
         batch_size, var_count, term_count = (
             membership_shape[0],
             membership_shape[1],
             membership_shape[2],
         )
-        applied_mask: torch.Tensor = self.grouped_links(membership=membership)
-        # avoiding the above call can lead to significant performance increases
-        # applied_mask = self.grouped_links.grouped_links.modules_list[0].logits
+        self._ensure_links_cache(membership)
+        applied_mask = self._cached_links
         n_rules = applied_mask.shape[-1]
         linear_result = torch.nn.functional.linear(  # pylint: disable=not-callable
             membership.degrees.view(batch_size, var_count * term_count),
             applied_mask.view(var_count * term_count, n_rules).T,
         )
-        # the above is equivalent if you apply .sum(dim=1) to PROD result
-        # assert torch.allclose(result.sum(dim=1).half(), linear_result.half())
         return linear_result
 
     # @log_method

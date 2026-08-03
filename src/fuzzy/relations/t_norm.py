@@ -75,11 +75,7 @@ class Product(TNorm):
             The algebraic product membership value, according to the n-ary relation
             (i.e., which truth values to actually consider).
         """
-        # first filter out the values that are not part of the relation
-        # then take the minimum value of those that remain in the last
-        # dimension
         return Membership(
-            # elements=membership.elements,
             degrees=self.apply_mask(membership=membership).prod(dim=-2, keepdim=False),
             mask=self.applied_mask,
         )
