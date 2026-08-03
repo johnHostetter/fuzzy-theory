@@ -24,7 +24,7 @@ from ...utils import load_module_class
 from .configurations.abstract import FuzzySystem
 from .configurations.data import GranulationLayers, Shape
 from .configurations.impl import Defined
-from .defuzzification import Defuzzification
+from .defuzzification import Defuzzification, TSK
 
 
 class FuzzyLogicController(torch.nn.Sequential):
@@ -94,8 +94,6 @@ class FuzzyLogicController(torch.nn.Sequential):
 
         # bind the correct defuzzification call to avoid try/except on every
         # forward
-        from .defuzzification import TSK
-
         if isinstance(defuzzification, TSK):
             self._defuzzify = self._defuzzify_tsk
         else:
@@ -280,20 +278,20 @@ class FuzzyLogicController(torch.nn.Sequential):
 
     def _defuzzify_tsk(
             self,
-            input: torch.Tensor,
+            observations: torch.Tensor,
             rule_strengths) -> torch.Tensor:
         return self.defuzzification(
-            observations=input,
+            observations=observations,
             rule_activations=rule_strengths)
 
     def _defuzzify_standard(
             self,
-            input: torch.Tensor,
+            observations: torch.Tensor,
             rule_strengths) -> torch.Tensor:
         return self.defuzzification(rule_strengths)
 
     def _forward_impl(
-        self, input: torch.Tensor  # pylint: disable=redefined-builtin
+        self, observations: torch.Tensor  # pylint: disable=redefined-builtin
     ) -> torch.Tensor:
         """
         Core forward pass implementing the fuzzy inference pipeline:
@@ -308,7 +306,7 @@ class FuzzyLogicController(torch.nn.Sequential):
         else:
             rule_strengths = self.engine(granulated_input)
 
-        return self._defuzzify(input, rule_strengths)
+        return self._defuzzify(observations, rule_strengths)
 
     def forward(
         self, input: torch.Tensor  # pylint: disable=redefined-builtin
