@@ -59,5 +59,8 @@ class Defined(FuzzySystem):
         """
         return self._engine
 
-    def defuzzification(self, cls_type, device: torch.device) -> Defuzzification:
+    def defuzzification(
+            self,
+            cls_type,
+            device: torch.device) -> Defuzzification:
         return self._defuzzification

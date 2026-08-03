@@ -149,8 +149,7 @@ class TorchJitModule(torch.nn.Module, ABC):
         if fuzzy_set_class is None:
             raise ValueError(
                 f"The class {class_name} was not found in the subclasses of "
-                f"{cls}. Please ensure that {class_name} is a subclass of {cls}."
-            )
+                f"{cls}. Please ensure that {class_name} is a subclass of {cls}.")
         return fuzzy_set_class
 
 
@@ -201,24 +200,30 @@ class NestedTorchJitModule(torch.nn.Module):
                         # save the fuzzy set using the fuzzy set's special
                         # protocol
                         module.save(
-                            path / attr / str(idx) / f"{module.__class__.__name__}.pt"
-                        )
+                            path / attr / str(idx) / f"{module.__class__.__name__}.pt")
                     else:
                         # unknown and unrecognized module, but attempt to save
                         # the module
                         torch.save(
                             module,
-                            path / attr / str(idx) / f"{module.__class__.__name__}.pt",
+                            path /
+                            attr /
+                            str(idx) /
+                            f"{module.__class__.__name__}.pt",
                         )
                 # remove the torch.nn.ModuleList from the local attributes
                 del local_attributes_only[attr]
 
         # save the remaining attributes
         with open(path / f"{self.__class__.__name__}.pickle", "wb") as handle:
-            pickle.dump(local_attributes_only, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(
+                local_attributes_only,
+                handle,
+                protocol=pickle.HIGHEST_PROTOCOL)
 
     @classmethod
-    def load(cls, path: Path, device: torch.device, **kwargs) -> "NestedTorchJitModule":
+    def load(cls, path: Path, device: torch.device,
+             **kwargs) -> "NestedTorchJitModule":
         """
         Load the torch.nn.Module from the given path.
 
@@ -312,7 +317,10 @@ class NestedTorchJitModule(torch.nn.Module):
                 except ValueError:
                     # unknown and unrecognized module, but attempt to
                     # load the module
-                    modules_list.append(torch.load(module_path, weights_only=False))
+                    modules_list.append(
+                        torch.load(
+                            module_path,
+                            weights_only=False))
             else:
                 pass  # Unexpected file found (might be a *.yaml)
         return modules_list

@@ -100,7 +100,9 @@ def log_method(method):
         start_time = time.perf_counter()
         result = method(self, *args, **kwargs)
         end_time = time.perf_counter()
-        self.logger.debug("<perf_counter>%s</perf_counter>", end_time - start_time)
+        self.logger.debug(
+            "<perf_counter>%s</perf_counter>",
+            end_time - start_time)
         self.logger.debug("</%s>", called_method)
         return result
 
@@ -171,15 +173,13 @@ def check_path_to_save_torch_module(path: Path) -> None:
     if path.suffix not in (".pt", ".pth"):
         raise ValueError(
             f"The path to save the fuzzy set must have a file extension of '.pt', "
-            f"but got {path.name}"
-        )
+            f"but got {path.name}")
     if path.suffix == ".pth":
         raise ValueError(
             f"The path to save the fuzzy set must have a file extension of '.pt', "
             f"but got {path.name}. Please change the file extension to '.pt' as it is not "
             f"recommended to use '.pth' for PyTorch models, since it conflicts with Python path"
-            f"configuration files."
-        )
+            f"configuration files.")
 
 
 def all_subclasses(cls) -> Set[Any]:
@@ -189,7 +189,8 @@ def all_subclasses(cls) -> Set[Any]:
     Returns:
         A set of all subclasses of the given class.
     """
-    return {cls}.union(s for c in cls.__subclasses__() for s in all_subclasses(c))
+    return {cls}.union(s for c in cls.__subclasses__()
+                       for s in all_subclasses(c))
 
 
 def get_object_attributes(obj_instance) -> Dict[str, Any]:
@@ -199,9 +200,9 @@ def get_object_attributes(obj_instance) -> Dict[str, Any]:
     # get the attributes that are local to the class, but may be inherited
     # from the super class
     local_attributes = inspect.getmembers(
-        obj_instance,
-        lambda attr: not (inspect.ismethod(attr)) and not (inspect.isfunction(attr)),
-    )
+        obj_instance, lambda attr: not (
+            inspect.ismethod(attr)) and not (
+            inspect.isfunction(attr)), )
     # get the attributes that are inherited from (or found within) any of the
     # super classes; using only __bases__[0] would miss attributes purely
     # inherited from other bases in multiple-inheritance scenarios, so the

@@ -60,7 +60,9 @@ class TestCertaintyFactors(unittest.TestCase):
         certainty_factors = CertaintyFactors(
             weights=cpu_weights, device=AVAILABLE_DEVICE
         )
-        self.assertEqual(certainty_factors.weights.device.type, AVAILABLE_DEVICE.type)
+        self.assertEqual(
+            certainty_factors.weights.device.type,
+            AVAILABLE_DEVICE.type)
 
     def test_load_invalid_path_raises(self) -> None:
         """
@@ -72,5 +74,5 @@ class TestCertaintyFactors(unittest.TestCase):
         """
         with self.assertRaises(ValueError):
             CertaintyFactors.load(
-                Path("does_not_exist_certainty_factors_dir"), device=AVAILABLE_DEVICE
-            )
+                Path("does_not_exist_certainty_factors_dir"),
+                device=AVAILABLE_DEVICE)

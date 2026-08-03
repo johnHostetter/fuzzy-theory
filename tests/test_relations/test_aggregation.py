@@ -79,7 +79,9 @@ class TestOrderedWeightedAggregation(unittest.TestCase):
             None
         """
         weights = torch.tensor([2.0, -1.0])
-        self.assertEqual(weights.sum().item(), 1.0)  # passes the OLD (raw) check
+        self.assertEqual(
+            weights.sum().item(),
+            1.0)  # passes the OLD (raw) check
         self.assertNotEqual(
             torch.abs(weights).sum().item(), 1.0
         )  # but not the transformed value

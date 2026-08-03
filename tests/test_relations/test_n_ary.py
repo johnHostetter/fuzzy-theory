@@ -59,7 +59,11 @@ class _StochasticLinks(torch.nn.Module):
             distinguishable from the last.
         """
         self.call_count += 1
-        return torch.full(self._shape, float(self.call_count), device=self._device)
+        return torch.full(
+            self._shape,
+            float(
+                self.call_count),
+            device=self._device)
 
 
 class _SparseLinks(torch.nn.Module):
@@ -127,9 +131,8 @@ class TestNAryRelation(unittest.TestCase):
         Returns:
             The membership values for the Gaussian membership function.
         """
-        membership: Membership = self.gaussian_mf(
-            torch.tensor(self.data, dtype=torch.float32, device=AVAILABLE_DEVICE)
-        )
+        membership: Membership = self.gaussian_mf(torch.tensor(
+            self.data, dtype=torch.float32, device=AVAILABLE_DEVICE))
 
         self.assertEqual(membership.degrees.shape[0], N_OBSERVATIONS)
         self.assertEqual(membership.degrees.shape[1], N_VARIABLES)
@@ -160,8 +163,9 @@ class TestNAryRelation(unittest.TestCase):
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(
-            torch.allclose(membership.degrees.to_dense(), expected_membership_degrees)
-        )
+            torch.allclose(
+                membership.degrees.to_dense(),
+                expected_membership_degrees))
         return membership
 
     def test_invalid_use_of_n_ary_relation(self) -> None:
@@ -175,8 +179,10 @@ class TestNAryRelation(unittest.TestCase):
         self.assertRaises(ValueError, NAryRelation, device=AVAILABLE_DEVICE)
         # invalid selection for nan_replacement
         self.assertRaises(
-            ValueError, NAryRelation, device=AVAILABLE_DEVICE, nan_replacement=3.0
-        )
+            ValueError,
+            NAryRelation,
+            device=AVAILABLE_DEVICE,
+            nan_replacement=3.0)
 
     def test_n_ary_relation(self) -> None:
         """
@@ -190,21 +196,25 @@ class TestNAryRelation(unittest.TestCase):
         self.assertRaises(NotImplementedError, n_ary.forward, None)
         # check that the matrix shape is correct
         self.assertEqual(
-            n_ary._coo_matrix[0].shape, (2, 2)  # pylint: disable=protected-access
+            n_ary._coo_matrix[0].shape, (2,
+                                         2)  # pylint: disable=protected-access
         )
         # check that the original shape is stored
         self.assertEqual(
-            n_ary._original_shape[0], (2, 2)  # pylint: disable=protected-access
+            n_ary._original_shape[0], (2,
+                                       2)  # pylint: disable=protected-access
         )
         # matrix size can increase (in-place) for more potential rows (vars)
         # and columns (terms)
         n_ary._coo_matrix[0].resize(3, 3)  # pylint: disable=protected-access
         self.assertEqual(
-            n_ary._coo_matrix[0].shape, (3, 3)  # pylint: disable=protected-access
+            n_ary._coo_matrix[0].shape, (3,
+                                         3)  # pylint: disable=protected-access
         )
         # check that the original shape is still kept after resizing
         self.assertEqual(
-            n_ary._original_shape[0], (2, 2)  # pylint: disable=protected-access
+            n_ary._original_shape[0], (2,
+                                       2)  # pylint: disable=protected-access
         )
 
     def test_duplicates(self) -> None:
@@ -280,21 +290,25 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(single_n_ary_graph.vs[0]["tags"], {"relation"})
         for index in (1, 2):
             self.assertEqual(single_n_ary_graph.vs[index]["tags"], {"anchor"})
-            self.assertEqual(single_n_ary_graph.vs[index]["item"], indices[index - 1])
+            self.assertEqual(
+                single_n_ary_graph.vs[index]["item"], indices[index - 1])
 
         # check edges are as we expect
         for index in (0, 1):
             self.assertEqual(single_n_ary_graph.es[index].source, index + 1)
             self.assertEqual(single_n_ary_graph.es[index].target, 0)
 
-        indices: List[List[Tuple[int, int]]] = [[(0, 1), (1, 0)], [(1, 1), (2, 1)]]
+        indices: List[List[Tuple[int, int]]] = [
+            [(0, 1), (1, 0)], [(1, 1), (2, 1)]]
         multiple_n_ary = NAryRelation(*indices, device=AVAILABLE_DEVICE)
         multiple_n_ary_graph: igraph.Graph = multiple_n_ary.graph
         self.assertTrue(multiple_n_ary_graph is not None)
         self.assertEqual(
             multiple_n_ary_graph.vcount(), 6
         )  # 4 index pairs + 2 for relations
-        self.assertEqual(multiple_n_ary_graph.ecount(), 4)  # 4 edges (relations)
+        self.assertEqual(
+            multiple_n_ary_graph.ecount(),
+            4)  # 4 edges (relations)
 
         # check vertex attributes are as we expect
         relation_vertices: igraph.VertexSeq = multiple_n_ary_graph.vs.select(
@@ -354,7 +368,8 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(indices, state_dict["indices"])
         self.assertEqual("NAryRelation", state_dict["class_name"])
         self.assertEqual(n_ary.nan_replacement, state_dict["nan_replacement"])
-        loaded_n_ary = NAryRelation.load(path=dir_path, device=AVAILABLE_DEVICE)
+        loaded_n_ary = NAryRelation.load(
+            path=dir_path, device=AVAILABLE_DEVICE)
         self.assertEqual(n_ary.indices, loaded_n_ary.indices)
         self.assertEqual(n_ary.nan_replacement, loaded_n_ary.nan_replacement)
         # the applied_mask is the resulting output from grouped_links()
@@ -392,22 +407,24 @@ class TestNAryRelation(unittest.TestCase):
                 BinaryLinks(np.eye(N_TERMS, N_TERMS), device=AVAILABLE_DEVICE),
             ]
         )
-        n_ary = NAryRelation(grouped_links=grouped_links, device=AVAILABLE_DEVICE)
+        n_ary = NAryRelation(
+            grouped_links=grouped_links,
+            device=AVAILABLE_DEVICE)
         intended_destination: Path = Path(__file__).parent / "n_ary_relation"
         n_ary.save(path=intended_destination)
         # note a .pt file is NOT created, but a directory is created instead
         # (to save the grouped links)
         self.assertTrue(intended_destination.exists())
         self.assertTrue(intended_destination.is_dir())
-        loaded_n_ary = NAryRelation.load(intended_destination, device=AVAILABLE_DEVICE)
+        loaded_n_ary = NAryRelation.load(
+            intended_destination, device=AVAILABLE_DEVICE)
         self.assertTrue(
             torch.allclose(
                 n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense()
             )
         )  # the applied_mask is the resulting output from grouped_links()
         for actual_module, loaded_module in zip(
-            n_ary.grouped_links.modules_list, loaded_n_ary.grouped_links.modules_list
-        ):
+                n_ary.grouped_links.modules_list, loaded_n_ary.grouped_links.modules_list):
             # modules are expected to have the shape property
             self.assertEqual(actual_module.shape, loaded_module.shape)
             # the loaded module should be the same as the original per __eq__
@@ -532,7 +549,9 @@ class TestNAryRelation(unittest.TestCase):
             shape=torch.Size([2, 2, 1]), device=AVAILABLE_DEVICE
         )
         grouped_links = GroupedLinks(modules_list=[stochastic])
-        n_ary = NAryRelation(grouped_links=grouped_links, device=AVAILABLE_DEVICE)
+        n_ary = NAryRelation(
+            grouped_links=grouped_links,
+            device=AVAILABLE_DEVICE)
         self.assertFalse(
             n_ary._links_are_cacheable()  # pylint: disable=protected-access
         )
@@ -570,7 +589,8 @@ class TestNAryRelation(unittest.TestCase):
             device=AVAILABLE_DEVICE,
             method=NAryMaskMethods.PROD,
         )
-        self.assertTrue(relation._use_gather)  # pylint: disable=protected-access
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
 
         degrees = torch.rand(4, 2, 3, device=AVAILABLE_DEVICE)
         # var1-term2: not selected by any rule here
@@ -583,7 +603,11 @@ class TestNAryRelation(unittest.TestCase):
         gather_result = relation._gather_apply_mask(membership)
         prod_result = relation._prod_apply_mask(membership)
         # pylint: enable=protected-access
-        self.assertTrue(torch.allclose(gather_result, prod_result, equal_nan=True))
+        self.assertTrue(
+            torch.allclose(
+                gather_result,
+                prod_result,
+                equal_nan=True))
 
     def test_nan_observation_does_not_corrupt_relation_gradient(self) -> None:
         """
@@ -640,9 +664,14 @@ class TestNAryRelation(unittest.TestCase):
         # this particular link structure happens to be gather-eligible
         # pylint: disable=protected-access
         prod_result = prod_relation._prod_apply_mask(membership)
-        exp_sum_log_result = exp_sum_log_relation._exp_sum_log_apply_mask(membership)
+        exp_sum_log_result = exp_sum_log_relation._exp_sum_log_apply_mask(
+            membership)
         # pylint: enable=protected-access
-        self.assertTrue(torch.allclose(prod_result, exp_sum_log_result, atol=1e-5))
+        self.assertTrue(
+            torch.allclose(
+                prod_result,
+                exp_sum_log_result,
+                atol=1e-5))
 
     def test_linear_sum_method(self) -> None:
         """
@@ -709,7 +738,10 @@ class TestProduct(TestNAryRelation):
             dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
-        self.assertTrue(torch.allclose(prod_membership.degrees, expected_prod_values))
+        self.assertTrue(
+            torch.allclose(
+                prod_membership.degrees,
+                expected_prod_values))
 
         # check that it is torch.jit scriptable (currently not working)
         # n_ary_script = torch.jit.script(n_ary)
@@ -783,10 +815,13 @@ class TestProduct(TestNAryRelation):
         )
         self.assertEqual(prod_membership.degrees.shape[0], N_OBSERVATIONS)
         self.assertEqual(prod_membership.degrees.shape[1], N_COMPOUNDS)
-        self.assertEqual(prod_membership.degrees.shape, expected_prod_values.shape)
+        self.assertEqual(
+            prod_membership.degrees.shape,
+            expected_prod_values.shape)
         self.assertTrue(
-            torch.allclose(prod_membership.degrees.to_dense(), expected_prod_values)
-        )
+            torch.allclose(
+                prod_membership.degrees.to_dense(),
+                expected_prod_values))
 
 
 class TestMinimum(TestNAryRelation):
@@ -845,7 +880,10 @@ class TestMinimum(TestNAryRelation):
             dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
-        self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
+        self.assertTrue(
+            torch.allclose(
+                min_membership.degrees,
+                expected_min_values))
 
         # check that it is torch.jit scriptable (currently not working)
         # n_ary_script = torch.jit.script(n_ary)
@@ -969,7 +1007,10 @@ class TestCompound(TestNAryRelation):
             dtype=torch.float32,
             device=AVAILABLE_DEVICE,
         )
-        self.assertTrue(torch.allclose(min_membership.degrees, expected_min_values))
+        self.assertTrue(
+            torch.allclose(
+                min_membership.degrees,
+                expected_min_values))
 
 
 class TestComputationalAbilities(unittest.TestCase):
@@ -1026,8 +1067,9 @@ class TestComputationalAbilities(unittest.TestCase):
         # max terms used in the above N-ary relation
         membership: Membership = membership_function(
             torch.randn(
-                N_OBSERVATIONS, self.n_variables, self.n_terms, device=AVAILABLE_DEVICE
-            )
-        )
+                N_OBSERVATIONS,
+                self.n_variables,
+                self.n_terms,
+                device=AVAILABLE_DEVICE))
         # check that the apply_mask works
         n_ary.apply_mask(membership)

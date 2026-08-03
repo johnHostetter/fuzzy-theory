@@ -194,7 +194,8 @@ class BoundAlphaEntmax(torch.nn.Module):
             torch.nn.init.normal_(alpha)
         self.alpha = torch.nn.Parameter(alpha, requires_grad=True)
 
-    def bound_alpha(self, alpha: Union[None, torch.Tensor] = None) -> torch.Tensor:
+    def bound_alpha(self, alpha: Union[None,
+                    torch.Tensor] = None) -> torch.Tensor:
         """
         Bound the alpha parameter to abide by the constraint that it must exist within (1, 2) so it
         does not devolve to softmax or sparsemax, respectively.
@@ -218,8 +219,7 @@ class BoundAlphaEntmax(torch.nn.Module):
         raise ValueError(
             "The only implemented bounding strategies are Sigmoid representation "
             "(sigmoid_reparameterization), Scaled tanh (scaled_tanh), and "
-            "Softplus + Shift (softplus_add_shift)"
-        )
+            "Softplus + Shift (softplus_add_shift)")
 
     def forward(
         self, tensor: torch.Tensor, dim: Union[None, int] = None
@@ -233,8 +233,10 @@ class BoundAlphaEntmax(torch.nn.Module):
 
 
 class PremiseActivation(
-    CategoricalOptions, torch.nn.Module, EnumPromoter, enum_cls=PremiseActivationEnum
-):
+        CategoricalOptions,
+        torch.nn.Module,
+        EnumPromoter,
+        enum_cls=PremiseActivationEnum):
     """
     Outlines the available premise activation strategies and their implementations.
     """
@@ -263,9 +265,11 @@ class PremiseActivation(
         # )
 
     @classmethod
-    def func(
-        cls, transform: PremiseActivationEnum, bound: Union[None, BoundAlphaEntmaxEnum]
-    ) -> Callable[[torch.Tensor], torch.Tensor]:
+    def func(cls,
+             transform: PremiseActivationEnum,
+             bound: Union[None,
+                          BoundAlphaEntmaxEnum]) -> Callable[[torch.Tensor],
+                                                             torch.Tensor]:
         """
         Obtain the appropriate premise activation function based on the selected transform.
 
@@ -403,13 +407,19 @@ class DefuzzificationConfig(YAMLConfig):
     instance, whether to use zero-order TSK, TSK, Mamdani, or other experimental methods.
     """
 
-    method: DefuzzificationMethodEnum = field(default=DefuzzificationMethodEnum.TSK)
+    method: DefuzzificationMethodEnum = field(
+        default=DefuzzificationMethodEnum.TSK)
     n_latent_space_dim: int = field(
         default=32,
         metadata={
             "help": "The dimensionality of the latent space to utilize, if applicable.",
-            "range": Range(low=1, high=float("inf")),
-            "search": Range(low=32, high=128, step=32),
+            "range": Range(
+                low=1,
+                high=float("inf")),
+            "search": Range(
+                low=32,
+                high=128,
+                step=32),
         },
     )
 
@@ -453,16 +463,24 @@ class GumbelConfig(YAMLConfig):
         default=1.0,
         metadata={
             "help": "How much temperature should be used for the Gumbel distribution.",
-            "range": Range(low=1, high=float("inf")),
-            "search": Range(low=0.25, high=1.25),
+            "range": Range(
+                low=1,
+                high=float("inf")),
+            "search": Range(
+                low=0.25,
+                high=1.25),
         },
     )
     epsilon_filter: float = field(
         default=0.0,
         metadata={
             "help": "Whether to constrain the Straight-Through Gumbel Softmax Estimator.",
-            "range": Range(low=0, high=1.0),
-            "choices": [0.0, 0.1],
+            "range": Range(
+                low=0,
+                high=1.0),
+            "choices": [
+                0.0,
+                0.1],
         },
     )
     noise_delay: int = field(
@@ -497,8 +515,12 @@ class NeurogenesisConfig(YAMLConfig):
         metadata={
             "help": "The desired membership degree that should be satisfied by all elements to "
             "achieve epsilon-completeness.",
-            "range": Range(low=0, high=1.0),
-            "search": Range(low=0.1, high=0.5),
+            "range": Range(
+                low=0,
+                high=1.0),
+            "search": Range(
+                low=0.1,
+                high=0.5),
         },
     )
     add_premise_delay: int = field(
@@ -579,9 +601,8 @@ class ParameterConfig(YAMLConfig):
         },
     )
     consequence: ConsequenceParameterConfig = field(
-        default_factory=ConsequenceParameterConfig,
-        metadata={"help": "How to initialize the consequence layer's parameters."},
-    )
+        default_factory=ConsequenceParameterConfig, metadata={
+            "help": "How to initialize the consequence layer's parameters."}, )
 
 
 @dataclass
@@ -608,8 +629,14 @@ class StructureConfig(YAMLConfig):
             default=128,
             metadata={
                 "help": "The number of non-unique rules available to the neuro-fuzzy network.",
-                "range": Range(low=0, high=10000, step=1),
-                "search": Range(low=64, high=256, step=64),
+                "range": Range(
+                    low=0,
+                    high=10000,
+                    step=1),
+                "search": Range(
+                    low=64,
+                    high=256,
+                    step=64),
             },
         )
 
@@ -631,9 +658,8 @@ class StructureConfig(YAMLConfig):
         },
     )
     consequence: ConsequenceStructureConfig = field(
-        default_factory=ConsequenceStructureConfig,
-        metadata={"help": "How to initialize the consequence layer's structure."},
-    )
+        default_factory=ConsequenceStructureConfig, metadata={
+            "help": "How to initialize the consequence layer's structure."}, )
 
 
 @dataclass

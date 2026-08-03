@@ -22,18 +22,30 @@ import torch
 from fuzzy.utils.options.impl.impl_enums import DimensionEnum
 
 
-class NamedTensor(namedtuple(typename="NamedTensor", field_names=("data", "names"))):
+class NamedTensor(
+    namedtuple(
+        typename="NamedTensor",
+        field_names=(
+            "data",
+            "names"))):
     def __new__(
         cls,
         data: torch.Tensor,
         names: Union[List[str], Tuple[str, ...], Tuple[DimensionEnum, ...]],
     ):
-        assert isinstance(data, torch.Tensor), "The data must be a torch.Tensor"
-        assert data.ndim == len(names), "The data must have the same shape as names"
+        assert isinstance(
+            data, torch.Tensor), "The data must be a torch.Tensor"
+        assert data.ndim == len(
+            names), "The data must have the same shape as names"
         return super().__new__(cls, data, names)
 
 
-class Membership(namedtuple(typename="Membership", field_names=("degrees", "mask"))):
+class Membership(
+    namedtuple(
+        typename="Membership",
+        field_names=(
+            "degrees",
+            "mask"))):
     """
     The Membership class contains information describing both membership *degrees* and
     membership *mask* for some given *elements*. The membership degrees are often the degree of
