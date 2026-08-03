@@ -12,6 +12,7 @@ import igraph
 import numpy as np
 import scipy.sparse as sps
 import torch
+
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule
 
@@ -472,7 +473,8 @@ class NAryRelation(TorchJitModule, Loggable):
         if self.grouped_links is None:
             return False
         return all(
-            isinstance(module, BinaryLinks) for module in self.grouped_links.modules_list
+            isinstance(module, BinaryLinks)
+            for module in self.grouped_links.modules_list
         )
 
     def _ensure_links_cache(self, membership: Membership) -> None:
@@ -615,7 +617,8 @@ class NAryRelation(TorchJitModule, Loggable):
         if not self._all_active:
             # Preserve IEEE NaN propagation: inactive entries where the gathered
             # degree is NaN must stay NaN (matching NaN * 0 + 1 = NaN behavior),
-            # while inactive entries with valid degrees become 1.0 (product identity).
+            # while inactive entries with valid degrees become 1.0 (product
+            # identity).
             selected = torch.where(
                 self._gather_active.unsqueeze(0) | selected.isnan(),
                 selected,
@@ -692,7 +695,8 @@ class NAryRelation(TorchJitModule, Loggable):
         # BinaryLinks stores its links as int8; torch.nn.functional.linear requires both
         # operands to share a dtype, so without this cast this method raises
         # "expected mat1 and mat2 to have the same dtype" for any real (non-float) links -
-        # a bug that had gone unnoticed because no test exercised this method before
+        # a bug that had gone unnoticed because no test exercised this method
+        # before
         applied_mask = self._cached_links.to(dtype=membership.degrees.dtype)
         n_rules = applied_mask.shape[-1]
         linear_result = torch.nn.functional.linear(  # pylint: disable=not-callable

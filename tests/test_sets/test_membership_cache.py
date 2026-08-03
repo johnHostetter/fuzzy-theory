@@ -13,8 +13,8 @@ import weakref
 import numpy as np
 import torch
 
-from fuzzy.sets.impl import Gaussian, Trapezoidal
 from fuzzy.sets.group import FuzzySetGroup
+from fuzzy.sets.impl import Gaussian, Trapezoidal
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

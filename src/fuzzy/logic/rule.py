@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Type, Union
 
 import torch
+
 from fuzzy.relations.n_ary import NAryRelation
 
 
@@ -37,9 +38,7 @@ class Rule:
                     f"grouped_links), but it has none."
                 )
             if len(relation.indices) > 1:
-                raise ValueError(
-                    "Only unary relations are supported to create a Rule."
-                )
+                raise ValueError("Only unary relations are supported to create a Rule.")
         self.premise = premise
         self.consequence = consequence
         self.id = Rule.next_id
@@ -52,7 +51,8 @@ class Rule:
         # @dataclass would otherwise auto-generate a __repr__ from the only declared
         # field, next_id - a shared class-level counter used to auto-assign ids, not
         # actual per-instance state - producing a genuinely misleading Rule(next_id=N)
-        # wherever Python calls repr() instead of str() (e.g. printing a List[Rule])
+        # wherever Python calls repr() instead of str() (e.g. printing a
+        # List[Rule])
         return (
             f"Rule(id={self.id}, premise={self.premise}, "
             f"consequence={self.consequence})"

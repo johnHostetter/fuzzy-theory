@@ -13,8 +13,9 @@ be used in conjunction with the mask to filter out membership degrees that are n
 assist in performing advanced operations.
 """
 
-from collections import namedtuple  # required instead of dataclass for torch.jit.script
-from typing import Union, List, Tuple
+# required instead of dataclass for torch.jit.script
+from collections import namedtuple
+from typing import List, Tuple, Union
 
 import torch
 

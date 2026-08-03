@@ -37,12 +37,8 @@ class TestCertaintyFactors(unittest.TestCase):
 
         loaded = CertaintyFactors.load(path, device=AVAILABLE_DEVICE)
         self.assertIsInstance(loaded, CertaintyFactors)
-        self.assertEqual(
-            AVAILABLE_DEVICE.type, loaded.weights.device.type
-        )
-        self.assertTrue(
-            torch.allclose(original.weights, loaded.weights)
-        )
+        self.assertEqual(AVAILABLE_DEVICE.type, loaded.weights.device.type)
+        self.assertTrue(torch.allclose(original.weights, loaded.weights))
 
         x = torch.randn(3, 5, device=AVAILABLE_DEVICE)
         with torch.no_grad():
@@ -61,7 +57,9 @@ class TestCertaintyFactors(unittest.TestCase):
             None
         """
         cpu_weights = torch.ones([4], dtype=torch.float32, device="cpu")
-        certainty_factors = CertaintyFactors(weights=cpu_weights, device=AVAILABLE_DEVICE)
+        certainty_factors = CertaintyFactors(
+            weights=cpu_weights, device=AVAILABLE_DEVICE
+        )
         self.assertEqual(certainty_factors.weights.device.type, AVAILABLE_DEVICE.type)
 
     def test_load_invalid_path_raises(self) -> None:

@@ -75,8 +75,11 @@ def exp_sum_log(x: torch.Tensor, dim: int, eps: float = 1e-12) -> torch.Tensor:
     # torch.jit.script compiles this body to TorchScript, so it executes outside the
     # CPython interpreter and coverage.py's line tracer never sees it run, regardless
     # of how many tests call this function - see test_exp_sum_log_matches_prod and
-    # test_exp_sum_log_handles_zeros_without_underflow in tests/test_utils.py instead
-    return torch.exp(torch.sum(torch.log(x.clamp_min(eps)), dim=dim))  # pragma: no cover
+    # test_exp_sum_log_handles_zeros_without_underflow in tests/test_utils.py
+    # instead
+    return torch.exp(
+        torch.sum(torch.log(x.clamp_min(eps)), dim=dim)
+    )  # pragma: no cover
 
 
 def log_method(method):

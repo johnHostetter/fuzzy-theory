@@ -49,7 +49,9 @@ class BoundAlphaEntmaxEnum(str, Enum):
     """
     What technique we should use to keep the alpha within (1, 2) when using entmax_bisect.
     """
-    # NONE = "none"  # only valid if no learnable alpha is used for alpha-entmax
+
+    # NONE = "none"  # only valid if no learnable alpha is used for
+    # alpha-entmax
     SIGMOID = "sigmoid_reparameterization"
     TANH = "scaled_tanh"
     HARD_TANH = "hard_tanh"
@@ -64,7 +66,8 @@ class PremiseActivationEnum(str, Enum):
 
     SOFTMAX = "softmax"  # (alpha=1) default -- no modification
     ENTMAX15 = "entmax15"  # (alpha=1.5) non-tunable -- some sparsity
-    # SPARSEMAX = "sparsemax"  # (alpha=2) included for completeness, but strongly advise against it
+    # SPARSEMAX = "sparsemax"  # (alpha=2) included for completeness, but
+    # strongly advise against it
     ENTMAX_BISECT = "entmax_bisect"  # differentiable w.r.t. X & alpha
     # SPARSEMAX_BISECT = "sparsemax_bisect",  # only normalizes along last dim (not implemented)
     # NORMMAX_BISECT = "normmax_bisect",  # differentiable w.r.t. X (not implemented)

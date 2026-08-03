@@ -189,7 +189,8 @@ class TestFuzzySet(unittest.TestCase):
             )
             # two separately constructed fuzzy sets, built the same way, have identical
             # parameter values but are distinct objects (and therefore distinct underlying
-            # tensors) - this is exactly the case that must not violate the hash contract
+            # tensors) - this is exactly the case that must not violate the
+            # hash contract
             self.assertEqual(
                 first,
                 second,
@@ -201,7 +202,8 @@ class TestFuzzySet(unittest.TestCase):
                 f"{subclass.__name__}.__hash__ violates the hash contract: "
                 f"equal instances must have equal hashes",
             )
-            # a fuzzy set must also consistently hash the same as itself across repeated calls
+            # a fuzzy set must also consistently hash the same as itself across
+            # repeated calls
             self.assertEqual(hash(first), hash(first))
 
     def test_dynamic_parameter_list_to_dtype_only(self) -> None:
@@ -216,7 +218,9 @@ class TestFuzzySet(unittest.TestCase):
             None
         """
         gaussian_mf = Gaussian(
-            centers=np.array([0.0, 1.0]), widths=np.array([1.0, 1.0]), device=AVAILABLE_DEVICE
+            centers=np.array([0.0, 1.0]),
+            widths=np.array([1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
         )
         # resolve the expected device the same way .to() would (e.g. an unindexed "cuda"
         # resolves to a concrete "cuda:0" once actually applied to a tensor), so the
@@ -229,11 +233,13 @@ class TestFuzzySet(unittest.TestCase):
         self.assertEqual(gaussian_mf._centers._dtype, torch.float64)
         self.assertEqual(gaussian_mf.get_centers().dtype, torch.float64)
 
-        # adding a parameter afterward must use the up-to-date dtype, not a stale one
+        # adding a parameter afterward must use the up-to-date dtype, not a
+        # stale one
         gaussian_mf._centers.add_parameter(np.array([[2.0, 3.0]]))
         self.assertEqual(gaussian_mf._centers.params[-1].dtype, torch.float64)
 
-        # an empty DynamicParameterList must not raise when .to() is given a dtype only
+        # an empty DynamicParameterList must not raise when .to() is given a
+        # dtype only
         empty = DynamicParameterList(device=AVAILABLE_DEVICE, dtype=torch.float32)
         empty.to(torch.float64)
         self.assertEqual(empty._dtype, torch.float64)
@@ -479,7 +485,9 @@ class TestFuzzySet(unittest.TestCase):
             None
         """
         gaussian_mf = Gaussian(
-            centers=np.array([0.0, 1.0]), widths=np.array([1.0, 1.0]), device=AVAILABLE_DEVICE
+            centers=np.array([0.0, 1.0]),
+            widths=np.array([1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
         )
         observations = torch.tensor(
             [[0.3], [float("nan")], [0.9]], device=AVAILABLE_DEVICE
@@ -490,9 +498,7 @@ class TestFuzzySet(unittest.TestCase):
         self.assertFalse(bool(degrees[2].isnan().any()))
 
         # and it must match calculate_membership() exactly for the non-NaN rows
-        direct = gaussian_mf.calculate_membership(
-            observations.unsqueeze(-1)
-        )
+        direct = gaussian_mf.calculate_membership(observations.unsqueeze(-1))
         self.assertTrue(torch.allclose(degrees[0], direct[0]))
         self.assertTrue(torch.allclose(degrees[2], direct[2]))
 
@@ -526,7 +532,8 @@ class TestFuzzySet(unittest.TestCase):
 
         self.assertFalse(bool(gaussian_mf.get_centers().grad.isnan().any()))
         self.assertFalse(bool(gaussian_mf.get_widths().grad.isnan().any()))
-        # the valid samples must still have contributed a genuine (nonzero) gradient
+        # the valid samples must still have contributed a genuine (nonzero)
+        # gradient
         self.assertTrue(bool((gaussian_mf.get_centers().grad != 0).any()))
 
     def test_no_nan_fast_path_matches_calculate_membership(self) -> None:
@@ -538,7 +545,9 @@ class TestFuzzySet(unittest.TestCase):
             None
         """
         gaussian_mf = Gaussian(
-            centers=np.array([0.0, 1.0]), widths=np.array([1.0, 1.0]), device=AVAILABLE_DEVICE
+            centers=np.array([0.0, 1.0]),
+            widths=np.array([1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
         )
         observations = torch.tensor([[0.3], [0.6], [0.9]], device=AVAILABLE_DEVICE)
         via_forward = gaussian_mf(observations).degrees.to_dense()

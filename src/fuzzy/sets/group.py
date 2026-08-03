@@ -77,7 +77,8 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         # memoizes the centers/widths/mask concatenation built in __getattribute__ below,
         # keyed per attribute on the (id, version) signature of the tensors it was built from;
         # left untyped (rather than Dict[str, Tuple[...]]) since torch.jit.script warns about
-        # instance-level generic annotations on an empty container assigned in __init__
+        # instance-level generic annotations on an empty container assigned in
+        # __init__
         self._attribute_cache = {}
 
     @torch.jit.ignore

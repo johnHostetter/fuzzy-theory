@@ -120,7 +120,8 @@ class Lorentzian(FuzzySet):
     Implementation of the Lorentzian membership function, written in PyTorch.
     """
 
-    # unlike the other fuzzy sets, Lorentzian's asserts on NaN/Inf were previously live
+    # unlike the other fuzzy sets, Lorentzian's asserts on NaN/Inf were
+    # previously live
     _validate_degrees: bool = True
 
     @property
@@ -417,7 +418,12 @@ class Trapezoidal(FuzzySet):
             A signature of this fuzzy set's parameters, including plateaus.
         """
         return signature_of(
-            [self.get_centers(), self.get_widths(), self.get_mask(), self.get_plateaus()]
+            [
+                self.get_centers(),
+                self.get_widths(),
+                self.get_mask(),
+                self.get_plateaus(),
+            ]
         )
 
     def to(self, *args, **kwargs):

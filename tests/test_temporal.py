@@ -65,7 +65,8 @@ class TestTimeDistributed(unittest.TestCase):
         actual_output = time_distributed(self.input_data)
         # the shape of the input data is unchanged by batch_first; only its
         # interpretation (which leading dimension is "batch" vs "timestep") differs,
-        # so the output must still preserve the original (2, 3) leading dimensions
+        # so the output must still preserve the original (2, 3) leading
+        # dimensions
         self.assertEqual(actual_output.shape, torch.Size([2, 3, 1]))
 
     def test_time_distributed_batch_first_false_preserves_values(self) -> None:
@@ -83,7 +84,8 @@ class TestTimeDistributed(unittest.TestCase):
             None
         """
         # input shaped (T=2, B=3, F=1) for batch_first=False; each value encodes its
-        # own (timestep, batch) position so any scrambling during reshape is detectable
+        # own (timestep, batch) position so any scrambling during reshape is
+        # detectable
         input_data = torch.tensor(
             [
                 [[0.0], [1.0], [2.0]],

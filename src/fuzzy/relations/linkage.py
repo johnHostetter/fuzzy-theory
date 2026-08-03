@@ -7,10 +7,11 @@ from typing import Any, Callable, List, MutableMapping, Optional, Union
 
 import numpy as np
 import torch
+from torch._C import Size
+
 from fuzzy.sets.membership import Membership
 from fuzzy.utils import NestedTorchJitModule, check_path_to_save_torch_module
 from fuzzy.utils.classes import Loggable
-from torch._C import Size
 
 # from fuzzy.utils.functions import log_classmethod, log_method
 

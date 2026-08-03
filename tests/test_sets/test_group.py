@@ -216,7 +216,8 @@ class TestFuzzySetGroup(unittest.TestCase):
         self.assertEqual(self.grouped_fuzzy_sets.device, device_before)
         self.assertNotIsInstance(self.grouped_fuzzy_sets.device, torch.dtype)
         # the underlying parameters must still have been converted (via the ordinary
-        # recursive nn.Module.to() mechanism, independent of self.device bookkeeping)
+        # recursive nn.Module.to() mechanism, independent of self.device
+        # bookkeeping)
         for module in self.grouped_fuzzy_sets.modules_list:
             self.assertEqual(module.get_centers().dtype, torch.float64)
 
@@ -334,7 +335,8 @@ class TestFuzzySetGroup(unittest.TestCase):
         self.assertEqual(widths.shape[-1], 6)
         self.assertEqual(mask.shape[-1], 6)
 
-        # mutating a submodule's centers must invalidate the cached concatenation
+        # mutating a submodule's centers must invalidate the cached
+        # concatenation
         with torch.no_grad():
             self.grouped_fuzzy_sets.modules_list[0].get_centers().add_(1.0)
         third = self.grouped_fuzzy_sets.centers
@@ -368,7 +370,8 @@ class TestFuzzySetGroup(unittest.TestCase):
         with torch.no_grad():
             centers.add_(1.0)
         third = group(observations)
-        self.assertIsNot(first.degrees, third.degrees)  # invalidated by the mutation
+        # invalidated by the mutation
+        self.assertIsNot(first.degrees, third.degrees)
 
     def test_group_with_module_missing_getters_skips_caching(self) -> None:
         """
@@ -394,7 +397,9 @@ class TestFuzzySetGroup(unittest.TestCase):
         first = group(observations)
         second = group(observations)
         self.assertIsNot(first.degrees, second.degrees)  # never cached
-        self.assertEqual(len(group._membership_cache), 0)  # pylint: disable=protected-access
+        self.assertEqual(
+            len(group._membership_cache), 0
+        )  # pylint: disable=protected-access
 
     def test_lookup_and_store_defensive_when_cache_attribute_absent(self) -> None:
         """
@@ -410,7 +415,9 @@ class TestFuzzySetGroup(unittest.TestCase):
         observations = torch.rand(3, 2, device=AVAILABLE_DEVICE)
         membership = self.grouped_fuzzy_sets(observations)
 
-        del self.grouped_fuzzy_sets._membership_cache  # pylint: disable=protected-access
+        del (
+            self.grouped_fuzzy_sets._membership_cache
+        )  # pylint: disable=protected-access
         self.assertIsNone(
             self.grouped_fuzzy_sets._lookup_group_membership(  # pylint: disable=protected-access
                 observations
@@ -446,8 +453,12 @@ class TestFuzzySetGroup(unittest.TestCase):
         )
         self.assertEqual(group.cache_membership, False)
         self.assertEqual(group.membership_cache_size, 5)
-        self.assertEqual(group._membership_cache.enabled, False)  # pylint: disable=protected-access
-        self.assertEqual(group._membership_cache.maxsize, 5)  # pylint: disable=protected-access
+        self.assertEqual(
+            group._membership_cache.enabled, False
+        )  # pylint: disable=protected-access
+        self.assertEqual(
+            group._membership_cache.maxsize, 5
+        )  # pylint: disable=protected-access
 
         group.save(Path("test_group_cache_settings"))
         loaded_group: FuzzySetGroup = FuzzySetGroup.load(
@@ -457,10 +468,12 @@ class TestFuzzySetGroup(unittest.TestCase):
             self.assertEqual(loaded_group.cache_membership, False)
             self.assertEqual(loaded_group.membership_cache_size, 5)
             self.assertEqual(
-                loaded_group._membership_cache.enabled, False  # pylint: disable=protected-access
+                loaded_group._membership_cache.enabled,
+                False,  # pylint: disable=protected-access
             )
             self.assertEqual(
-                loaded_group._membership_cache.maxsize, 5  # pylint: disable=protected-access
+                loaded_group._membership_cache.maxsize,
+                5,  # pylint: disable=protected-access
             )
         finally:
             shutil.rmtree(Path("test_group_cache_settings"), ignore_errors=True)
@@ -479,7 +492,9 @@ class TestFuzzySetGroup(unittest.TestCase):
                 ),
             ]
         )
-        self.assertNotEqual(self.grouped_fuzzy_sets, one_module_group)  # different length
+        self.assertNotEqual(
+            self.grouped_fuzzy_sets, one_module_group
+        )  # different length
 
         different_content_group = FuzzySetGroup(
             modules_list=[

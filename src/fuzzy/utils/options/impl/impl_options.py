@@ -17,10 +17,15 @@ import torch
 import torch.nn.functional as F
 import yaml
 from entmax import entmax15, entmax_bisect
+from pydantic import TypeAdapter
+from pydantic.dataclasses import dataclass
+from torch.nn import Module
+
 from fuzzy.utils.options.abstract.meta import EnumPromoter
 from fuzzy.utils.options.abstract.primitive import CategoricalOptions
 from fuzzy.utils.options.impl.impl_enums import (
     BoundAlphaEntmaxEnum,
+    DefuzzificationMethodEnum,
     NeurogenesisEnum,
     PremiseActivationEnum,
     PremiseAggregationEnum,
@@ -29,11 +34,7 @@ from fuzzy.utils.options.impl.impl_enums import (
     RuleEliminationEnum,
     RuleWeightsEnum,
     SamplingEnum,
-    DefuzzificationMethodEnum,
 )
-from pydantic import TypeAdapter
-from pydantic.dataclasses import dataclass
-from torch.nn import Module
 
 _64_BIT_INT: int = 2 ^ 63 - 1  # max magnitude of a 64-bit integer
 
@@ -47,7 +48,8 @@ class Range:
     low: Union[float, int]
     high: Union[float, int]
     log: bool = False  # log scale for floats
-    step: Union[None, float, int] = None  # if step size is given, options are discrete
+    # if step size is given, options are discrete
+    step: Union[None, float, int] = None
 
     def to_scipy(self) -> object:
         """
@@ -181,7 +183,7 @@ class BoundAlphaEntmax(torch.nn.Module):
         dim: int = -1,
         alpha: Union[None, torch.Tensor] = None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.bounding_strategy = bounding_strategy
@@ -219,7 +221,9 @@ class BoundAlphaEntmax(torch.nn.Module):
             "Softplus + Shift (softplus_add_shift)"
         )
 
-    def forward(self, tensor: torch.Tensor, dim: Union[None, int] = None) -> torch.Tensor:
+    def forward(
+        self, tensor: torch.Tensor, dim: Union[None, int] = None
+    ) -> torch.Tensor:
         if dim is None:
             dim = self.dim  # use internal referenced dim for the forward
         bounded_alpha = self.bound_alpha()
@@ -278,7 +282,8 @@ class PremiseActivation(
                 "You must select a bounding strategy to limit the range of alpha when using "
                 "an adaptable entmax."
             )
-            return BoundAlphaEntmax(bounding_strategy=bound)  # build a copy since it has params
+            # build a copy since it has params
+            return BoundAlphaEntmax(bounding_strategy=bound)
         return cls._fn[transform]
 
     # def forward(self, input):
@@ -369,9 +374,7 @@ class PremiseConfig(YAMLConfig):
     activation: PremiseActivationEnum = field(
         default=PremiseActivationEnum.SOFTMAX,
     )
-    bound: BoundAlphaEntmaxEnum = field(
-        default=BoundAlphaEntmaxEnum.SIGMOID
-    )
+    bound: BoundAlphaEntmaxEnum = field(default=BoundAlphaEntmaxEnum.SIGMOID)
 
 
 @dataclass

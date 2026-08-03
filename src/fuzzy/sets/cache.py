@@ -40,7 +40,8 @@ from .membership import Membership
 # A plain List rather than a variadic Tuple[..., ...], since the latter's Ellipsis is not a
 # type TorchScript's annotation resolver supports, and this is only ever compared with '==' /
 # '!=' (never hashed or used as a dict key), so a List loses nothing here. The third element
-# of each tuple is the tensor's requires_grad flag at signature time - see signature_of().
+# of each tuple is the tensor's requires_grad flag at signature time - see
+# signature_of().
 ParameterSignature = List[Tuple[int, int, bool]]
 
 
@@ -89,7 +90,9 @@ def signature_of(tensors: List[torch.Tensor]) -> ParameterSignature:
     Returns:
         A hashable and comparable signature of those tensors.
     """
-    return [(id(tensor), version_of(tensor), tensor.requires_grad) for tensor in tensors]
+    return [
+        (id(tensor), version_of(tensor), tensor.requires_grad) for tensor in tensors
+    ]
 
 
 class MembershipCacheEntry:  # pylint: disable=too-few-public-methods
@@ -120,7 +123,8 @@ class MembershipCacheEntry:  # pylint: disable=too-few-public-methods
     ):
         self.observations_ref: "weakref.ref[torch.Tensor]" = weakref.ref(observations)
         self.observations_version: int = version_of(observations)
-        # see signature_of() for why requires_grad must be tracked alongside identity/version
+        # see signature_of() for why requires_grad must be tracked alongside
+        # identity/version
         self.observations_requires_grad: bool = observations.requires_grad
         self.parameter_signature: ParameterSignature = parameter_signature
         self.grad_enabled: bool = torch.is_grad_enabled()
@@ -239,7 +243,8 @@ class MembershipCache:
         degrees: torch.Tensor = membership.degrees
         if degrees.requires_grad and degrees.grad_fn is not None:
             # the memoized result is part of an autograd graph, whose buffers are freed once
-            # backward traverses it; drop the entry at that point so it is never re-used
+            # backward traverses it; drop the entry at that point so it is
+            # never re-used
             degrees.register_hook(entry.invalidate)
 
         self._entries.append(entry)

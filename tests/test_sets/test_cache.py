@@ -8,7 +8,12 @@ import unittest
 
 import torch
 
-from fuzzy.sets.cache import MembershipCache, MembershipCacheEntry, signature_of, version_of
+from fuzzy.sets.cache import (
+    MembershipCache,
+    MembershipCacheEntry,
+    signature_of,
+    version_of,
+)
 from fuzzy.sets.membership import Membership
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -112,7 +117,8 @@ class TestMembershipCacheEntry(unittest.TestCase):
             Membership(degrees=degrees, mask=torch.ones(2, device=AVAILABLE_DEVICE)),
         )
         self.assertTrue(entry.valid)
-        entry.invalidate(torch.zeros(2, device=AVAILABLE_DEVICE))  # as if it were a hook
+        # as if it were a hook
+        entry.invalidate(torch.zeros(2, device=AVAILABLE_DEVICE))
         self.assertFalse(entry.valid)
         self.assertIsNone(entry.membership)
 
@@ -149,9 +155,7 @@ class TestMembershipCache(unittest.TestCase):
 
         cache.store(second_observations, signature_of([]), membership)
         self.assertEqual(len(cache), 1)  # still bounded to maxsize
-        self.assertIsNone(
-            cache.lookup(first_observations, signature_of([]))
-        )  # evicted
+        self.assertIsNone(cache.lookup(first_observations, signature_of([])))  # evicted
         self.assertIsNotNone(cache.lookup(second_observations, signature_of([])))
 
 

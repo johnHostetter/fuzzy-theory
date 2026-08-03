@@ -8,6 +8,7 @@ from typing import Any, MutableMapping
 
 import scienceplots  # noqa # pylint: disable=unused-import
 import torch
+
 from fuzzy.relations.confidence import CertaintyFactors
 from fuzzy.utils.options.impl.impl_options import (
     InferenceConfig,

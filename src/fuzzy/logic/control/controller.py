@@ -13,6 +13,7 @@ from typing import Any, List, MutableMapping, Optional, Type, Union
 
 import torch
 import torch.utils.checkpoint
+
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.sets.abstract import FuzzySet
 
@@ -91,7 +92,8 @@ class FuzzyLogicController(torch.nn.Sequential):
             )
         )
 
-        # bind the correct defuzzification call to avoid try/except on every forward
+        # bind the correct defuzzification call to avoid try/except on every
+        # forward
         from .defuzzification import TSK
 
         if isinstance(defuzzification, TSK):
@@ -275,16 +277,10 @@ class FuzzyLogicController(torch.nn.Sequential):
             targets=None if len(results_lst) < 2 else results_lst[1],
         )
 
-    def _defuzzify_tsk(
-        self, input: torch.Tensor, rule_strengths
-    ) -> torch.Tensor:
-        return self.defuzzification(
-            observations=input, rule_activations=rule_strengths
-        )
+    def _defuzzify_tsk(self, input: torch.Tensor, rule_strengths) -> torch.Tensor:
+        return self.defuzzification(observations=input, rule_activations=rule_strengths)
 
-    def _defuzzify_standard(
-        self, input: torch.Tensor, rule_strengths
-    ) -> torch.Tensor:
+    def _defuzzify_standard(self, input: torch.Tensor, rule_strengths) -> torch.Tensor:
         return self.defuzzification(rule_strengths)
 
     def _forward_impl(

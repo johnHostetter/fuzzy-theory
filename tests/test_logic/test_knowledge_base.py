@@ -268,7 +268,9 @@ class TestKnowledgeBase(unittest.TestCase):
         duplicate_hypercube = FuzzySetGroup(
             modules_list=[Lorentzian.stack(self.linguistic_variables.inputs)],
         )
-        knowledge_base.graph.add_vertex(item=duplicate_hypercube, tags={"premise", "group"})
+        knowledge_base.graph.add_vertex(
+            item=duplicate_hypercube, tags={"premise", "group"}
+        )
         with self.assertRaises(ValueError):
             _ = knowledge_base.granulation_layers
 

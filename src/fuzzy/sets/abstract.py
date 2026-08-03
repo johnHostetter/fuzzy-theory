@@ -237,11 +237,14 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
         # _device with a dtype object). Replaying the same call against a throwaway tensor
         # seeded with the current device/dtype and reading back what it resolved to avoids
         # re-implementing that parsing here.
-        probe = torch.empty(0, dtype=self._dtype, device=self._device).to(*args, **kwargs)
+        probe = torch.empty(0, dtype=self._dtype, device=self._device).to(
+            *args, **kwargs
+        )
         self._device = probe.device
         self._dtype = probe.dtype
         # the parameters were moved, so any concatenation of them refers to the old device;
-        # rebuild it on next access rather than moving a copy that is about to go stale
+        # rebuild it on next access rather than moving a copy that is about to
+        # go stale
         self._invalidate_cache()
         return self
 
@@ -264,7 +267,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     """
 
     # Subclasses may set this to True to check the calculated membership degrees for NaN and
-    # infinite values; this costs a synchronization per call, so it is off by default.
+    # infinite values; this costs a synchronization per call, so it is off by
+    # default.
     _validate_degrees: bool = False
 
     def __init__(
@@ -287,14 +291,16 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         self._mask = None
         self.__alloc_members(centers, use_sparse_tensor, widths)
 
-        # memoizes membership calculations; see fuzzy.sets.cache for when a result is re-used
+        # memoizes membership calculations; see fuzzy.sets.cache for when a
+        # result is re-used
         self._membership_cache = MembershipCache(
             maxsize=membership_cache_size, enabled=cache_membership
         )
 
         # torch.jit.script only picks up attributes assigned in __init__, so the class-level
         # default declared above is re-assigned here as an instance attribute; this also lets
-        # a subclass such as Lorentzian's class-level override take effect under scripting
+        # a subclass such as Lorentzian's class-level override take effect
+        # under scripting
         self._validate_degrees: bool = self._validate_degrees
 
     # @log_method
@@ -385,7 +391,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         self._mask = self._mask.to(*args, **kwargs)
         self.device = self._centers[0].device
         # memberships were calculated on the previous device, and moving parameters replaces
-        # their data without bumping a version counter, so the memo cannot be trusted
+        # their data without bumping a version counter, so the memo cannot be
+        # trusted
         self.clear_membership_cache()
         # self.logger.debug(f"Moved {self.__class__.__name__} to {self.device} device")
         return self
@@ -1112,7 +1119,9 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         """
         return observations
 
-    def _calculate_membership_nan_safe(self, observations: torch.Tensor) -> torch.Tensor:
+    def _calculate_membership_nan_safe(
+        self, observations: torch.Tensor
+    ) -> torch.Tensor:
         """
         Calculate membership degrees without letting a NaN observation (representing a
         missing value - see e.g. NAryRelation's nan_replacement) corrupt the gradient of

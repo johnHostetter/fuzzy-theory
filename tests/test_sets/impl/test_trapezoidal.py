@@ -186,15 +186,9 @@ class TestTrapezoidal(unittest.TestCase):
         trapezoidal_mf.save(path)
         loaded_mf = Trapezoidal.load(path, device=AVAILABLE_DEVICE)
 
-        assert torch.allclose(
-            trapezoidal_mf.get_centers(), loaded_mf.get_centers()
-        )
-        assert torch.allclose(
-            trapezoidal_mf.get_widths(), loaded_mf.get_widths()
-        )
-        assert torch.allclose(
-            trapezoidal_mf.get_plateaus(), loaded_mf.get_plateaus()
-        )
+        assert torch.allclose(trapezoidal_mf.get_centers(), loaded_mf.get_centers())
+        assert torch.allclose(trapezoidal_mf.get_widths(), loaded_mf.get_widths())
+        assert torch.allclose(trapezoidal_mf.get_plateaus(), loaded_mf.get_plateaus())
 
         mu_original = trapezoidal_mf(self.elements).degrees.to_dense()
         mu_loaded = loaded_mf(self.elements).degrees.to_dense()

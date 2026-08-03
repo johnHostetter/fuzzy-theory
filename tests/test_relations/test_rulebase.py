@@ -208,9 +208,7 @@ class TestRuleBase(unittest.TestCase):
                     *[(j, i) for j in range(N_VARIABLES)],
                     device=AVAILABLE_DEVICE,
                     method=(
-                        NAryMaskMethods.PROD
-                        if i == 0
-                        else NAryMaskMethods.EXP_SUM_LOG
+                        NAryMaskMethods.PROD if i == 0 else NAryMaskMethods.EXP_SUM_LOG
                     ),
                 ),
                 consequence=Product((i, 0), device=AVAILABLE_DEVICE),

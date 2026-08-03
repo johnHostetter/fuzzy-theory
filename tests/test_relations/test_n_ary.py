@@ -59,9 +59,7 @@ class _StochasticLinks(torch.nn.Module):
             distinguishable from the last.
         """
         self.call_count += 1
-        return torch.full(
-            self._shape, float(self.call_count), device=self._device
-        )
+        return torch.full(self._shape, float(self.call_count), device=self._device)
 
 
 class _SparseLinks(torch.nn.Module):
@@ -572,12 +570,11 @@ class TestNAryRelation(unittest.TestCase):
             device=AVAILABLE_DEVICE,
             method=NAryMaskMethods.PROD,
         )
-        self.assertTrue(
-            relation._use_gather  # pylint: disable=protected-access
-        )
+        self.assertTrue(relation._use_gather)  # pylint: disable=protected-access
 
         degrees = torch.rand(4, 2, 3, device=AVAILABLE_DEVICE)
-        degrees[2, 1, 2] = float("nan")  # var1-term2: not selected by any rule here
+        # var1-term2: not selected by any rule here
+        degrees[2, 1, 2] = float("nan")
         membership = Membership(
             degrees=degrees, mask=torch.ones(2, 3, device=AVAILABLE_DEVICE)
         )
@@ -645,9 +642,7 @@ class TestNAryRelation(unittest.TestCase):
         prod_result = prod_relation._prod_apply_mask(membership)
         exp_sum_log_result = exp_sum_log_relation._exp_sum_log_apply_mask(membership)
         # pylint: enable=protected-access
-        self.assertTrue(
-            torch.allclose(prod_result, exp_sum_log_result, atol=1e-5)
-        )
+        self.assertTrue(torch.allclose(prod_result, exp_sum_log_result, atol=1e-5))
 
     def test_linear_sum_method(self) -> None:
         """
