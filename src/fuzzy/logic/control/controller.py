@@ -9,9 +9,10 @@ and fuzzy logic rule matrices. These components may then be used to create a fuz
 
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, List, MutableMapping, Type, Union
+from typing import Any, List, MutableMapping, Optional, Type, Union
 
 import torch
+import torch.utils.checkpoint
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.sets.abstract import FuzzySet
 
@@ -37,6 +38,8 @@ class FuzzyLogicController(torch.nn.Sequential):
         inference: Type[Defuzzification],
         device: torch.device,
         disabled_parameters: Union[None, List[str]] = None,
+        max_batch_chunk: Optional[int] = None,
+        gradient_checkpointing: bool = False,
         **kwargs,
     ):
         super().__init__(*[], **kwargs)
@@ -46,6 +49,8 @@ class FuzzyLogicController(torch.nn.Sequential):
         self.source = source
         self.device: torch.device = device
         self.disabled_parameters: List[str] = disabled_parameters
+        self.max_batch_chunk: Optional[int] = max_batch_chunk
+        self.gradient_checkpointing: bool = gradient_checkpointing
 
         # A = torch.ones((self.source.configuration["algorithm"].learning.batch.selection,
         #                 self.shape.n_outputs),
@@ -282,6 +287,24 @@ class FuzzyLogicController(torch.nn.Sequential):
     ) -> torch.Tensor:
         return self.defuzzification(rule_strengths)
 
+    def _forward_impl(
+        self, input: torch.Tensor  # pylint: disable=redefined-builtin
+    ) -> torch.Tensor:
+        """
+        Core forward pass implementing the fuzzy inference pipeline:
+        fuzzification, rule evaluation, and defuzzification.
+        """
+        granulated_input = self.input_granulation(input)
+
+        if self.gradient_checkpointing and self.training:
+            rule_strengths = torch.utils.checkpoint.checkpoint(
+                self.engine, granulated_input, use_reentrant=False
+            )
+        else:
+            rule_strengths = self.engine(granulated_input)
+
+        return self._defuzzify(input, rule_strengths)
+
     def forward(
         self, input: torch.Tensor  # pylint: disable=redefined-builtin
     ) -> torch.Tensor:
@@ -296,6 +319,12 @@ class FuzzyLogicController(torch.nn.Sequential):
         Returns:
             The defuzzified output of the FLC.
         """
-        granulated_input = self.input_granulation(input)
-        rule_strengths = self.engine(granulated_input)
-        return self._defuzzify(input, rule_strengths)
+        if self.max_batch_chunk is not None and input.shape[0] > self.max_batch_chunk:
+            return torch.cat(
+                [
+                    self._forward_impl(chunk)
+                    for chunk in input.split(self.max_batch_chunk)
+                ],
+                dim=0,
+            )
+        return self._forward_impl(input)
