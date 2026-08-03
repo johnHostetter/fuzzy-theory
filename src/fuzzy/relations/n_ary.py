@@ -607,7 +607,8 @@ class NAryRelation(TorchJitModule, Loggable):
         # a NaN anywhere among a variable's terms must poison every rule that variable
         # participates in (structurally active or not) - see docstring above
         any_nan_per_variable = degrees.isnan().any(dim=2, keepdim=True)
-        if bool(any_nan_per_variable.any()):
+        has_nan = bool(any_nan_per_variable.any())
+        if has_nan:
             selected = torch.where(
                 any_nan_per_variable.expand_as(selected),
                 torch.full_like(selected, float("nan")),
@@ -624,6 +625,16 @@ class NAryRelation(TorchJitModule, Loggable):
                 selected,
                 torch.ones(1, device=degrees.device, dtype=degrees.dtype),
             )
+
+        if not has_nan:
+            # nan_to_num is a no-op away from NaN/inf, and has_nan already proves
+            # `selected` is NaN-free (it is only ever assembled from `degrees`
+            # entries and the constant 1.0 above, neither of which introduces a NaN
+            # when has_nan is False) - skipping it avoids a full elementwise pass
+            # over the (batch, vars, rules) tensor on the common, NaN-free path,
+            # which profiling showed was the single largest cost in the rule engine
+            # for FLCs with many input variables.
+            return selected
         return selected.nan_to_num(self.nan_replacement)
 
     def _prod_apply_mask(self, membership: Membership) -> torch.Tensor:

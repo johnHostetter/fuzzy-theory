@@ -330,6 +330,7 @@ class TSK(Defuzzification):
             consequences = torch.randn(  # used to be torch.zero until April 30, 2026
                 [shape.n_outputs, shape.n_rules, shape.n_inputs + 1],
                 dtype=torch.float32,
+                device=self.device,
             )
         else:
             consequences = torch.as_tensor(source, device=self.device)

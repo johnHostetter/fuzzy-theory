@@ -8,6 +8,7 @@ import shutil
 import unittest
 from pathlib import Path
 from typing import Any, List, MutableMapping, Tuple
+from unittest import mock
 
 import igraph
 import numpy as np
@@ -608,6 +609,182 @@ class TestNAryRelation(unittest.TestCase):
                 gather_result,
                 prod_result,
                 equal_nan=True))
+
+    def test_gather_apply_mask_matches_manual_gather_when_no_nan(self) -> None:
+        """
+        Characterization test locking down _gather_apply_mask's exact output (not just
+        agreement with _prod_apply_mask) for the common, NaN-free case, via an
+        independent, manually-indexed computation that does not share any code path
+        with the implementation under test.
+
+        Returns:
+            None
+        """
+        relation = NAryRelation(
+            [(0, 0), (1, 1)],
+            [(0, 1), (1, 0)],
+            device=AVAILABLE_DEVICE,
+            method=NAryMaskMethods.PROD,
+        )
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
+        self.assertTrue(
+            relation._all_active)  # pylint: disable=protected-access
+
+        degrees = torch.rand(5, 2, 2, device=AVAILABLE_DEVICE)
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
+        )
+
+        # pylint: disable=protected-access
+        result = relation._gather_apply_mask(membership)
+        # pylint: enable=protected-access
+
+        # manually reproduce "for each rule, for each variable, pick the one term that
+        # rule's premise selects for that variable" without using
+        # gather/masking at all
+        expected = torch.empty(5, 2, 2, device=AVAILABLE_DEVICE)
+        for rule_idx, relation_indices in enumerate(relation.indices):
+            for var_idx, term_idx in relation_indices:
+                expected[:, var_idx, rule_idx] = degrees[:, var_idx, term_idx]
+        self.assertTrue(torch.equal(result, expected))
+
+    def test_gather_apply_mask_handles_partial_variable_coverage(self) -> None:
+        """
+        When a variable is not used by every rule's premise (a realistic, sparse rule
+        set - not every rule needs to reference every variable), _all_active is False
+        and the inactive (variable, rule) pairs must resolve to 1.0 (the product
+        identity), while active pairs still resolve to the selected degree.
+
+        Returns:
+            None
+        """
+        relation = NAryRelation(
+            [(0, 0)],  # rule 0 only references variable 0
+            [(1, 0)],  # rule 1 only references variable 1
+            device=AVAILABLE_DEVICE,
+            method=NAryMaskMethods.PROD,
+        )
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
+        self.assertFalse(
+            relation._all_active)  # pylint: disable=protected-access
+
+        degrees = torch.tensor(
+            [[[0.2], [0.9]], [[0.4], [0.1]]], device=AVAILABLE_DEVICE
+        )  # (batch=2, vars=2, terms=1)
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+        )
+
+        # pylint: disable=protected-access
+        result = relation._gather_apply_mask(membership)
+        # pylint: enable=protected-access
+
+        expected = torch.tensor(
+            [[[0.2, 1.0], [1.0, 0.9]], [[0.4, 1.0], [1.0, 0.1]]],
+            device=AVAILABLE_DEVICE,
+        )  # (batch, vars, rules): var0 only active for rule0, var1 only for rule1
+        self.assertTrue(torch.equal(result, expected))
+
+    def test_gather_apply_mask_skips_nan_to_num_when_no_nan_present(
+            self) -> None:
+        """
+        Regression/performance test: _gather_apply_mask used to call
+        selected.nan_to_num(...) unconditionally on every call, even though it already
+        computes any_nan_per_variable and therefore knows in advance whether there is
+        anything for nan_to_num to do. Profiling a FuzzyLogicController with many input
+        variables showed this unconditional nan_to_num call over the full
+        (batch, vars, rules) tensor was the single largest cost in the rule engine
+        (~33% of the engine's GPU time) - pure waste on the common, NaN-free path,
+        since nan_to_num is a no-op there. It must be skipped when there is no NaN to
+        replace.
+
+        Returns:
+            None
+        """
+        relation = NAryRelation(
+            [(0, 0), (1, 0)], device=AVAILABLE_DEVICE, method=NAryMaskMethods.PROD
+        )
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
+        degrees = torch.rand(
+            4, 2, 1, device=AVAILABLE_DEVICE)  # no NaN anywhere
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+        )
+
+        with mock.patch.object(
+            torch.Tensor, "nan_to_num", autospec=True
+        ) as mocked_nan_to_num:
+            relation._gather_apply_mask(
+                membership)  # pylint: disable=protected-access
+        mocked_nan_to_num.assert_not_called()
+
+    def test_gather_apply_mask_calls_nan_to_num_when_nan_present(self) -> None:
+        """
+        The nan_to_num skip introduced above must not become an overzealous skip that
+        also applies when a NaN observation is actually present - nan_replacement must
+        still be honored whenever there is something to replace.
+
+        Returns:
+            None
+        """
+        relation = NAryRelation(
+            [(0, 0), (1, 0)], device=AVAILABLE_DEVICE, method=NAryMaskMethods.PROD
+        )
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
+        degrees = torch.rand(4, 2, 1, device=AVAILABLE_DEVICE)
+        degrees[0, 1, 0] = float("nan")
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+        )
+
+        with mock.patch.object(
+            torch.Tensor, "nan_to_num", autospec=True
+        ) as mocked_nan_to_num:
+            relation._gather_apply_mask(
+                membership)  # pylint: disable=protected-access
+        mocked_nan_to_num.assert_called_once()
+
+        # and, unmocked, nan_replacement is actually honored (correctness, not just
+        # that nan_to_num was invoked)
+        result = relation._gather_apply_mask(  # pylint: disable=protected-access
+            membership
+        )
+        self.assertFalse(bool(result.isnan().any()))
+
+    def test_gather_apply_mask_no_nan_skip_preserves_gradient(self) -> None:
+        """
+        Skipping the nan_to_num call when there is no NaN present must not change the
+        gradient computed with respect to the degrees that fed into it, since
+        nan_to_num is the identity function (including its gradient) away from NaN/inf.
+
+        Returns:
+            None
+        """
+        relation = NAryRelation(
+            [(0, 0), (1, 0)], device=AVAILABLE_DEVICE, method=NAryMaskMethods.PROD
+        )
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
+
+        degrees = torch.rand(
+            4,
+            2,
+            1,
+            device=AVAILABLE_DEVICE,
+            requires_grad=True)
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+        )
+        result = relation._gather_apply_mask(  # pylint: disable=protected-access
+            membership
+        )
+        result.sum().backward()
+        self.assertIsNotNone(degrees.grad)
+        self.assertTrue(torch.equal(degrees.grad, torch.ones_like(degrees)))
 
     def test_nan_observation_does_not_corrupt_relation_gradient(self) -> None:
         """
