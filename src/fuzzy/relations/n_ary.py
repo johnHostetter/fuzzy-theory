@@ -558,7 +558,7 @@ class NAryRelation(TorchJitModule, Loggable):
         one active term.
         """
         self._use_gather = False
-        if self.grouped_links is None:
+        if self.grouped_links is None or not hasattr(self.grouped_links, "modules_list"):
             return
         if self.method not in (NAryMaskMethods.PROD, NAryMaskMethods.EXP_SUM_LOG):
             return
