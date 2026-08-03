@@ -7,9 +7,11 @@ import unittest
 from pathlib import Path
 from typing import List, Type
 
+import numpy as np
 import torch
 
 from fuzzy.logic.rule import Rule
+from fuzzy.relations.linkage import BinaryLinks, GroupedLinks
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.relations.t_norm import Minimum, Product, SoftmaxSum, TNorm
 
@@ -139,3 +141,60 @@ class TestRule(unittest.TestCase):
         # delete the folder
         shutil.rmtree(Path(__file__).parent / "test_rule")
         Rule.next_id = next_id_before_test  # reset the next ID for other unit tests
+
+    def test_repr(self) -> None:
+        """
+        Regression test: Rule is a @dataclass with a hand-written __init__/__eq__/
+        __hash__ but no explicit __repr__, so @dataclass auto-generated one from the
+        only declared field, next_id - a shared class-level counter for auto-assigning
+        ids, not actual per-instance state. The result, 'Rule(next_id=N)', is genuinely
+        misleading wherever Python calls repr() instead of str() (e.g. printing a
+        List[Rule]). __repr__ must show the rule's actual content instead.
+
+        Returns:
+            None
+        """
+        next_id_before_test: int = Rule.next_id
+        premise = Product((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        consequence = NAryRelation((0, 0), device=AVAILABLE_DEVICE)
+        rule = Rule(premise=premise, consequence=consequence)
+
+        representation = repr(rule)
+        self.assertNotEqual(representation, f"Rule(next_id={Rule.next_id})")
+        self.assertIn(f"id={rule.id}", representation)
+        self.assertIn(str(premise), representation)
+        self.assertIn(str(consequence), representation)
+        Rule.next_id = next_id_before_test  # reset the next ID for other unit tests
+
+    def test_premise_or_consequence_with_no_indices_raises(self) -> None:
+        """
+        Regression test: __init__ only rejected a premise/consequence with MORE than
+        one relation (len(...) > 1), never one with NONE at all (e.g. an NAryRelation
+        built from grouped_links= rather than indices). Letting that through used to
+        crash later, in KnowledgeBase.create(), with a confusing error unrelated to the
+        actual mistake; it must now be rejected clearly at Rule construction instead.
+
+        Returns:
+            None
+        """
+        next_id_before_test: int = Rule.next_id
+        grouped_links = GroupedLinks(
+            modules_list=[
+                BinaryLinks(
+                    links=np.zeros((2, 2, 1)),
+                    device=AVAILABLE_DEVICE,
+                )
+            ]
+        )
+        empty_indices_relation = NAryRelation(
+            grouped_links=grouped_links, device=AVAILABLE_DEVICE
+        )
+        valid_relation = NAryRelation((0, 0), device=AVAILABLE_DEVICE)
+
+        with self.assertRaises(ValueError):
+            Rule(premise=empty_indices_relation, consequence=valid_relation)
+        with self.assertRaises(ValueError):
+            Rule(premise=valid_relation, consequence=empty_indices_relation)
+        self.assertEqual(
+            Rule.next_id, next_id_before_test
+        )  # next ID shouldn't be incremented by a rejected construction

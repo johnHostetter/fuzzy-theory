@@ -248,3 +248,114 @@ class TestKnowledgeBase(unittest.TestCase):
             knowledge_base.graph.es, loaded_knowledge_base.graph.es
         ):
             self.assertEqual(edge.attributes(), loaded_edge.attributes())
+
+    def test_granulation_layers_ambiguous_group_raises(self) -> None:
+        """
+        granulation_layers must raise a clear ValueError if more than one group vertex
+        matches the same layer's tags, rather than silently picking one - this can happen
+        if add_hypercube() is (mistakenly) called more than once for the same tag set.
+
+        Returns:
+            None
+        """
+        knowledge_base = KnowledgeBase.create(
+            linguistic_variables=self.linguistic_variables,
+            rules=self.rules,
+        )
+        # add a second "premise" group vertex directly (bypassing add_hypercube, whose
+        # own granule-selection would otherwise pick up the first hypercube itself,
+        # since select_by_tags matches by tag subset)
+        duplicate_hypercube = FuzzySetGroup(
+            modules_list=[Lorentzian.stack(self.linguistic_variables.inputs)],
+        )
+        knowledge_base.graph.add_vertex(item=duplicate_hypercube, tags={"premise", "group"})
+        with self.assertRaises(ValueError):
+            _ = knowledge_base.granulation_layers
+
+    def test_add_hypercube_with_string_tag(self) -> None:
+        """
+        add_hypercube() must accept a single string tag (not just a set of tags),
+        normalizing it internally.
+
+        Returns:
+            None
+        """
+        knowledge_base = KnowledgeBase()
+        knowledge_base.set_granules(self.linguistic_variables.inputs, tags="premise")
+        vertex = knowledge_base.add_hypercube(tags="premise")
+        self.assertIsNotNone(vertex)
+        self.assertIsInstance(vertex["item"], FuzzySetGroup)
+
+    def test_add_hypercube_with_no_matching_granules(self) -> None:
+        """
+        add_hypercube() must return None (rather than raising) when no granules match
+        the given tags.
+
+        Returns:
+            None
+        """
+        knowledge_base = KnowledgeBase()
+        self.assertIsNone(knowledge_base.add_hypercube(tags="nonexistent"))
+
+    def test_create_with_no_rules_warns(self) -> None:
+        """
+        create() must warn (not raise) when given an empty list of rules.
+
+        Returns:
+            None
+        """
+        with self.assertWarns(UserWarning):
+            knowledge_base = KnowledgeBase.create(
+                linguistic_variables=self.linguistic_variables, rules=[]
+            )
+        self.assertEqual(0, len(knowledge_base.rules))
+
+    def test_create_rejects_multi_index_relation(self) -> None:
+        """
+        create()'s own check for a multi-index premise/consequence is redundant with
+        Rule.__init__'s validation for any normally-constructed Rule, but remains
+        reachable (and must still raise clearly) if a Rule's relation is mutated to add
+        more indices after construction.
+
+        Returns:
+            None
+        """
+        rule = Rule(
+            premise=TNorm((0, 0), (1, 0), device=AVAILABLE_DEVICE),
+            consequence=TNorm((0, 0), device=AVAILABLE_DEVICE),
+        )
+        # bypass Rule.__init__'s validation by mutating the premise directly
+        rule.premise.indices.append(((0, 1), (1, 1)))
+        with self.assertRaises(ValueError):
+            KnowledgeBase.create(
+                linguistic_variables=self.linguistic_variables, rules=[rule]
+            )
+
+    def test_attributes_currently_broken(self) -> None:
+        """
+        Known, pre-existing limitation (not fixed here - see the conversation that added
+        this test): KnowledgeBase.attributes() looks up self.attribute_table, but nothing
+        currently populates that table - RoughDecisions.add_parent_relation() (from the
+        external rough-theory package) no longer stores into it. The real assertions for
+        this in test_attributes() above have been commented out since before this test was
+        added, with a 'TODO: Fix this; attributes are no longer stored' note. This test
+        documents the current (broken) behavior so a future fix to attribute_table's
+        population is visible as an intentional change here, rather than an unnoticed one.
+
+        Returns:
+            None
+        """
+        knowledge_base = KnowledgeBase()
+        knowledge_base.set_granules(["x1", "x2"], tags="element")
+        knowledge_base.add_parent_relation("a", ({"x1", "x2"},))
+        self.assertEqual({}, dict(knowledge_base.attribute_table))
+        with self.assertRaises(KeyError):
+            knowledge_base.attributes("x1")
+
+        # an element with no equivalence classes at all (no add_parent_relation ever
+        # touched it) doesn't hit attribute_table, so it correctly returns an empty dict -
+        # confirming the KeyError above is specifically about the unpopulated table, not
+        # attributes() being broken in every case
+        untouched_knowledge_base = KnowledgeBase()
+        untouched_knowledge_base.set_granules(["y1"], tags="element")
+        self.assertEqual({}, untouched_knowledge_base.attributes("y1"))

@@ -94,9 +94,35 @@ class RuleBase(torch.nn.Module):
                 f"The rules have different TNorm types for {attribute}. This is not supported yet."
             )
         t_norm_type: TNorm = t_norm_types.pop()
-        # find the device to move the TNorm to
+
+        # the combined TNorm must behave exactly like the rules it replaces would have,
+        # not silently fall back to NAryRelation's defaults - so nan_replacement and
+        # method must agree across all the rules being combined, the same way
+        # t_norm_types must agree above
+        nan_replacements = {
+            getattr(rule, attribute).nan_replacement for rule in self.rules
+        }
+        if len(nan_replacements) > 1:
+            raise NotImplementedError(
+                f"The rules have different nan_replacement values for {attribute}. "
+                f"This is not supported yet."
+            )
+        nan_replacement: float = nan_replacements.pop()
+
+        methods = {getattr(rule, attribute).method for rule in self.rules}
+        if len(methods) > 1:
+            raise NotImplementedError(
+                f"The rules have different methods for {attribute}. This is not supported yet."
+            )
+        method = methods.pop()
+
+        # find the device to move the TNorm to; resolved through a throwaway tensor so an
+        # unindexed device (e.g. torch.device("cuda")) and its indexed form (e.g.
+        # torch.device("cuda", 0)) - which refer to the same physical device but do not
+        # compare equal - are correctly treated as the same device here
         devices: Set[torch.device] = {
-            getattr(rule, attribute).device for rule in self.rules
+            torch.empty(0, device=getattr(rule, attribute).device).device
+            for rule in self.rules
         }
         device: Union[None, torch.device] = self.device
         if self.device is None:
@@ -110,6 +136,8 @@ class RuleBase(torch.nn.Module):
         return t_norm_type(
             *[list(getattr(rule, attribute).indices[0]) for rule in self.rules],
             device=device,
+            nan_replacement=nan_replacement,
+            method=method,
         )
 
     def save(self, path: Path) -> None:
