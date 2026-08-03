@@ -13,7 +13,6 @@ import torch
 from ...utils import check_path_to_save_torch_module
 from ...utils.classes import Loggable
 from ..abstract import FuzzySet
-from ..membership import Membership
 
 
 class NoOp(FuzzySet):
@@ -114,31 +113,14 @@ class NoOp(FuzzySet):
             membership_degree=self.membership,
         )
 
-    # pylint: disable=duplicate-code
-    def forward(self, observations) -> Membership:
-        if observations.ndim == self.get_centers().ndim:
-            observations = observations.unsqueeze(dim=-1)
-        degrees: torch.Tensor = self.calculate_membership(observations)
-
-        # assert (
-        #     not degrees.isnan().any()
-        # ), "NaN values detected in the membership degrees."
-        # assert (
-        #     not degrees.isinf().any()
-        # ), "Infinite values detected in the membership degrees."
-
-        return Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
-        )
-
-    # pylint: enable=duplicate-code
-
 
 class Lorentzian(FuzzySet):
     """
     Implementation of the Lorentzian membership function, written in PyTorch.
     """
+
+    # unlike the other fuzzy sets, Lorentzian's asserts on NaN/Inf were previously live
+    _validate_degrees: bool = True
 
     @property
     @torch.jit.ignore
@@ -210,26 +192,6 @@ class Lorentzian(FuzzySet):
             centers=self.get_centers(),
             widths=self.get_widths(),
         )
-
-    # pylint: disable=duplicate-code
-    def forward(self, observations) -> Membership:
-        if observations.ndim == self.get_centers().ndim:
-            observations = observations.unsqueeze(dim=-1)
-        degrees: torch.Tensor = self.calculate_membership(observations)
-
-        assert (
-            not degrees.isnan().any()
-        ), "NaN values detected in the membership degrees."
-        assert (
-            not degrees.isinf().any()
-        ), "Infinite values detected in the membership degrees."
-
-        return Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
-        )
-
-    # pylint: enable=duplicate-code
 
 
 class LogisticCurve(torch.nn.Module, Loggable):
@@ -343,23 +305,3 @@ class Triangular(FuzzySet):
             centers=self.get_centers(),
             widths=self.get_widths(),
         )
-
-    # pylint: disable=duplicate-code
-    def forward(self, observations) -> Membership:
-        if observations.ndim == self.get_centers().ndim:
-            observations = observations.unsqueeze(dim=-1)
-        degrees: torch.Tensor = self.calculate_membership(observations)
-
-        # assert (
-        #     not degrees.isnan().any()
-        # ), "NaN values detected in the membership degrees."
-        # assert (
-        #     not degrees.isinf().any()
-        # ), "Infinite values detected in the membership degrees."
-
-        return Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
-        )
-
-    # pylint: enable=duplicate-code

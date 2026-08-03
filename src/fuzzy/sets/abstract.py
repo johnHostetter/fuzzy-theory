@@ -12,7 +12,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, List, MutableMapping, NoReturn, Tuple, Type, Union
+from typing import Any, List, MutableMapping, NoReturn, Optional, Tuple, Type, Union
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -34,6 +34,7 @@ from ..utils import TorchJitModule, check_path_to_save_torch_module
 from ..utils.classes import Loggable
 
 # from ..utils.functions import log_classmethod, log_func, log_method
+from .cache import MembershipCache, ParameterSignature, signature_of
 from .membership import Membership
 
 
@@ -118,6 +119,7 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
             torch.nn.ParameterList() if parameters else []
         )
         self._cached_tensor = None
+        self._cached_signature = None
         self._device = device
         self._dtype = dtype
 
@@ -143,7 +145,7 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
         # setattr(self, f"param_{idx}", value)
 
         # 4. Invalidate the cached tensor
-        self._cached_tensor = None
+        self._invalidate_cache()
 
     def add_parameter(self, tensor: Union[np.ndarray, torch.Tensor]):
         """
@@ -159,19 +161,70 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
         if self._device is not None:
             param.data = param.data.to(self._device, dtype=self._dtype)
         self.params.append(param)
-        self._cached_tensor = None  # invalidate cache
+        self._invalidate_cache()
+
+    def _invalidate_cache(self) -> None:
+        """
+        Discard the cached concatenation, forcing the next access to rebuild it.
+
+        Returns:
+            None
+        """
+        self._cached_tensor = None
+        self._cached_signature = None
+
+    @torch.jit.ignore
+    def _concat_params(self, params_list: List[torch.Tensor]) -> torch.Tensor:
+        """
+        Return a cached concatenation of two or more parameters, rebuilding it if any
+        parameter was replaced or mutated in place since it was last built.
+
+        Pulled out of the 'tensor' property (and marked to be skipped by torch.jit.script)
+        because comparing two ParameterSignature values with '!=' is not something
+        TorchScript's type system supports; this keeps that comparison in ordinary Python
+        while leaving the property itself scriptable.
+
+        Args:
+            params_list: The parameters to concatenate, materialized as a plain list.
+
+        Returns:
+            The concatenation of the parameters along dim=-1.
+        """
+        signature = signature_of(params_list)
+        if self._cached_tensor is None or self._cached_signature != signature:
+            self._cached_tensor = torch.cat(params_list, dim=-1).contiguous()
+            self._cached_signature = signature
+        return self._cached_tensor
 
     @property
     def tensor(self):
         """
         Returns a contiguous tensor concatenating all parameters along dim=-1.
-        Only re-concatenates if something changed.
+
+        In the (overwhelmingly common) case of a single parameter, that parameter is returned
+        directly: concatenating one tensor only copies it, and the copy would both waste time
+        and - more importantly - go stale, since it does not observe subsequent in-place updates
+        to the parameter such as those an optimizer applies.
+
+        For several parameters the concatenation is cached, but the cache is keyed on the
+        identity and version counter of each parameter, so that replacing *or* updating any of
+        them rebuilds it. Without this, the concatenation would keep reporting the parameter
+        values as they were when it was first built.
+
+        Note: `self.params` (a torch.nn.ParameterList) is deliberately materialized into a
+        plain list before anything else; torch.jit.script cannot compile a bare `len(...)` or
+        indexing call directly against a ParameterList attribute in this position, but has no
+        trouble with a plain List[Tensor].
         """
-        if self._cached_tensor is None:
-            if len(self.params) == 0:
-                return torch.tensor([], device=self._device, dtype=self._dtype)
-            self._cached_tensor = torch.cat(list(self.params), dim=-1).contiguous()
-        return self._cached_tensor
+        params_list: List[torch.Tensor] = list(self.params)
+        if len(params_list) == 0:
+            return torch.tensor([], device=self._device, dtype=self._dtype)
+
+        if len(params_list) == 1:
+            # avoid a copy that would immediately be at risk of going stale
+            return params_list[0]
+
+        return self._concat_params(params_list)
 
     def to(self, *args, **kwargs):
         """
@@ -179,8 +232,9 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
         """
         super().to(*args, **kwargs)
         self._device = args[0] if args else self._device
-        if self._cached_tensor is not None:
-            self._cached_tensor = self._cached_tensor.to(*args, **kwargs)
+        # the parameters were moved, so any concatenation of them refers to the old device;
+        # rebuild it on next access rather than moving a copy that is about to go stale
+        self._invalidate_cache()
         return self
 
 
@@ -201,12 +255,18 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     inheriting or extending from FuzzySet.
     """
 
+    # Subclasses may set this to True to check the calculated membership degrees for NaN and
+    # infinite values; this costs a synchronization per call, so it is off by default.
+    _validate_degrees: bool = False
+
     def __init__(
         self,
         centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
         widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
         device: torch.device,
         use_sparse_tensor: bool = False,
+        cache_membership: bool = True,
+        membership_cache_size: int = 2,
         # debug: bool = False,
     ):
         super().__init__()
@@ -218,6 +278,16 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         self._widths = None
         self._mask = None
         self.__alloc_members(centers, use_sparse_tensor, widths)
+
+        # memoizes membership calculations; see fuzzy.sets.cache for when a result is re-used
+        self._membership_cache = MembershipCache(
+            maxsize=membership_cache_size, enabled=cache_membership
+        )
+
+        # torch.jit.script only picks up attributes assigned in __init__, so the class-level
+        # default declared above is re-assigned here as an instance attribute; this also lets
+        # a subclass such as Lorentzian's class-level override take effect under scripting
+        self._validate_degrees: bool = self._validate_degrees
 
     # @log_method
     @staticmethod
@@ -306,6 +376,9 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # self._mask = [mask.to(*args, **kwargs) for mask in self._mask]
         self._mask = self._mask.to(*args, **kwargs)
         self.device = self._centers[0].device
+        # memberships were calculated on the previous device, and moving parameters replaces
+        # their data without bumping a version counter, so the memo cannot be trusted
+        self.clear_membership_cache()
         # self.logger.debug(f"Moved {self.__class__.__name__} to {self.device} device")
         return self
 
@@ -543,6 +616,9 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             self._widths[0] = torch.nn.Parameter(
                 method_of_extension([self._widths[0], widths])
             )
+        # the fuzzy set now describes more terms, so previously calculated membership degrees
+        # no longer have the right shape
+        self.clear_membership_cache()
 
     # @log_method
     def _area_helper(self, fuzzy_sets) -> List[List[float]]:
@@ -921,16 +997,142 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             A sympy.Expr object that represents the membership function of the fuzzy set.
         """
 
-    # @log_method
     @abc.abstractmethod
+    def calculate_membership(self, observations: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate the membership degrees of the observations for this fuzzy set.
+
+        Implementations are expected to be a pure function of the observations and this fuzzy
+        set's parameters, as the result may be memoized (see fuzzy.sets.cache).
+
+        Args:
+            observations: The observations to calculate the membership degrees for.
+
+        Returns:
+            The membership degrees of the observations for this fuzzy set.
+        """
+
+    def parameter_signature(self) -> ParameterSignature:
+        """
+        Summarize the parameters that a membership calculation depends upon, so that the
+        membership cache can tell when a memoized result has been outdated by a parameter
+        changing (as happens on every optimizer step).
+
+        Subclasses with additional parameters of their own should extend this; otherwise their
+        memberships would be re-used after those parameters were updated.
+
+        Returns:
+            A signature of this fuzzy set's parameters.
+        """
+        return signature_of([self.get_centers(), self.get_widths(), self.get_mask()])
+
+    @torch.jit.ignore
+    def clear_membership_cache(self) -> None:
+        """
+        Discard any memoized membership degrees, forcing the next call to recalculate them.
+
+        Returns:
+            None
+        """
+        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
+        if cache is not None:
+            cache.clear()
+
+    @torch.jit.ignore
+    def _lookup_membership(self, observations: torch.Tensor) -> Optional[Membership]:
+        """
+        Retrieve memoized membership degrees for the given observations, if they are still valid.
+
+        The cache is looked up defensively so that a torch.jit.script'ed copy of this module -
+        which does not carry the cache over - simply calculates the membership degrees instead
+        of failing.
+
+        Args:
+            observations: The observations that membership degrees are wanted for.
+
+        Returns:
+            The memoized Membership, or None if it has to be calculated.
+        """
+        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
+        if cache is None:
+            return None
+        return cache.lookup(observations, self.parameter_signature())
+
+    @torch.jit.ignore
+    def _store_membership(
+        self, observations: torch.Tensor, membership: Membership
+    ) -> None:
+        """
+        Memoize the membership degrees calculated for the given observations.
+
+        Args:
+            observations: The observations the membership degrees were calculated for.
+            membership: The calculated membership degrees and mask.
+
+        Returns:
+            None
+        """
+        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
+        if cache is not None:
+            cache.store(observations, self.parameter_signature(), membership)
+
+    def prepare_observations(self, observations: torch.Tensor) -> torch.Tensor:
+        """
+        Adjust the observations immediately before the membership degrees are calculated.
+
+        This exists for fuzzy sets whose formula requires something of its input; the default is
+        to pass the observations through untouched.
+
+        Args:
+            observations: The observations to prepare.
+
+        Returns:
+            The observations, as the membership function expects them.
+        """
+        return observations
+
+    # @log_method
     def forward(self, observations: torch.Tensor) -> Membership:
         """
         Forward pass of the function. Applies the function to the input elementwise.
+
+        The membership degrees are memoized; calling this again with the same observations, while
+        this fuzzy set's parameters are unchanged, returns the very same result rather than
+        recalculating it. Gradients are unaffected, as the returned tensor carries the autograd
+        graph it was originally built with. Note that a repeated call therefore hands back the
+        same tensor object, which must not be modified in place. Memoization can be turned off
+        per fuzzy set with cache_membership=False, or reset with clear_membership_cache().
 
         Args:
             observations: Two-dimensional matrix of observations, where a row is a single
             observation and each column is related to an attribute measured during that observation.
 
         Returns:
-            The membership degrees of the observations for the Gaussian fuzzy set.
+            The membership degrees of the observations for this fuzzy set.
         """
+        cached: Optional[Membership] = self._lookup_membership(observations)
+        if cached is not None:
+            return cached
+
+        original_observations: torch.Tensor = observations
+        if observations.ndim == self.get_centers().ndim:
+            observations = observations.unsqueeze(dim=-1)
+
+        degrees: torch.Tensor = self.calculate_membership(
+            self.prepare_observations(observations)
+        )
+
+        if self._validate_degrees:
+            assert (
+                not degrees.isnan().any()
+            ), "NaN values detected in the membership degrees."
+            assert (
+                not degrees.isinf().any()
+            ), "Infinite values detected in the membership degrees."
+
+        membership = Membership(
+            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
+            mask=self.get_mask(),
+        )
+        self._store_membership(original_observations, membership)
+        return membership

@@ -7,12 +7,13 @@ defined fuzzy sets with no difficulty. Further, this class was specifically desi
 dynamic addition of new fuzzy sets in the construction of neuro-fuzzy networks via network morphism.
 """
 
-from typing import Any, List, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 
 from ..utils import NestedTorchJitModule
 from ..utils.classes import Loggable
+from .cache import MembershipCache, ParameterSignature, signature_of
 
 # from ..utils.functions import log_method
 from .membership import Membership
@@ -38,6 +39,8 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         *args,
         modules_list: Union[None, List[torch.nn.Module]] = None,
         device: torch.device = None,
+        cache_membership: bool = True,
+        membership_cache_size: int = 2,
         **kwargs,
     ):
         """
@@ -48,6 +51,9 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
             modules_list: A list of torch.nn.Module objects.
             device: The device to move the FuzzySetGroup object to; if None, the device is
             inferred from the modules_list.
+            cache_membership: Whether to memoize this group's forward pass; see
+            fuzzy.sets.cache for the conditions under which a memoized result is re-used.
+            membership_cache_size: How many distinct observation tensors to memoize at once.
             **kwargs: Optional keyword arguments.
         """
         super().__init__(*args, **kwargs)
@@ -56,6 +62,99 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         # self.create_logger(self.__class__.__name__, debug=False)
         self.modules_list = torch.nn.ModuleList(modules_list)
         self.device = device
+        # memoizes this group's forward pass (the concatenation of every module's response);
+        # see fuzzy.sets.cache for when a result is re-used
+        self._membership_cache = MembershipCache(
+            maxsize=membership_cache_size, enabled=cache_membership
+        )
+        # memoizes the centers/widths/mask concatenation built in __getattribute__ below,
+        # keyed per attribute on the (id, version) signature of the tensors it was built from;
+        # left untyped (rather than Dict[str, Tuple[...]]) since torch.jit.script warns about
+        # instance-level generic annotations on an empty container assigned in __init__
+        self._attribute_cache = {}
+
+    @torch.jit.ignore
+    def clear_membership_cache(self) -> None:
+        """
+        Discard any memoized forward-pass result and any memoized centers/widths/mask
+        concatenation, forcing the next access of either to be recalculated.
+
+        Returns:
+            None
+        """
+        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
+        if cache is not None:
+            cache.clear()
+        attribute_cache: Union[None, Dict] = getattr(self, "_attribute_cache", None)
+        if attribute_cache is not None:
+            attribute_cache.clear()
+
+    def _group_parameter_signature(self) -> Optional[ParameterSignature]:
+        """
+        Summarize the parameters that every module in this group depends upon, so the
+        membership cache can tell when a memoized result has been outdated by a parameter
+        changing.
+
+        Returns:
+            A signature of every module's parameters, or None if some module does not expose
+            the get_centers/get_widths/get_mask trio that fuzzy sets are expected to (in which
+            case there is nothing to safely key a memoized result on, and caching is skipped).
+        """
+        tensors: List[torch.Tensor] = []
+        for module in self.__dict__["_modules"]["modules_list"]:
+            get_centers = getattr(module, "get_centers", None)
+            get_widths = getattr(module, "get_widths", None)
+            get_mask = getattr(module, "get_mask", None)
+            if get_centers is None or get_widths is None or get_mask is None:
+                return None
+            tensors.extend([get_centers(), get_widths(), get_mask()])
+        return signature_of(tensors)
+
+    @torch.jit.ignore
+    def _lookup_group_membership(
+        self, observations: torch.Tensor
+    ) -> Optional[Membership]:
+        """
+        Retrieve a memoized group-level membership for the given observations, if valid.
+
+        Looked up defensively so a torch.jit.script'ed copy of this module - which does not
+        carry the cache over - simply calculates the memberships instead of failing.
+
+        Args:
+            observations: The observations that membership degrees are wanted for.
+
+        Returns:
+            The memoized Membership, or None if it has to be (re)calculated.
+        """
+        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
+        if cache is None:
+            return None
+        signature: Optional[ParameterSignature] = self._group_parameter_signature()
+        if signature is None:
+            return None
+        return cache.lookup(observations, signature)
+
+    @torch.jit.ignore
+    def _store_group_membership(
+        self, observations: torch.Tensor, membership: Membership
+    ) -> None:
+        """
+        Memoize the group-level membership calculated for the given observations.
+
+        Args:
+            observations: The observations the membership degrees were calculated for.
+            membership: The calculated (concatenated) membership degrees and mask.
+
+        Returns:
+            None
+        """
+        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
+        if cache is None:
+            return
+        signature: Optional[ParameterSignature] = self._group_parameter_signature()
+        if signature is None:
+            return
+        cache.store(observations, signature, membership)
 
     def __getattribute__(self, item):
         try:
@@ -71,7 +170,20 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
                         module_attributes.append(item_method())
                     if len(module_attributes) == 1:
                         return module_attributes[0]
-                    return torch.cat(module_attributes, dim=-1)
+
+                    signature: ParameterSignature = signature_of(module_attributes)
+                    attribute_cache: Union[None, Dict[str, Tuple]] = self.__dict__.get(
+                        "_attribute_cache"
+                    )
+                    if attribute_cache is not None:
+                        cached = attribute_cache.get(item)
+                        if cached is not None and cached[0] == signature:
+                            return cached[1]
+
+                    concatenated = torch.cat(module_attributes, dim=-1)
+                    if attribute_cache is not None:
+                        attribute_cache[item] = (signature, concatenated)
+                    return concatenated
                 raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
             return object.__getattribute__(self, item)
         except AttributeError:
@@ -112,6 +224,10 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         self.device = device
         for module in self.modules_list:
             module.to(device)
+        # each module already cleared its own membership cache, but this group's own caches
+        # (keyed on those modules' tensor identities/versions) were not, and moving a module
+        # can replace its parameters' data without bumping a version counter
+        self.clear_membership_cache()
         return self
 
     # @log_method
@@ -130,6 +246,14 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
             # module
             return self.modules_list[0](observations)
 
+        # the group-level concatenation is memoized the same way a single fuzzy set's
+        # membership is: a hit requires the same observations object and every module's
+        # parameters to be unchanged, so it is safe across an optimizer step (see
+        # fuzzy.sets.cache). A miss still lets each module serve its own cache.
+        cached: Optional[Membership] = self._lookup_group_membership(observations)
+        if cached is not None:
+            return cached
+
         # this can be computationally expensive, but it is necessary to calculate the responses
         # from all the modules in the torch.nn.ModuleList of FuzzySetGroup
         # ideally this should be done in parallel, but it is not possible with the current
@@ -147,8 +271,10 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
             module_memberships.append(membership.degrees)
             module_masks.append(membership.mask)
 
-        return Membership(
+        result = Membership(
             # elements=torch.cat(module_elements, dim=-1),
             degrees=torch.cat(module_memberships, dim=-1),
             mask=torch.cat(module_masks, dim=-1),
         )
+        self._store_group_membership(observations, result)
+        return result
