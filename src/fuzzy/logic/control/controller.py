@@ -297,7 +297,7 @@ class FuzzyLogicController(torch.nn.Sequential):
         Core forward pass implementing the fuzzy inference pipeline:
         fuzzification, rule evaluation, and defuzzification.
         """
-        granulated_input = self.input_granulation(input)
+        granulated_input = self.input_granulation(observations)
 
         if self.gradient_checkpointing and self.training:
             rule_strengths = torch.utils.checkpoint.checkpoint(
@@ -309,7 +309,7 @@ class FuzzyLogicController(torch.nn.Sequential):
         return self._defuzzify(observations, rule_strengths)
 
     def forward(
-        self, input: torch.Tensor  # pylint: disable=redefined-builtin
+        self, observations: torch.Tensor  # pylint: disable=redefined-builtin
     ) -> torch.Tensor:
         """
         Forward pass for the FLC. This is the main method that will be called when the FLC is used
@@ -317,17 +317,17 @@ class FuzzyLogicController(torch.nn.Sequential):
         fuzzification, rule evaluation, and defuzzification.
 
         Args:
-            input: The input (observations) to perform the fuzzy inference on.
+            observations: The observations to perform the fuzzy inference on.
 
         Returns:
             The defuzzified output of the FLC.
         """
-        if self.max_batch_chunk is not None and input.shape[0] > self.max_batch_chunk:
+        if self.max_batch_chunk is not None and observations.shape[0] > self.max_batch_chunk:
             return torch.cat(
                 [
                     self._forward_impl(chunk)
-                    for chunk in input.split(self.max_batch_chunk)
+                    for chunk in observations.split(self.max_batch_chunk)
                 ],
                 dim=0,
             )
-        return self._forward_impl(input)
+        return self._forward_impl(observations=observations)
