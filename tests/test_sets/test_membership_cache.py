@@ -216,6 +216,63 @@ class TestMembershipCache(unittest.TestCase):
         self.assertIsNotNone(grad_result.degrees.grad_fn)
         self.assertIsNot(grad_result.degrees, no_grad_result.degrees)
 
+    def test_requires_grad_toggle_invalidates_cache(self) -> None:
+        """
+        Regression test: signature_of() used to key a cache entry on only (id, version) of
+        each parameter, missing requires_grad entirely. Freezing a parameter
+        (requires_grad_(False)), computing a membership, then unfreezing it
+        (requires_grad_(True)) and reusing the same observations tensor used to silently
+        serve the frozen-graph result - the parameter's gradient would then stay None
+        forever afterward, even though it is trainable again, because neither identity,
+        version, nor the *global* torch.is_grad_enabled() flag change when only a single
+        parameter's requires_grad is toggled. This is a very standard "freeze, train other
+        things, unfreeze" research pattern, so it must not silently break.
+
+        Returns:
+            None
+        """
+        gaussian_mf = make_gaussian()
+        observations = torch.rand(3, 1, device=AVAILABLE_DEVICE)
+
+        gaussian_mf.get_centers().requires_grad_(False)
+        first = gaussian_mf(observations)
+
+        gaussian_mf.get_centers().requires_grad_(True)
+        second = gaussian_mf(observations)
+        self.assertIsNot(
+            first.degrees,
+            second.degrees,
+            "the cache served a result computed while centers were frozen, after "
+            "centers were unfrozen",
+        )
+
+        second.degrees.to_dense().sum().backward()
+        self.assertIsNotNone(gaussian_mf.get_centers().grad)
+        self.assertFalse(bool((gaussian_mf.get_centers().grad == 0).all()))
+
+    def test_observations_requires_grad_toggle_invalidates_cache(self) -> None:
+        """
+        The same requires_grad blind spot applies to the observations tensor itself, not
+        just the fuzzy set's own parameters: toggling requires_grad on the *same*
+        observations object between calls (e.g. enabling input-gradient tracking for a
+        saliency/adversarial-gradient computation) must not be served a cached result
+        computed before that toggle.
+
+        Returns:
+            None
+        """
+        gaussian_mf = make_gaussian()
+        observations = torch.rand(3, 1, device=AVAILABLE_DEVICE)
+
+        first = gaussian_mf(observations)
+
+        observations.requires_grad_(True)
+        second = gaussian_mf(observations)
+        self.assertIsNot(first.degrees, second.degrees)
+
+        second.degrees.to_dense().sum().backward()
+        self.assertIsNotNone(observations.grad)
+
     def test_inference_mode_does_not_cache(self) -> None:
         """
         Nothing should be memoized while torch.inference_mode() is active.
@@ -354,6 +411,31 @@ class TestFuzzySetGroupMembershipCache(unittest.TestCase):
             losses.append(loss.item())
 
         self.assertFalse(losses[0] == losses[1] == losses[2])
+
+    def test_requires_grad_toggle_invalidates_group_cache(self) -> None:
+        """
+        Regression test: the same requires_grad blind spot that could affect a single
+        FuzzySet's cache (see TestMembershipCache) applies to FuzzySetGroup's own
+        group-level cache too, since both share signature_of(). Freezing then unfreezing
+        a submodule's parameter, while reusing the same observations, must not serve a
+        group-level result whose graph was built while that parameter was frozen.
+
+        Returns:
+            None
+        """
+        group = self._make_group()
+        observations = torch.rand(4, 1, device=AVAILABLE_DEVICE)
+
+        first_module = group.modules_list[0]
+        first_module.get_centers().requires_grad_(False)
+        first = group(observations)
+
+        first_module.get_centers().requires_grad_(True)
+        second = group(observations)
+        self.assertIsNot(first.degrees, second.degrees)
+
+        second.degrees.to_dense().sum().backward()
+        self.assertIsNotNone(first_module.get_centers().grad)
 
     def test_submodule_extra_parameter_invalidates_group_cache(self) -> None:
         """

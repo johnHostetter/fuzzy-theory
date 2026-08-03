@@ -292,6 +292,34 @@ class TestFuzzySet(unittest.TestCase):
             )
         )
 
+    def test_multi_parameter_tensor_requires_grad_toggle(self) -> None:
+        """
+        Regression test: _concat_params's cache is keyed via signature_of(), which used to
+        omit requires_grad entirely - the same root-cause bug as
+        TestMembershipCache.test_requires_grad_toggle_invalidates_cache, but for the
+        multi-parameter concatenation cache instead of the membership cache. Freezing one
+        parameter, concatenating (caching the result), then unfreezing it must not hand
+        back the frozen-graph concatenation: the parameter's gradient would otherwise stay
+        None forever even though it is trainable again.
+
+        Returns:
+            None
+        """
+        params = DynamicParameterList(
+            init_params=[np.array([1.0, 2.0]), np.array([3.0, 4.0])],
+            dtype=torch.float32,
+            device=AVAILABLE_DEVICE,
+        )
+        params.params[0].requires_grad_(False)
+        first = params.tensor
+
+        params.params[0].requires_grad_(True)
+        second = params.tensor
+        self.assertIsNot(first, second)
+
+        second.sum().backward()
+        self.assertIsNotNone(params.params[0].grad)
+
     def test_init_method_unsupported_raises(self) -> None:
         """
         FuzzySetInitMethod.initialize() must raise ValueError for a value it does not

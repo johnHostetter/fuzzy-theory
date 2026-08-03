@@ -232,7 +232,14 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
             The FuzzySetGroup object.
         """
         super().to(device, *args, **kwargs)
-        self.device = device
+        # .to() also accepts a dtype-only call (e.g. .to(torch.float64)); in that case
+        # 'device' here is actually a dtype, and self.device must be left alone rather than
+        # corrupted with it. Deliberately not resolved through a probe tensor here (unlike
+        # DynamicParameterList.to()): that would canonicalize an unindexed device like
+        # torch.device("cuda") into an indexed torch.device("cuda", 0), which no longer
+        # compares equal to what the caller actually passed.
+        if not isinstance(device, torch.dtype):
+            self.device = device
         for module in self.modules_list:
             module.to(device)
         # each module already cleared its own membership cache, but this group's own caches
@@ -281,6 +288,20 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
             # module_elements.append(membership.elements)
             module_memberships.append(membership.degrees)
             module_masks.append(membership.mask)
+
+        if any(degrees.is_sparse for degrees in module_memberships) and not all(
+            degrees.is_sparse for degrees in module_memberships
+        ):
+            # torch.cat cannot mix sparse and dense layouts; this happens whenever the
+            # group holds fuzzy sets with different use_sparse_tensor settings (a legitimate
+            # per-variable memory choice, e.g. a high-cardinality variable set sparse next to
+            # a low-cardinality one left dense). Densify only the sparse ones so every module
+            # keeps its own choice up until this point, and only pay the conversion cost when
+            # a mix actually occurs.
+            module_memberships = [
+                degrees.to_dense() if degrees.is_sparse else degrees
+                for degrees in module_memberships
+            ]
 
         result = Membership(
             # elements=torch.cat(module_elements, dim=-1),
