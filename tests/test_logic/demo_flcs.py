@@ -141,8 +141,8 @@ def print_parameters(fuzzy_logic_controller) -> None:
     Returns:
         None
     """
-    print(f"sigmas: {fuzzy_logic_controller.input.widths}")
-    print(f"centers: {fuzzy_logic_controller.input.centers}")
+    print(f"sigmas: {fuzzy_logic_controller.input_granulation.widths}")
+    print(f"centers: {fuzzy_logic_controller.input_granulation.centers}")
 
 
 def train_model(model, input_x, target_y):

@@ -7,9 +7,43 @@ import logging
 import time
 from functools import wraps
 from pathlib import Path
-from typing import Any, Dict, Set
+from typing import Any, Dict, Set, Type
 
 import torch
+
+
+def module_class(instance: object) -> str:
+    """
+    Given an instance of a class, obtain the name of its class and append it to a string
+    representation of its module path.
+
+    Args:
+        instance: An instance of a class.
+
+    Returns:
+        A string representation of the module path.
+    """
+    cls_type = type(instance)
+    return f"{cls_type.__module__}.{cls_type.__name__}"
+
+
+def load_module_class(module_path: str) -> Type[object]:
+    """
+    Given a module path, load the class and return it.
+
+    Args:
+        module_path: The module path, which includes the class name; this is usually prepared by
+        the function called module_class.
+
+    Returns:
+        The loaded class.
+    """
+    split_file_path = module_path.split(".")
+    class_name: str = split_file_path[-1]
+    module_path: str = ".".join(split_file_path[:-1])  # drop the Class name
+    # https://stackoverflow.com/questions/547829/how-to-dynamically-load-a-python-class
+    mod = __import__(module_path, fromlist=[class_name])
+    return getattr(mod, class_name)
 
 
 @torch.jit.script
@@ -38,7 +72,14 @@ def exp_sum_log(x: torch.Tensor, dim: int, eps: float = 1e-12) -> torch.Tensor:
     Returns:
         The product along that dimension of the given tensor.
     """
-    return torch.exp(torch.sum(torch.log(x.clamp_min(eps)), dim=dim))
+    # torch.jit.script compiles this body to TorchScript, so it executes outside the
+    # CPython interpreter and coverage.py's line tracer never sees it run, regardless
+    # of how many tests call this function - see test_exp_sum_log_matches_prod and
+    # test_exp_sum_log_handles_zeros_without_underflow in tests/test_utils.py
+    # instead
+    return torch.exp(
+        torch.sum(torch.log(x.clamp_min(eps)), dim=dim)
+    )  # pragma: no cover
 
 
 def log_method(method):
@@ -59,7 +100,9 @@ def log_method(method):
         start_time = time.perf_counter()
         result = method(self, *args, **kwargs)
         end_time = time.perf_counter()
-        self.logger.debug("<perf_counter>%s</perf_counter>", end_time - start_time)
+        self.logger.debug(
+            "<perf_counter>%s</perf_counter>",
+            end_time - start_time)
         self.logger.debug("</%s>", called_method)
         return result
 
@@ -127,18 +170,16 @@ def check_path_to_save_torch_module(path: Path) -> None:
     Returns:
         None
     """
-    if ".pt" not in path.name and ".pth" not in path.name:
+    if path.suffix not in (".pt", ".pth"):
         raise ValueError(
             f"The path to save the fuzzy set must have a file extension of '.pt', "
-            f"but got {path.name}"
-        )
-    if ".pth" in path.name:
+            f"but got {path.name}")
+    if path.suffix == ".pth":
         raise ValueError(
             f"The path to save the fuzzy set must have a file extension of '.pt', "
             f"but got {path.name}. Please change the file extension to '.pt' as it is not "
             f"recommended to use '.pth' for PyTorch models, since it conflicts with Python path"
-            f"configuration files."
-        )
+            f"configuration files.")
 
 
 def all_subclasses(cls) -> Set[Any]:
@@ -148,7 +189,8 @@ def all_subclasses(cls) -> Set[Any]:
     Returns:
         A set of all subclasses of the given class.
     """
-    return {cls}.union(s for c in cls.__subclasses__() for s in all_subclasses(c))
+    return {cls}.union(s for c in cls.__subclasses__()
+                       for s in all_subclasses(c))
 
 
 def get_object_attributes(obj_instance) -> Dict[str, Any]:
@@ -158,17 +200,24 @@ def get_object_attributes(obj_instance) -> Dict[str, Any]:
     # get the attributes that are local to the class, but may be inherited
     # from the super class
     local_attributes = inspect.getmembers(
-        obj_instance,
-        lambda attr: not (inspect.ismethod(attr)) and not (inspect.isfunction(attr)),
-    )
-    # get the attributes that are inherited from (or found within) the super
-    # class
-    super_attributes = inspect.getmembers(
-        obj_instance.__class__.__bases__[0],
-        lambda attr: not (inspect.ismethod(attr)) and not (inspect.isfunction(attr)),
-    )
+        obj_instance, lambda attr: not (
+            inspect.ismethod(attr)) and not (
+            inspect.isfunction(attr)), )
+    # get the attributes that are inherited from (or found within) any of the
+    # super classes; using only __bases__[0] would miss attributes purely
+    # inherited from other bases in multiple-inheritance scenarios, so the
+    # full MRO (excluding the class itself) is checked instead
+    super_attributes = [
+        attr_pair
+        for base in obj_instance.__class__.__mro__[1:]
+        for attr_pair in inspect.getmembers(
+            base,
+            lambda attr: not (inspect.ismethod(attr))
+            and not (inspect.isfunction(attr)),
+        )
+    ]
     # get the attributes that are local to the class, but not inherited from
-    # the super class
+    # any of the super classes
     return {
         attr: value
         for attr, value in local_attributes

@@ -4,7 +4,6 @@ are used to combine multiple membership values into a single value. The n-ary re
 differing types) can then be combined into a compound relation.
 """
 
-import shutil
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, MutableMapping, Tuple, Union
@@ -14,18 +13,16 @@ import numpy as np
 import scipy.sparse as sps
 import torch
 
-# from line_profiler import profile
-from torch import Size, Tensor
-
 from fuzzy.sets.membership import Membership
-from fuzzy.utils import TorchJitModule, check_path_to_save_torch_module
-from fuzzy.utils.options.abstract.primitive import GroupedOptions
+from fuzzy.utils import TorchJitModule
 
 from ..utils.classes import Loggable
 
 # , log_classmethod, log_func, log_method
-from ..utils.functions import exp_sum_log
+from ..utils.functions import exp_sum_log, module_class
 from .linkage import BinaryLinks, GroupedLinks
+
+# from line_profiler import profile
 
 
 class NAryMaskMethods(str, Enum):
@@ -141,6 +138,17 @@ class NAryRelation(TorchJitModule, Loggable):
         self.applied_mask: Union[None, torch.Tensor] = (
             None  # created later (via self.apply_mask)
         )
+        self._cached_links: Union[None, torch.Tensor] = None
+        self._cached_links_complement: Union[None, torch.Tensor] = None
+        self._cached_links_bool: Union[None, torch.Tensor] = None
+
+        self._use_gather: bool = False
+        self._gather_indices: Union[None, torch.Tensor] = None
+        self._gather_active: Union[None, torch.Tensor] = None
+        self._all_active: bool = False
+        self._cached_mask: Union[None, torch.Tensor] = None
+
+        self._precompute_gather_indices()
 
     # @log_method
     def __str__(self) -> str:
@@ -230,6 +238,11 @@ class NAryRelation(TorchJitModule, Loggable):
         self.device = device
         if self.grouped_links is not None:
             self.grouped_links.to(device)
+        self.invalidate_links_cache()
+        if self._use_gather:
+            self._gather_indices = self._gather_indices.to(device)
+            self._gather_active = self._gather_active.to(device)
+            self._cached_mask = self._cached_mask.to(device)
         return self
 
     # @log_method
@@ -256,7 +269,9 @@ class NAryRelation(TorchJitModule, Loggable):
         if len(self.indices) == 0:
             # we will rebuild from the grouped_links, so we do not need to save
             # the indices
-            grouped_links_dir: Path = path / "grouped_links"
+            grouped_links_dir: Path = (
+                path / f"grouped_links:{module_class(self.grouped_links)}"
+            )
             self.grouped_links.save(path=grouped_links_dir)
             state_dict["grouped_links"] = (
                 grouped_links_dir  # save the path to the grouped_links
@@ -281,18 +296,9 @@ class NAryRelation(TorchJitModule, Loggable):
         Returns:
             The dictionary representation of the n-ary relation.
         """
-        check_path_to_save_torch_module(path)
-        dir_path: Path = path.parent / path.name.split(".")[0]
-        state_dict: MutableMapping[str, Any] = self._state_dict(path=dir_path)
-
-        # where to save the state_dict depends on whether the indices are given
-        # or not
-        save_location: Path = (
-            dir_path / "state_dict.pt" if len(self.indices) == 0 else path
-        )
-
-        torch.save(state_dict, save_location)
-
+        path.mkdir(parents=True, exist_ok=True)
+        state_dict: MutableMapping[str, Any] = self._state_dict(path=path)
+        torch.save(state_dict, path / "state_dict.pt")
         return state_dict
 
     @classmethod
@@ -301,7 +307,6 @@ class NAryRelation(TorchJitModule, Loggable):
         cls,
         path: Path,
         device: torch.device,
-        t_norm_callback: Union[None, Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
     ) -> "NAryRelation":
         """
         Load the n-ary relation from a file and put it on the specified device.
@@ -309,8 +314,6 @@ class NAryRelation(TorchJitModule, Loggable):
         Args:
             path: The path to load the t-norm relation.
             device: The physical device to load the t-norm relation onto.
-            t_norm_callback: A function to call to dynamically modify the keyword arguments
-                passed onto the TNorm subclass after it has been identified.
 
         Returns:
             The n-ary relation.
@@ -323,32 +326,19 @@ class NAryRelation(TorchJitModule, Loggable):
             state_dict: MutableMapping = torch.load(
                 path / "state_dict.pt", weights_only=False
             )
-        nan_replacement = state_dict.pop("nan_replacement")
-        kwargs: Dict[str, Any] = {"nan_replacement": nan_replacement, "device": device}
+        kwargs: Dict[str, Any] = {
+            "nan_replacement": state_dict.pop("nan_replacement"),
+            "device": device,
+        }
 
-        class_name = state_dict.pop("class_name")
-        fuzzy_cls = cls.get_subclass(class_name)
+        fuzzy_cls = cls.get_subclass(class_name=state_dict.pop("class_name"))
 
         if "indices" in state_dict:
             indices = state_dict.pop("indices")
             return fuzzy_cls(*indices, **kwargs)
-        grouped_links: Path = state_dict.pop("grouped_links")
-        grouped_links_kwargs: Dict[str, Any] = {"device": device}
-        if (grouped_links / "configuration").exists():
-            # order matters here; GroupedLinks cannot load before
-            # GumbelSoftmaxOptions.load
-            configuration: GroupedOptions = GroupedOptions.load(
-                grouped_links / "configuration"
-            )
-            # this directory cannot exist when calling GroupedLinks.load
-            shutil.rmtree(grouped_links / "configuration")
-            grouped_links_kwargs["configuration"] = configuration
-        kwargs["grouped_links"] = GroupedLinks.load(
-            grouped_links, **grouped_links_kwargs
-        )
 
-        if t_norm_callback is not None:
-            kwargs = t_norm_callback(kwargs)
+        grouped_links: Path = state_dict.pop("grouped_links")
+        kwargs["grouped_links"] = GroupedLinks.load(grouped_links, device=device)
 
         obj = fuzzy_cls(**kwargs)
         # add other attributes that may be specific to the subclass
@@ -432,9 +422,10 @@ class NAryRelation(TorchJitModule, Loggable):
         self.grouped_links = GroupedLinks(
             modules_list=[BinaryLinks(links=self.matrix, device=self.device)]
         )
-        # re-create the self.graph (has to happen after self.grouped_links is
+        # re-create self.graph (has to happen after self.grouped_links is
         # created)
         self.create_igraph()
+        self._precompute_gather_indices()
 
     # @log_method
     def resize(self, *shape) -> None:
@@ -450,6 +441,52 @@ class NAryRelation(TorchJitModule, Loggable):
         for coo_matrix in self._coo_matrix:
             coo_matrix.resize(*shape)
         self._rebuild(*shape)
+        self.invalidate_links_cache()
+
+    def invalidate_links_cache(self) -> None:
+        """
+        Invalidate the cached links tensors. Must be called after any change to
+        the underlying links (e.g., resize, device move, Gumbel-Softmax resample).
+        """
+        self._cached_links = None
+        self._cached_links_complement = None
+        self._cached_links_bool = None
+
+    def _links_are_cacheable(self) -> bool:
+        """
+        Whether this relation's links are safe to cache indefinitely (until an explicit
+        invalidate_links_cache() call).
+
+        Only BinaryLinks are safe: its forward() ignores its argument entirely and always
+        returns the same fixed tensor, so "compute once, reuse forever" is correct. Any
+        other module type in grouped_links.modules_list - such as a stochastic,
+        Gumbel-Softmax-resampled logits module (see GroupedLinks' own docstring) - could
+        legitimately produce a *different* result on every call, and this cache has no way
+        to detect that on its own; it can only be told to forget via
+        invalidate_links_cache(). Recomputing every call for anything other than
+        BinaryLinks keeps the cache safe by construction rather than relying on every
+        future caller remembering to invalidate it.
+
+        Returns:
+            True if every module backing this relation's links is a BinaryLinks.
+        """
+        if self.grouped_links is None:
+            return False
+        return all(
+            isinstance(module, BinaryLinks)
+            for module in self.grouped_links.modules_list
+        )
+
+    def _ensure_links_cache(self, membership: Membership) -> None:
+        """
+        Lazily compute and cache the links tensor and its derived forms.
+        """
+        if self._cached_links is not None and self._links_are_cacheable():
+            return
+        links = self.grouped_links(membership=membership)
+        self._cached_links = links
+        self._cached_links_bool = links.bool()
+        self._cached_links_complement = 1 - links
 
     def _apply_mask(
         self, membership: Membership, inplace: bool = False
@@ -466,13 +503,12 @@ class NAryRelation(TorchJitModule, Loggable):
         Returns:
             The applied mask based on the given membership.
         """
-        applied_mask: torch.Tensor = self.grouped_links(membership=membership)
-        # if applied_mask.is_sparse:
-        #     applied_mask: torch.Tensor = self.applied_mask.to_dense()
+        self._ensure_links_cache(membership)
+        applied_mask = self._cached_links
         if inplace:
             self.applied_mask = applied_mask
         after_mask = membership.degrees.unsqueeze(-1) * applied_mask
-        return after_mask + (1 - applied_mask)
+        return after_mask + self._cached_links_complement
 
     # @log_method
     # @profile
@@ -488,13 +524,7 @@ class NAryRelation(TorchJitModule, Loggable):
         """
         membership_shape: torch.Size = membership.degrees.shape
         if self.grouped_links.shape[:-1] != membership_shape[1:]:
-            # if len(membership_shape) > 2:
-            # this is for the case where masks have been stacked due to
-            # compound relations
-            # get the last two dimensions
-            membership_shape = membership_shape[1:]
-            self.resize(*membership_shape)
-        del membership_shape  # free up memory
+            self.resize(*membership_shape[1:])
 
         # the below is VALID but NOT compatible w/ autograd
         # indices = self.applied_mask.to(torch.int64)
@@ -520,7 +550,83 @@ class NAryRelation(TorchJitModule, Loggable):
             f"{type(self)}."
         )
 
-    def _prod_apply_mask(self, membership: Membership) -> Tensor:
+    def _precompute_gather_indices(self) -> None:
+        """
+        Precompute gather indices for an optimized mask application that avoids
+        the O(batch * vars * terms * rules) intermediate tensor. Only applicable
+        when all links are BinaryLinks and each (variable, rule) pair has at most
+        one active term.
+        """
+        self._use_gather = False
+        if self.grouped_links is None:
+            return
+        if self.method not in (NAryMaskMethods.PROD, NAryMaskMethods.EXP_SUM_LOG):
+            return
+
+        all_binary = all(
+            isinstance(m, BinaryLinks) for m in self.grouped_links.modules_list
+        )
+        if not all_binary:
+            return
+
+        mask = self.grouped_links(membership=None)
+        terms_per_var_rule = mask.sum(dim=1)
+        if terms_per_var_rule.max().item() > 1:
+            return
+
+        self._use_gather = True
+        self._gather_indices = mask.to(torch.long).argmax(dim=1)
+        self._gather_active = terms_per_var_rule.bool()
+        self._all_active = bool(self._gather_active.all().item())
+        self._cached_mask = mask
+        self._apply_mask_func = self._gather_apply_mask
+
+    def _gather_apply_mask(self, membership: Membership) -> torch.Tensor:
+        """
+        Optimized mask application using torch.gather. Produces a (batch, vars, rules)
+        tensor directly instead of materializing the full (batch, vars, terms, rules)
+        intermediate, reducing memory by a factor of n_terms.
+
+        This must reproduce _prod_apply_mask's NaN behaviour exactly, not just its
+        non-NaN values, since which of the two runs is an invisible implementation
+        detail (chosen automatically by _precompute_gather_indices). _prod_apply_mask's
+        formula - degrees * mask + (1 - mask), then a product over the term dimension -
+        means IEEE754's NaN * 0 = NaN causes a NaN in *any* term of a variable to poison
+        *every* rule that touches that variable at all, including rules that select a
+        different term of it, and even rules that do not use that variable's terms in
+        their antecedent at all (every term, active or not, participates in the product).
+        A plain torch.gather of only the selected term would miss all of that
+        propagation, so it is reconstructed explicitly below.
+        """
+        self.applied_mask = self._cached_mask
+        degrees = membership.degrees
+        batch_size = degrees.shape[0]
+        idx = self._gather_indices.unsqueeze(0).expand(batch_size, -1, -1)
+        selected = torch.gather(degrees, dim=2, index=idx)
+
+        # a NaN anywhere among a variable's terms must poison every rule that variable
+        # participates in (structurally active or not) - see docstring above
+        any_nan_per_variable = degrees.isnan().any(dim=2, keepdim=True)
+        if bool(any_nan_per_variable.any()):
+            selected = torch.where(
+                any_nan_per_variable.expand_as(selected),
+                torch.full_like(selected, float("nan")),
+                selected,
+            )
+
+        if not self._all_active:
+            # Preserve IEEE NaN propagation: inactive entries where the gathered
+            # degree is NaN must stay NaN (matching NaN * 0 + 1 = NaN behavior),
+            # while inactive entries with valid degrees become 1.0 (product
+            # identity).
+            selected = torch.where(
+                self._gather_active.unsqueeze(0) | selected.isnan(),
+                selected,
+                torch.ones(1, device=degrees.device, dtype=degrees.dtype),
+            )
+        return selected.nan_to_num(self.nan_replacement)
+
+    def _prod_apply_mask(self, membership: Membership) -> torch.Tensor:
         """
         The default resolution strategy for applying the mask to the given fuzzy relation.
 
@@ -539,7 +645,7 @@ class NAryRelation(TorchJitModule, Loggable):
         )
         return prod_result
 
-    def _exp_sum_log_apply_mask(self, membership: Membership) -> Tensor:
+    def _exp_sum_log_apply_mask(self, membership: Membership) -> torch.Tensor:
         """
         A possibly more efficient resolution strategy for applying the mask to the given
         fuzzy relation; it is mathematically equivalent to the product technique.
@@ -565,7 +671,7 @@ class NAryRelation(TorchJitModule, Loggable):
         # assert torch.allclose(exp_sum_log_impl_result, exp_sum_log_func_result)
         return exp_sum_log_func_result
 
-    def _linear_sum_apply_mask(self, membership: Membership) -> Tensor:
+    def _linear_sum_apply_mask(self, membership: Membership) -> torch.Tensor:
         """
         A very efficient resolution strategy for applying the mask to the given fuzzy relation if
         the summation is taken immediately afterward; it is *NOT* mathematically equivalent to the
@@ -579,37 +685,37 @@ class NAryRelation(TorchJitModule, Loggable):
         Returns:
             The fuzzy relation values.
         """
-        # WARNING: this will not work for information with missing data
-        # (notice that there is no use of self.nan_replacement)
-        membership_shape: Size = membership.degrees.shape
+        membership_shape: torch.Size = membership.degrees.shape
         batch_size, var_count, term_count = (
             membership_shape[0],
             membership_shape[1],
             membership_shape[2],
         )
-        applied_mask: torch.Tensor = self.grouped_links(membership=membership)
-        # avoiding the above call can lead to significant performance increases
-        # applied_mask = self.grouped_links.grouped_links.modules_list[0].logits
+        self._ensure_links_cache(membership)
+        # BinaryLinks stores its links as int8; torch.nn.functional.linear requires both
+        # operands to share a dtype, so without this cast this method raises
+        # "expected mat1 and mat2 to have the same dtype" for any real (non-float) links -
+        # a bug that had gone unnoticed because no test exercised this method
+        # before
+        applied_mask = self._cached_links.to(dtype=membership.degrees.dtype)
         n_rules = applied_mask.shape[-1]
         linear_result = torch.nn.functional.linear(  # pylint: disable=not-callable
             membership.degrees.view(batch_size, var_count * term_count),
             applied_mask.view(var_count * term_count, n_rules).T,
         )
-        # the above is equivalent if you apply .sum(dim=1) to PROD result
-        # assert torch.allclose(result.sum(dim=1).half(), linear_result.half())
         return linear_result
 
     # @log_method
-    def forward(self, membership: Membership) -> torch.Tensor:
+    def forward(self, membership: Membership) -> Membership:
         """
         Apply the n-ary relation to the given memberships.
 
         Args:
-            membership: The membership values to apply the minimum n-ary relation to.
+            membership: The membership values to apply the n-ary relation to.
 
         Returns:
-            The minimum membership value, according to the n-ary relation (i.e., which truth values
-            to actually consider).
+            The resulting membership values, according to the n-ary relation (i.e., which truth
+            values to actually consider).
         """
         raise NotImplementedError(
             f"The {self.__class__.__name__} has no defined forward function. Please create a class "

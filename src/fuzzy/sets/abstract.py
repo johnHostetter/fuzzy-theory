@@ -6,18 +6,17 @@ which contains a helpful interface understanding membership degrees.
 
 import abc
 import inspect
-
 # import logging
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, List, MutableMapping, NoReturn, Tuple, Type, Union
+from typing import (Any, List, MutableMapping, NoReturn, Optional, Tuple, Type,
+                    Union)
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-
 # import scienceplots is used via plt.style.context(["science",
 # "no-latex", "high-contrast"])
 import scienceplots  # noqa # pylint: disable=unused-import
@@ -32,8 +31,8 @@ from torchquad.utils.set_up_backend import set_up_backend
 
 from ..utils import TorchJitModule, check_path_to_save_torch_module
 from ..utils.classes import Loggable
-
 # from ..utils.functions import log_classmethod, log_func, log_method
+from .cache import MembershipCache, ParameterSignature, signature_of
 from .membership import Membership
 
 
@@ -84,20 +83,16 @@ class FuzzySetInitMethod(Enum):
         """
         if self is FuzzySetInitMethod.RANDOM:
             centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = (
-                np.random.randn(shape.n_variables, shape.n_terms)
-            )
+                np.random.randn(shape.n_variables, shape.n_terms))
             widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = np.abs(
-                np.random.randn(shape.n_variables, shape.n_terms)
-            ).clip(min=0.1)
+                np.random.randn(shape.n_variables, shape.n_terms)).clip(min=0.1)
 
         elif self is FuzzySetInitMethod.LINEAR:
             base = np.linspace(0.0, 1.0, num=shape.n_terms)
             centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = (
-                np.repeat(base[None, :], repeats=shape.n_variables, axis=0)
-            )
+                np.repeat(base[None, :], repeats=shape.n_variables, axis=0))
             widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = np.full(
-                (shape.n_variables, shape.n_terms), init_width, dtype=np.float32
-            )
+                (shape.n_variables, shape.n_terms), init_width, dtype=np.float32)
 
         else:
             raise ValueError(f"Unsupported method: {self}")
@@ -111,13 +106,17 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
     """
 
     def __init__(
-        self, init_params=None, dtype=None, device=None, parameters: bool = True
-    ):
+            self,
+            init_params=None,
+            dtype=None,
+            device=None,
+            parameters: bool = True):
         super().__init__()
         self.params: Union[torch.nn.ParameterList, List[torch.Tensor]] = (
             torch.nn.ParameterList() if parameters else []
         )
         self._cached_tensor = None
+        self._cached_signature = None
         self._device = device
         self._dtype = dtype
 
@@ -128,13 +127,32 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
     def __getitem__(self, item):
         return self.params[item]
 
+    def __setitem__(self, idx, value):
+        # 1. Enforce that the incoming value is a valid PyTorch Parameter
+        if not isinstance(value, torch.nn.Parameter):
+            raise TypeError(
+                f"Expected a torch.nn.Parameter, but got {type(value)}")
+
+        # 2. Update the internal tracker
+        # If using nn.ParameterList, it handles module registration
+        # automatically.
+        self.params[idx] = value
+
+        # 3. Optional: Give it a unique string key name on the parent module
+        # if your custom class relies on named parameters attribute binding.
+        # setattr(self, f"param_{idx}", value)
+
+        # 4. Invalidate the cached tensor
+        self._invalidate_cache()
+
     def add_parameter(self, tensor: Union[np.ndarray, torch.Tensor]):
         """
         Add a new Parameter and invalidate cached tensor.
         tensor: torch.Tensor (will be converted to Parameter)
         """
         if not isinstance(tensor, torch.Tensor):
-            tensor = torch.as_tensor(tensor, dtype=self._dtype, device=self._device)
+            tensor = torch.as_tensor(
+                tensor, dtype=self._dtype, device=self._device)
         if isinstance(self.params, torch.nn.ParameterList):
             param = torch.nn.Parameter(tensor)
         else:
@@ -142,28 +160,91 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
         if self._device is not None:
             param.data = param.data.to(self._device, dtype=self._dtype)
         self.params.append(param)
-        self._cached_tensor = None  # invalidate cache
+        self._invalidate_cache()
+
+    def _invalidate_cache(self) -> None:
+        """
+        Discard the cached concatenation, forcing the next access to rebuild it.
+
+        Returns:
+            None
+        """
+        self._cached_tensor = None
+        self._cached_signature = None
+
+    @torch.jit.ignore
+    def _concat_params(self, params_list: List[torch.Tensor]) -> torch.Tensor:
+        """
+        Return a cached concatenation of two or more parameters, rebuilding it if any
+        parameter was replaced or mutated in place since it was last built.
+
+        Pulled out of the 'tensor' property (and marked to be skipped by torch.jit.script)
+        because comparing two ParameterSignature values with '!=' is not something
+        TorchScript's type system supports; this keeps that comparison in ordinary Python
+        while leaving the property itself scriptable.
+
+        Args:
+            params_list: The parameters to concatenate, materialized as a plain list.
+
+        Returns:
+            The concatenation of the parameters along dim=-1.
+        """
+        signature = signature_of(params_list)
+        if self._cached_tensor is None or self._cached_signature != signature:
+            self._cached_tensor = torch.cat(params_list, dim=-1).contiguous()
+            self._cached_signature = signature
+        return self._cached_tensor
 
     @property
     def tensor(self):
         """
         Returns a contiguous tensor concatenating all parameters along dim=-1.
-        Only re-concatenates if something changed.
+
+        In the (overwhelmingly common) case of a single parameter, that parameter is returned
+        directly: concatenating one tensor only copies it, and the copy would both waste time
+        and - more importantly - go stale, since it does not observe subsequent in-place updates
+        to the parameter such as those an optimizer applies.
+
+        For several parameters the concatenation is cached, but the cache is keyed on the
+        identity and version counter of each parameter, so that replacing *or* updating any of
+        them rebuilds it. Without this, the concatenation would keep reporting the parameter
+        values as they were when it was first built.
+
+        Note: `self.params` (a torch.nn.ParameterList) is deliberately materialized into a
+        plain list before anything else; torch.jit.script cannot compile a bare `len(...)` or
+        indexing call directly against a ParameterList attribute in this position, but has no
+        trouble with a plain List[Tensor].
         """
-        if self._cached_tensor is None:
-            if len(self.params) == 0:
-                return torch.tensor([], device=self._device, dtype=self._dtype)
-            self._cached_tensor = torch.cat(list(self.params), dim=-1).contiguous()
-        return self._cached_tensor
+        params_list: List[torch.Tensor] = list(self.params)
+        if len(params_list) == 0:
+            return torch.tensor([], device=self._device, dtype=self._dtype)
+
+        if len(params_list) == 1:
+            # avoid a copy that would immediately be at risk of going stale
+            return params_list[0]
+
+        return self._concat_params(params_list)
 
     def to(self, *args, **kwargs):
         """
         Override to move both ParameterList and cached tensor.
         """
         super().to(*args, **kwargs)
-        self._device = args[0] if args else self._device
-        if self._cached_tensor is not None:
-            self._cached_tensor = self._cached_tensor.to(*args, **kwargs)
+        # torch.nn.Module.to() accepts several call signatures - a device, a dtype, another
+        # tensor to match, or a combination - so args[0] is not reliably a device (e.g.
+        # .to(torch.float64) is a legitimate dtype-only call, and would otherwise corrupt
+        # _device with a dtype object). Replaying the same call against a throwaway tensor
+        # seeded with the current device/dtype and reading back what it resolved to avoids
+        # re-implementing that parsing here.
+        probe = torch.empty(0, dtype=self._dtype, device=self._device).to(
+            *args, **kwargs
+        )
+        self._device = probe.device
+        self._dtype = probe.dtype
+        # the parameters were moved, so any concatenation of them refers to the old device;
+        # rebuild it on next access rather than moving a copy that is about to
+        # go stale
+        self._invalidate_cache()
         return self
 
 
@@ -184,12 +265,19 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     inheriting or extending from FuzzySet.
     """
 
+    # Subclasses may set this to True to check the calculated membership degrees for NaN and
+    # infinite values; this costs a synchronization per call, so it is off by
+    # default.
+    _validate_degrees: bool = False
+
     def __init__(
         self,
         centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
         widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
         device: torch.device,
         use_sparse_tensor: bool = False,
+        cache_membership: bool = True,
+        membership_cache_size: int = 2,
         # debug: bool = False,
     ):
         super().__init__()
@@ -202,8 +290,21 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         self._mask = None
         self.__alloc_members(centers, use_sparse_tensor, widths)
 
+        # memoizes membership calculations; see fuzzy.sets.cache for when a
+        # result is re-used
+        self._membership_cache = MembershipCache(
+            maxsize=membership_cache_size, enabled=cache_membership
+        )
+
+        # torch.jit.script only picks up attributes assigned in __init__, so the class-level
+        # default declared above is re-assigned here as an instance attribute; this also lets
+        # a subclass such as Lorentzian's class-level override take effect
+        # under scripting
+        self._validate_degrees: bool = self._validate_degrees
+
     # @log_method
-    def __check_args(self, centers: np.ndarray, widths: np.ndarray) -> None:
+    @staticmethod
+    def __check_args(centers: np.ndarray, widths: np.ndarray) -> None:
         """
         Check that the provided argument values are accepted variable types and that their
         dimensionality is correct. This function will raise a ValueError if the argument values
@@ -235,14 +336,12 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         if centers.ndim != widths.ndim:
             raise ValueError(
                 f"The number of dimensions for the centers ({centers.ndim}) and widths "
-                f"({widths.ndim}) must be the same."
-            )
+                f"({widths.ndim}) must be the same.")
 
         if centers.ndim == 0 or widths.ndim == 0:
             raise ValueError(
                 f"The centers and widths of a FuzzySet must have at least one dimension. "
-                f"Centers has {centers.ndim} dimensions and widths has {widths.ndim} dimensions."
-            )
+                f"Centers has {centers.ndim} dimensions and widths has {widths.ndim} dimensions.")
 
     # @log_method
     def __alloc_members(
@@ -288,6 +387,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # self._mask = [mask.to(*args, **kwargs) for mask in self._mask]
         self._mask = self._mask.to(*args, **kwargs)
         self.device = self._centers[0].device
+        # memberships were calculated on the previous device, and moving parameters replaces
+        # their data without bumping a version counter, so the memo cannot be
+        # trusted
+        self.clear_membership_cache()
         # self.logger.debug(f"Moved {self.__class__.__name__} to {self.device} device")
         return self
 
@@ -303,7 +406,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             A torch.nn.Parameter object.
         """
         return torch.nn.Parameter(
-            torch.as_tensor(parameter, dtype=torch.float32, device=self.device),
+            torch.as_tensor(
+                parameter,
+                dtype=torch.float32,
+                device=self.device),
             # requires_grad=True,  # explicitly set to True
         )
 
@@ -321,7 +427,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             A torch.Tensor object.
         """
-        return torch.as_tensor(widths > 0.0, dtype=torch.uint8, device=self.device)
+        return torch.as_tensor(
+            widths > 0.0,
+            dtype=torch.uint8,
+            device=self.device)
         # return torch.nn.Parameter(
         #     torch.as_tensor(widths > 0.0, dtype=torch.int8, device=self.device),
         #     requires_grad=False,  # explicitly set to False (mask is not trainable)
@@ -357,8 +466,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             # the method is not implemented (e.g., self.calculate_membership)
             raise NotImplementedError(
                 "The FuzzySet has no defined membership function. Please create a class "
-                "and inherit from FuzzySet, or use a predefined class, such as Gaussian."
-            )
+                "and inherit from FuzzySet, or use a predefined class, such as Gaussian.")
 
         init_result: FuzzySetInitResult = method.initialize(
             shape=shape,
@@ -379,10 +487,23 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         """
         Hash the fuzzy set.
 
+        This must agree with __eq__, which compares centers/widths by *value* (torch.equal).
+        Hashing the tensors themselves would hash by identity instead (torch.Tensor keeps
+        the default id()-based __hash__), so two separately constructed but value-equal fuzzy
+        sets would violate Python's hash contract - equal objects reporting different hashes -
+        which breaks their use as dict keys or set members. Hashing the flattened values (as
+        plain Python numbers, not tensors) keeps this consistent with __eq__.
+
         Returns:
             The hash of the fuzzy set.
         """
-        return hash((type(self), self.get_centers(), self.get_widths()))
+        return hash(
+            (
+                type(self),
+                tuple(self.get_centers().flatten().tolist()),
+                tuple(self.get_widths().flatten().tolist()),
+            )
+        )
 
     # @log_method
     def __eq__(self, other: Any) -> bool:
@@ -525,6 +646,9 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             self._widths[0] = torch.nn.Parameter(
                 method_of_extension([self._widths[0], widths])
             )
+        # the fuzzy set now describes more terms, so previously calculated membership degrees
+        # no longer have the right shape
+        self.clear_membership_cache()
 
     # @log_method
     def _area_helper(self, fuzzy_sets) -> List[List[float]]:
@@ -541,7 +665,9 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             A list of floats.
         """
         all_areas: List[List[float]] = []
-        for variable_params in zip(fuzzy_sets.get_centers(), fuzzy_sets.get_widths()):
+        for variable_params in zip(
+                fuzzy_sets.get_centers(),
+                fuzzy_sets.get_widths()):
             variable_centers, variable_widths = variable_params[0], variable_params[1]
             variable_areas = []
             for term_params in zip(variable_centers, variable_widths):
@@ -696,7 +822,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                     device=self.device,
                 )
 
-                if self.get_centers().ndim == 1 or self.get_centers().shape[0] == 1:
+                if self.get_centers(
+                ).ndim == 1 or self.get_centers().shape[0] == 1:
                     x_values = x_values[:, None]
                 elif self.get_centers().ndim == 2 or self.get_centers().shape[0] > 1:
                     x_values = x_values[:, None, None]
@@ -728,8 +855,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                         # edgecolor="#0bafa9"  # beautiful with facecolor=None
                         # (AAMAS 2023)
                         axes[variable_idx].fill_between(
-                            x_values, y_values, alpha=0.5, hatch="///", label=label
-                        )
+                            x_values, y_values, alpha=0.5, hatch="///", label=label)
                     else:
                         axes[variable_idx].plot(
                             x_values, y_values, alpha=0.5, label=label
@@ -779,7 +905,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                 .get_window_extent()
                 .transformed(fig.dpi_scale_trans.inverted())
             )
-            fig.savefig(output_dir / f"mu_{variable_idx}.png", bbox_inches=extent)
+            fig.savefig(
+                output_dir /
+                f"mu_{variable_idx}.png",
+                bbox_inches=extent)
 
             # Pad the saved area by 20% in the x-direction and 10% in the
             # y-direction
@@ -903,16 +1032,190 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             A sympy.Expr object that represents the membership function of the fuzzy set.
         """
 
-    # @log_method
     @abc.abstractmethod
+    def calculate_membership(self, observations: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate the membership degrees of the observations for this fuzzy set.
+
+        Implementations are expected to be a pure function of the observations and this fuzzy
+        set's parameters, as the result may be memoized (see fuzzy.sets.cache).
+
+        Args:
+            observations: The observations to calculate the membership degrees for.
+
+        Returns:
+            The membership degrees of the observations for this fuzzy set.
+        """
+
+    def parameter_signature(self) -> ParameterSignature:
+        """
+        Summarize the parameters that a membership calculation depends upon, so that the
+        membership cache can tell when a memoized result has been outdated by a parameter
+        changing (as happens on every optimizer step).
+
+        Subclasses with additional parameters of their own should extend this; otherwise their
+        memberships would be re-used after those parameters were updated.
+
+        Returns:
+            A signature of this fuzzy set's parameters.
+        """
+        return signature_of(
+            [self.get_centers(), self.get_widths(), self.get_mask()])
+
+    @torch.jit.ignore
+    def clear_membership_cache(self) -> None:
+        """
+        Discard any memoized membership degrees, forcing the next call to recalculate them.
+
+        Returns:
+            None
+        """
+        cache: Union[None, MembershipCache] = getattr(
+            self, "_membership_cache", None)
+        if cache is not None:
+            cache.clear()
+
+    @torch.jit.ignore
+    def _lookup_membership(
+            self,
+            observations: torch.Tensor) -> Optional[Membership]:
+        """
+        Retrieve memoized membership degrees for the given observations, if they are still valid.
+
+        The cache is looked up defensively so that a torch.jit.script'ed copy of this module -
+        which does not carry the cache over - simply calculates the membership degrees instead
+        of failing.
+
+        Args:
+            observations: The observations that membership degrees are wanted for.
+
+        Returns:
+            The memoized Membership, or None if it has to be calculated.
+        """
+        cache: Union[None, MembershipCache] = getattr(
+            self, "_membership_cache", None)
+        if cache is None:
+            return None
+        return cache.lookup(observations, self.parameter_signature())
+
+    @torch.jit.ignore
+    def _store_membership(
+        self, observations: torch.Tensor, membership: Membership
+    ) -> None:
+        """
+        Memoize the membership degrees calculated for the given observations.
+
+        Args:
+            observations: The observations the membership degrees were calculated for.
+            membership: The calculated membership degrees and mask.
+
+        Returns:
+            None
+        """
+        cache: Union[None, MembershipCache] = getattr(
+            self, "_membership_cache", None)
+        if cache is not None:
+            cache.store(observations, self.parameter_signature(), membership)
+
+    def prepare_observations(self, observations: torch.Tensor) -> torch.Tensor:
+        """
+        Adjust the observations immediately before the membership degrees are calculated.
+
+        This exists for fuzzy sets whose formula requires something of its input; the default is
+        to pass the observations through untouched.
+
+        Args:
+            observations: The observations to prepare.
+
+        Returns:
+            The observations, as the membership function expects them.
+        """
+        return observations
+
+    def _calculate_membership_nan_safe(
+        self, observations: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Calculate membership degrees without letting a NaN observation (representing a
+        missing value - see e.g. NAryRelation's nan_replacement) corrupt the gradient of
+        this fuzzy set's parameters for every OTHER, valid observation that shares them.
+
+        A membership formula such as Gaussian's exp(-((x-c)^2)/(2w^2)) has a local
+        derivative with respect to its parameters that is itself NaN whenever x is NaN,
+        regardless of what the downstream loss actually needs from that observation.
+        Since centers/widths are shared across the whole batch, PyTorch's chain rule
+        would otherwise multiply that NaN local derivative through - 0 * NaN = NaN under
+        IEEE754 - silently corrupting the gradient for the entire training step, not just
+        the one missing observation. Calculating on a NaN-free substitute, then
+        re-injecting NaN into the *output* via a constant (gradient-disconnected)
+        substitution, keeps the "NaN observation -> NaN degree" contract callers already
+        rely on, while torch.where's backward pass correctly contributes zero gradient at
+        exactly those positions instead of NaN.
+
+        Args:
+            observations: The (already-prepared) observations to calculate membership for.
+
+        Returns:
+            The membership degrees, identical in value to calculate_membership(observations),
+            but safe to backpropagate through even when some observations are NaN.
+        """
+        nan_mask = torch.isnan(observations)
+        if not bool(nan_mask.any()):
+            return self.calculate_membership(observations)
+
+        safe_observations = torch.where(
+            nan_mask, torch.zeros_like(observations), observations
+        )
+        degrees = self.calculate_membership(safe_observations)
+        return torch.where(
+            nan_mask.expand_as(degrees),
+            torch.full_like(
+                degrees,
+                float("nan")),
+            degrees)
+
+    # @log_method
     def forward(self, observations: torch.Tensor) -> Membership:
         """
         Forward pass of the function. Applies the function to the input elementwise.
+
+        The membership degrees are memoized; calling this again with the same observations, while
+        this fuzzy set's parameters are unchanged, returns the very same result rather than
+        recalculating it. Gradients are unaffected, as the returned tensor carries the autograd
+        graph it was originally built with. Note that a repeated call therefore hands back the
+        same tensor object, which must not be modified in place. Memoization can be turned off
+        per fuzzy set with cache_membership=False, or reset with clear_membership_cache().
 
         Args:
             observations: Two-dimensional matrix of observations, where a row is a single
             observation and each column is related to an attribute measured during that observation.
 
         Returns:
-            The membership degrees of the observations for the Gaussian fuzzy set.
+            The membership degrees of the observations for this fuzzy set.
         """
+        cached: Optional[Membership] = self._lookup_membership(observations)
+        if cached is not None:
+            return cached
+
+        original_observations: torch.Tensor = observations
+        if observations.ndim == self.get_centers().ndim:
+            observations = observations.unsqueeze(dim=-1)
+
+        degrees: torch.Tensor = self._calculate_membership_nan_safe(
+            self.prepare_observations(observations)
+        )
+
+        if self._validate_degrees:
+            assert (
+                not degrees.isnan().any()
+            ), "NaN values detected in the membership degrees."
+            assert (
+                not degrees.isinf().any()
+            ), "Infinite values detected in the membership degrees."
+
+        membership = Membership(
+            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
+            mask=self.get_mask(),
+        )
+        self._store_membership(original_observations, membership)
+        return membership

@@ -21,9 +21,12 @@ class RuleBase(torch.nn.Module):
     used to perform fuzzy logic inference more efficiently than using a list of rules.
     """
 
-    def __init__(
-        self, rules: List[Rule], device: Union[None, torch.device], *args, **kwargs
-    ):
+    def __init__(self,
+                 rules: List[Rule],
+                 device: Union[None,
+                               torch.device],
+                 *args,
+                 **kwargs):
         """
         Initialize the RuleBase object.
 
@@ -38,7 +41,8 @@ class RuleBase(torch.nn.Module):
         self.rules: List[Rule] = rules
         self.device: Union[None, torch.device] = device
         self.premises: TNorm = self._combine_t_norms(attribute="premise")
-        self.consequences: TNorm = self._combine_t_norms(attribute="consequence")
+        self.consequences: TNorm = self._combine_t_norms(
+            attribute="consequence")
 
     def __len__(self) -> int:
         return len(self.rules)
@@ -47,12 +51,17 @@ class RuleBase(torch.nn.Module):
         return hash(tuple(self.rules))
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, RuleBase) or len(self.rules) != len(other.rules):
+        if not isinstance(
+            other, RuleBase) or len(
+            self.rules) != len(
+                other.rules):
             return False
         # order matters here
         return all(
-            rule == other_rule for rule, other_rule in zip(self.rules, other.rules)
-        )
+            rule == other_rule for rule,
+            other_rule in zip(
+                self.rules,
+                other.rules))
 
     def __getitem__(self, idx: int) -> Rule:
         return self.rules[idx]
@@ -94,9 +103,34 @@ class RuleBase(torch.nn.Module):
                 f"The rules have different TNorm types for {attribute}. This is not supported yet."
             )
         t_norm_type: TNorm = t_norm_types.pop()
-        # find the device to move the TNorm to
+
+        # the combined TNorm must behave exactly like the rules it replaces would have,
+        # not silently fall back to NAryRelation's defaults - so nan_replacement and
+        # method must agree across all the rules being combined, the same way
+        # t_norm_types must agree above
+        nan_replacements = {
+            getattr(rule, attribute).nan_replacement for rule in self.rules
+        }
+        if len(nan_replacements) > 1:
+            raise NotImplementedError(
+                f"The rules have different nan_replacement values for {attribute}. "
+                f"This is not supported yet.")
+        nan_replacement: float = nan_replacements.pop()
+
+        methods = {getattr(rule, attribute).method for rule in self.rules}
+        if len(methods) > 1:
+            raise NotImplementedError(
+                f"The rules have different methods for {attribute}. This is not supported yet."
+            )
+        method = methods.pop()
+
+        # find the device to move the TNorm to; resolved through a throwaway tensor so an
+        # unindexed device (e.g. torch.device("cuda")) and its indexed form (e.g.
+        # torch.device("cuda", 0)) - which refer to the same physical device but do not
+        # compare equal - are correctly treated as the same device here
         devices: Set[torch.device] = {
-            getattr(rule, attribute).device for rule in self.rules
+            torch.empty(0, device=getattr(rule, attribute).device).device
+            for rule in self.rules
         }
         device: Union[None, torch.device] = self.device
         if self.device is None:
@@ -110,6 +144,8 @@ class RuleBase(torch.nn.Module):
         return t_norm_type(
             *[list(getattr(rule, attribute).indices[0]) for rule in self.rules],
             device=device,
+            nan_replacement=nan_replacement,
+            method=method,
         )
 
     def save(self, path: Path) -> None:

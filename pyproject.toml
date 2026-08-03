@@ -42,3 +42,6 @@ ignore = ["*.git", "*.hg", ".git/**", ".hg/**"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fuzzy"]
+
+[tool.isort]
+known_first_party=["fuzzy", "regime"]

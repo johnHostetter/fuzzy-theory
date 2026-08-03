@@ -9,19 +9,22 @@ and fuzzy logic rule matrices. These components may then be used to create a fuz
 
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, List, MutableMapping, Type, Union
+from typing import Any, List, MutableMapping, Optional, Type, Union
 
 import torch
+import torch.utils.checkpoint
 
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.sets.abstract import FuzzySet
 
+from ...relations.n_ary import NAryRelation
 from ...relations.t_norm import TNorm
 from ...sets import FuzzySetGroup
+from ...utils import load_module_class
 from .configurations.abstract import FuzzySystem
 from .configurations.data import GranulationLayers, Shape
 from .configurations.impl import Defined
-from .defuzzification import Defuzzification
+from .defuzzification import Defuzzification, TSK
 
 
 class FuzzyLogicController(torch.nn.Sequential):
@@ -36,6 +39,8 @@ class FuzzyLogicController(torch.nn.Sequential):
         inference: Type[Defuzzification],
         device: torch.device,
         disabled_parameters: Union[None, List[str]] = None,
+        max_batch_chunk: Optional[int] = None,
+        gradient_checkpointing: bool = False,
         **kwargs,
     ):
         super().__init__(*[], **kwargs)
@@ -45,6 +50,8 @@ class FuzzyLogicController(torch.nn.Sequential):
         self.source = source
         self.device: torch.device = device
         self.disabled_parameters: List[str] = disabled_parameters
+        self.max_batch_chunk: Optional[int] = max_batch_chunk
+        self.gradient_checkpointing: bool = gradient_checkpointing
 
         # A = torch.ones((self.source.configuration["algorithm"].learning.batch.selection,
         #                 self.shape.n_outputs),
@@ -85,6 +92,13 @@ class FuzzyLogicController(torch.nn.Sequential):
             )
         )
 
+        # bind the correct defuzzification call to avoid try/except on every
+        # forward
+        if isinstance(defuzzification, TSK):
+            self._defuzzify = self._defuzzify_tsk
+        else:
+            self._defuzzify = self._defuzzify_standard
+
     @property
     def shape(self) -> Shape:
         """
@@ -116,7 +130,7 @@ class FuzzyLogicController(torch.nn.Sequential):
         self.input_granulation.save(
             path / "input"
         )  # save the input granulation layer (drop the extension)
-        self.engine.save(path / "engine.pt")  # save the inference engine
+        self.engine.save(path / "engine")  # save the inference engine
         self.defuzzification.save(
             path / "defuzzification"
         )  # save the defuzzification method
@@ -136,8 +150,14 @@ class FuzzyLogicController(torch.nn.Sequential):
         """
         # load the components from their respective directories
         input_granules = FuzzySetGroup.load(path / "input", device=device)
-        engine = TNorm.load(path / "engine", device=device)
-        defuzzification = Defuzzification.load(path / "defuzzification", device=device)
+        module_class_path: Path = next((path / "engine").iterdir())
+        klass = load_module_class(module_class_path.name)
+        assert issubclass(
+            klass, TNorm
+        ), "The loaded class type must be an instance of TNorm."
+        engine: NAryRelation = klass.load(module_class_path, device=device)
+        defuzzification = Defuzzification.load(
+            path / "defuzzification", device=device)
 
         # load the FLC state dictionary for the remaining components
         state_dict: MutableMapping[str, Any] = torch.load(
@@ -256,8 +276,40 @@ class FuzzyLogicController(torch.nn.Sequential):
             targets=None if len(results_lst) < 2 else results_lst[1],
         )
 
+    def _defuzzify_tsk(
+            self,
+            observations: torch.Tensor,
+            rule_strengths) -> torch.Tensor:
+        return self.defuzzification(
+            observations=observations,
+            rule_activations=rule_strengths)
+
+    def _defuzzify_standard(
+            self,
+            observations: torch.Tensor,
+            rule_strengths) -> torch.Tensor:
+        return self.defuzzification(rule_strengths)
+
+    def _forward_impl(
+        self, observations: torch.Tensor  # pylint: disable=redefined-builtin
+    ) -> torch.Tensor:
+        """
+        Core forward pass implementing the fuzzy inference pipeline:
+        fuzzification, rule evaluation, and defuzzification.
+        """
+        granulated_input = self.input_granulation(observations)
+
+        if self.gradient_checkpointing and self.training:
+            rule_strengths = torch.utils.checkpoint.checkpoint(
+                self.engine, granulated_input, use_reentrant=False
+            )
+        else:
+            rule_strengths = self.engine(granulated_input)
+
+        return self._defuzzify(observations, rule_strengths)
+
     def forward(
-        self, input: torch.Tensor  # pylint: disable=redefined-builtin
+        self, observations: torch.Tensor  # pylint: disable=redefined-builtin
     ) -> torch.Tensor:
         """
         Forward pass for the FLC. This is the main method that will be called when the FLC is used
@@ -265,26 +317,17 @@ class FuzzyLogicController(torch.nn.Sequential):
         fuzzification, rule evaluation, and defuzzification.
 
         Args:
-            input: The input (observations) to perform the fuzzy inference on.
+            observations: The observations to perform the fuzzy inference on.
 
         Returns:
             The defuzzified output of the FLC.
         """
-        # return self.net(input)
-        # fuzzification
-        granulated_input = self.input_granulation(input)
-        # A = torch.ones((self.shape.n_inputs, self.shape.n_outputs), device=input.device)
-        # return torch.mm(granulated_input.degrees.mean(dim=-1), A)
-
-        # rule evaluation
-        rule_strengths = self.engine(granulated_input)
-
-        # return self.net(input)
-
-        # defuzzification
-        try:  # TSK
-            return self.defuzzification(rule_strengths, observations=input)
-        except TypeError:  # Mamdani, ZeroOrder, etc.
-            return self.defuzzification(rule_strengths)
-
-        # return self.net(input)
+        if self.max_batch_chunk is not None and observations.shape[0] > self.max_batch_chunk:
+            return torch.cat(
+                [
+                    self._forward_impl(chunk)
+                    for chunk in observations.split(self.max_batch_chunk)
+                ],
+                dim=0,
+            )
+        return self._forward_impl(observations=observations)

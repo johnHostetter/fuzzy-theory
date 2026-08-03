@@ -28,8 +28,19 @@ class Rule:
         premise: Union[NAryRelation, Type[NAryRelation]],
         consequence: Union[NAryRelation, Type[NAryRelation]],
     ):
-        if len(premise.indices) > 1 or len(consequence.indices) > 1:
-            raise ValueError("Only unary relations are supported to create a Rule.")
+        for name, relation in (
+                ("premise", premise), ("consequence", consequence)):
+            if len(relation.indices) == 0:
+                # e.g. an NAryRelation built from grouped_links= rather than indices;
+                # allowing this through would crash later, in KnowledgeBase.create(),
+                # with a confusing error unrelated to the actual mistake
+                raise ValueError(
+                    f"The {name} of a Rule must be built from indices (not "
+                    f"grouped_links), but it has none."
+                )
+            if len(relation.indices) > 1:
+                raise ValueError(
+                    "Only unary relations are supported to create a Rule.")
         self.premise = premise
         self.consequence = consequence
         self.id = Rule.next_id
@@ -37,6 +48,17 @@ class Rule:
 
     def __str__(self) -> str:
         return f"IF {self.premise} THEN {self.consequence}"
+
+    def __repr__(self) -> str:
+        # @dataclass would otherwise auto-generate a __repr__ from the only declared
+        # field, next_id - a shared class-level counter used to auto-assign ids, not
+        # actual per-instance state - producing a genuinely misleading Rule(next_id=N)
+        # wherever Python calls repr() instead of str() (e.g. printing a
+        # List[Rule])
+        return (
+            f"Rule(id={self.id}, premise={self.premise}, "
+            f"consequence={self.consequence})"
+        )
 
     def __hash__(self) -> int:
         return hash(self.premise) + hash(self.consequence) + hash(self.id)
@@ -59,8 +81,7 @@ class Rule:
         if "." in path.name:
             raise ValueError(
                 f"The path to save the {self.__class__} must not have a file extension, "
-                f"but got {path.name}"
-            )
+                f"but got {path.name}")
 
         path.mkdir(parents=True, exist_ok=True)
         self.premise.save(
@@ -95,7 +116,8 @@ class Rule:
             )
 
         premise = NAryRelation.load(path / premise_location, device=device)
-        consequence = NAryRelation.load(path / consequence_location, device=device)
+        consequence = NAryRelation.load(
+            path / consequence_location, device=device)
         with open(path / "id.txt", "r", encoding="utf-8") as f:
             rule_id = int(f.read())
         obj = cls(premise, consequence)

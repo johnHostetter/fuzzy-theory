@@ -8,6 +8,23 @@ architecture. If interested in selecting from these options, see design_options.
 from enum import Enum
 
 
+class DimensionEnum(str, Enum):
+    """
+    Provides consistent access to frequently used dimensions and their associated names.
+    """
+
+    BATCH = "batch"
+    SEQ = "seq"  # use to refer to temporal dimension
+    CHANNEL = "channel"  # use to refer to image channel
+    VARIABLE = "variable"  # use when unsure of direction
+    TERM = "term"  # use when unsure of direction
+    INPUT_VARIABLE = "input_variable"
+    INPUT_TERM = "input_term"
+    RULE = "rule"
+    OUT_TERM = "output_term"
+    OUT_VARIABLE = "output_variable"
+
+
 class PremiseAggregationEnum(str, Enum):
     """
     The aggregation method for premise activations.
@@ -23,7 +40,7 @@ class PremiseEliminationEnum(str, Enum):
     """
 
     NONE = "none"  # no premise elimination
-    NO_OP = "no_op"  # use the no-op procedure where it is possible for a fake fuzzy set to be
+    # NO_OP = "no_op"  # use the no-op procedure where it is possible for a fake fuzzy set to be
     # used that has no impact or influence (represents "don't care" membership
     # function)
 
@@ -33,8 +50,11 @@ class BoundAlphaEntmaxEnum(str, Enum):
     What technique we should use to keep the alpha within (1, 2) when using entmax_bisect.
     """
 
+    # NONE = "none"  # only valid if no learnable alpha is used for
+    # alpha-entmax
     SIGMOID = "sigmoid_reparameterization"
     TANH = "scaled_tanh"
+    HARD_TANH = "hard_tanh"
     SOFTPLUS = "softplus_add_shift"
 
 
@@ -46,12 +66,23 @@ class PremiseActivationEnum(str, Enum):
 
     SOFTMAX = "softmax"  # (alpha=1) default -- no modification
     ENTMAX15 = "entmax15"  # (alpha=1.5) non-tunable -- some sparsity
-    # SPARSEMAX = "sparsemax"  # (alpha=2) included for completeness, but strongly advise against it
-    # ENTMAX_BISECT = "entmax_bisect"  # differentiable w.r.t. X & alpha
+    # SPARSEMAX = "sparsemax"  # (alpha=2) included for completeness, but
+    # strongly advise against it
+    ENTMAX_BISECT = "entmax_bisect"  # differentiable w.r.t. X & alpha
     # SPARSEMAX_BISECT = "sparsemax_bisect",  # only normalizes along last dim (not implemented)
     # NORMMAX_BISECT = "normmax_bisect",  # differentiable w.r.t. X (not implemented)
     # BUDGET_BISECT = "budget_bisect",  # differentiable w.r.t. X (not
     # implemented)
+
+
+class NeurogenesisEnum(str, Enum):
+    """
+    How to create and add new fuzzy sets to the neuro-fuzzy network.
+    """
+
+    NONE = "none"  # static premise layer
+    # Hostetter's 2025 dissertation
+    MODIFIED_DELAYED_WELFORD = "modified_delayed_welford"
 
 
 class SamplingEnum(str, Enum):
@@ -61,7 +92,7 @@ class SamplingEnum(str, Enum):
 
     # w/ noise ~ Gumbel(0, 1)
     ST_GUMBEL_SOFTMAX = "straight_through_gumbel_softmax"
-    ST = "straight_through"  # no noise
+    # ST = "straight_through"  # no noise
 
 
 class RuleWeightsEnum(str, Enum):
@@ -80,9 +111,9 @@ class RuleEliminationEnum(str, Enum):
     """
 
     NONE = "none"  # no rule elimination
-    NO_OP = (
-        "no_op"  # use the no-op procedure where it is possible for a fuzzy logic rule's
-    )
+    # NO_OP = (
+    #     "no_op"  # use the no-op procedure where it is possible for a fuzzy logic rule's
+    # )
     # consequence to be ineffective (essentially dropping it from influence)
 
 
@@ -95,3 +126,28 @@ class RuleElevationEnum(str, Enum):
 
     NONE = "none"
     LAYER_NORMALIZATION = "layer_normalization"
+
+
+class ConsequenceInitEnum(str, Enum):
+    """
+    Initialization method for consequence parameters when no source data is provided.
+    """
+
+    XAVIER_NORMAL = "xavier_normal"
+    XAVIER_UNIFORM = "xavier_uniform"
+    KAIMING_NORMAL = "kaiming_normal"
+    KAIMING_UNIFORM = "kaiming_uniform"
+    ZEROS = "zeros"
+    NORMAL = "normal"
+    UNIFORM = "uniform"
+
+
+class DefuzzificationMethodEnum(str, Enum):
+    """
+    This allows for the selection of various implemented defuzzification methods in fuzzy inference.
+    """
+
+    TSK = "tsk"
+    ZERO_ORDER_TSK = "zero_order_tsk"
+    MAMDANI = "mamdani"
+    CP_DECOMPOSED_TSK = "cp_decomposed_tsk"

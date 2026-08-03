@@ -6,7 +6,7 @@ LogisticCurve fuzzy sets.
 """
 
 from ._registry import MEMBERSHIP_FUNCTIONS
-from .basic import LogisticCurve, Lorentzian, NoOp, Triangular
+from .basic import LogisticCurve, Lorentzian, NoOp, Trapezoidal, Triangular
 from .gauss_variants.cmf import Gaussian, LogGaussian
 
 # from .dmf import GaussianDMF

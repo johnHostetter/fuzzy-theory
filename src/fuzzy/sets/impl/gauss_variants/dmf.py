@@ -27,7 +27,6 @@ import torch
 
 from fuzzy.sets.abstract import FuzzySet
 from fuzzy.sets.impl.gauss_variants.cmf import Gaussian, LogGaussian
-from fuzzy.sets.membership import Membership
 
 
 class DimensionDependent(FuzzySet, abc.ABC):
@@ -58,7 +57,9 @@ class DimensionDependent(FuzzySet, abc.ABC):
         )
 
     @staticmethod
-    def _calculate_rho(n_inputs: torch.Tensor, device: torch.device) -> torch.Tensor:
+    def _calculate_rho(
+            n_inputs: torch.Tensor,
+            device: torch.device) -> torch.Tensor:
         with torch.no_grad():
             return (
                 torch.ones(1, device=device)
@@ -138,22 +139,8 @@ class GaussianNoExpDMF(DimensionDependent):
             rho=self.rho,
         )
 
-    def forward(self, observations) -> Membership:
-        if observations.ndim == self.get_centers().ndim:
-            observations = observations.unsqueeze(dim=-1)
-        degrees: torch.Tensor = self.calculate_membership(observations.float())
-
-        # assert (
-        #     not degrees.isnan().any()
-        # ), "NaN values detected in the membership degrees."
-        # assert (
-        #     not degrees.isinf().any()
-        # ), "Infinite values detected in the membership degrees."
-
-        return Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
-        )
+    def prepare_observations(self, observations: torch.Tensor) -> torch.Tensor:
+        return observations.float()
 
 
 class GaussianDMF(DimensionDependent):
@@ -230,19 +217,5 @@ class GaussianDMF(DimensionDependent):
             rho=self.rho,
         )
 
-    def forward(self, observations) -> Membership:
-        if observations.ndim == self.get_centers().ndim:
-            observations = observations.unsqueeze(dim=-1)
-        degrees: torch.Tensor = self.calculate_membership(observations.float())
-
-        # assert (
-        #     not degrees.isnan().any()
-        # ), "NaN values detected in the membership degrees."
-        # assert (
-        #     not degrees.isinf().any()
-        # ), "Infinite values detected in the membership degrees."
-
-        return Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
-        )
+    def prepare_observations(self, observations: torch.Tensor) -> torch.Tensor:
+        return observations.float()

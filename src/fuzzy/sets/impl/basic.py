@@ -12,8 +12,8 @@ import torch
 
 from ...utils import check_path_to_save_torch_module
 from ...utils.classes import Loggable
-from ..abstract import FuzzySet
-from ..membership import Membership
+from ..abstract import DynamicParameterList, FuzzySet
+from ..cache import ParameterSignature, signature_of
 
 
 class NoOp(FuzzySet):
@@ -22,8 +22,11 @@ class NoOp(FuzzySet):
     """
 
     def __init__(
-        self, n_elements: int, membership: float, device: torch.device, **kwargs
-    ):
+            self,
+            n_elements: int,
+            membership: float,
+            device: torch.device,
+            **kwargs):
         centers = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         widths = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         self.membership = membership  # the flat membership degree of the NoOp fuzzy set
@@ -114,31 +117,15 @@ class NoOp(FuzzySet):
             membership_degree=self.membership,
         )
 
-    # pylint: disable=duplicate-code
-    def forward(self, observations) -> Membership:
-        if observations.ndim == self.get_centers().ndim:
-            observations = observations.unsqueeze(dim=-1)
-        degrees: torch.Tensor = self.calculate_membership(observations)
-
-        # assert (
-        #     not degrees.isnan().any()
-        # ), "NaN values detected in the membership degrees."
-        # assert (
-        #     not degrees.isinf().any()
-        # ), "Infinite values detected in the membership degrees."
-
-        return Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
-        )
-
-    # pylint: enable=duplicate-code
-
 
 class Lorentzian(FuzzySet):
     """
     Implementation of the Lorentzian membership function, written in PyTorch.
     """
+
+    # unlike the other fuzzy sets, Lorentzian's asserts on NaN/Inf were
+    # previously live
+    _validate_degrees: bool = True
 
     @property
     @torch.jit.ignore
@@ -210,26 +197,6 @@ class Lorentzian(FuzzySet):
             centers=self.get_centers(),
             widths=self.get_widths(),
         )
-
-    # pylint: disable=duplicate-code
-    def forward(self, observations) -> Membership:
-        if observations.ndim == self.get_centers().ndim:
-            observations = observations.unsqueeze(dim=-1)
-        degrees: torch.Tensor = self.calculate_membership(observations)
-
-        assert (
-            not degrees.isnan().any()
-        ), "NaN values detected in the membership degrees."
-        assert (
-            not degrees.isinf().any()
-        ), "Infinite values detected in the membership degrees."
-
-        return Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
-        )
-
-    # pylint: enable=duplicate-code
 
 
 class LogisticCurve(torch.nn.Module, Loggable):
@@ -344,22 +311,174 @@ class Triangular(FuzzySet):
             widths=self.get_widths(),
         )
 
-    # pylint: disable=duplicate-code
-    def forward(self, observations) -> Membership:
-        if observations.ndim == self.get_centers().ndim:
-            observations = observations.unsqueeze(dim=-1)
-        degrees: torch.Tensor = self.calculate_membership(observations)
 
-        # assert (
-        #     not degrees.isnan().any()
-        # ), "NaN values detected in the membership degrees."
-        # assert (
-        #     not degrees.isinf().any()
-        # ), "Infinite values detected in the membership degrees."
+class Trapezoidal(FuzzySet):
+    """
+    Implementation of the Trapezoidal membership function, written in PyTorch.
 
-        return Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
+    Parameterized by centers, widths, and plateaus:
+    - centers (c): center of the trapezoid
+    - widths (w): half-width from center to outer foot
+    - plateaus (p): half-width of the flat top region
+
+    When plateaus = 0, this degenerates to a Triangular membership function.
+    """
+
+    def __init__(
+        self,
+        centers,
+        widths,
+        device: torch.device,
+        plateaus=None,
+        **kwargs,
+    ):
+        super().__init__(centers=centers, widths=widths, device=device, **kwargs)
+        if plateaus is None:
+            plateaus = np.zeros_like(widths)
+        if not isinstance(plateaus, np.ndarray):
+            raise ValueError(
+                f"The plateaus of a Trapezoidal fuzzy set must be a numpy array, "
+                f"but got {type(plateaus)}")
+        if plateaus.ndim == 1:
+            plateaus = plateaus[None, :]
+        self._plateaus = DynamicParameterList(
+            init_params=[plateaus], dtype=torch.float32, device=device
         )
 
-    # pylint: enable=duplicate-code
+    def get_plateaus(self) -> torch.Tensor:
+        """
+        Get the concatenated plateaus of the Trapezoidal fuzzy set.
+
+        Returns:
+            The concatenated plateaus of the fuzzy set.
+        """
+        return self._plateaus.tensor
+
+    @staticmethod
+    def internal_calculate_membership(
+        centers: torch.Tensor,
+        widths: torch.Tensor,
+        plateaus: torch.Tensor,
+        observations: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Calculate the membership of the observations to the Trapezoidal fuzzy set.
+        This is a static method, so it can be called without instantiating the class.
+
+        Args:
+            centers: The centers of the Trapezoidal fuzzy set.
+            widths: The widths (half-widths to outer foot) of the Trapezoidal fuzzy set.
+            plateaus: The plateaus (half-widths of flat top) of the Trapezoidal fuzzy set.
+            observations: The observations to calculate the membership for.
+
+        Returns:
+            The membership degrees of the observations for the Trapezoidal fuzzy set.
+        """
+        return torch.clamp(
+            (widths - torch.abs(observations - centers)) / (widths - plateaus),
+            0.0,
+            1.0,
+        )
+
+    @classmethod
+    @torch.jit.ignore
+    def sympy_formula(cls) -> sympy.Expr:
+        c = sympy.Symbol("c")
+        w = sympy.Symbol("w")
+        p = sympy.Symbol("p")
+        x = sympy.Symbol("x")
+        return sympy.sympify(
+            f"Min(Max(({w} - Abs({x} - {c})) / ({w} - {p}), 0.0), 1.0)"
+        )
+
+    def calculate_membership(self, observations: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the function. Applies the function to the input elementwise.
+
+        Args:
+            observations: Two-dimensional matrix of observations,
+            where a row is a single observation and each column
+            is related to an attribute measured during that observation.
+
+        Returns:
+            The membership degrees of the observations for the Trapezoidal fuzzy set.
+        """
+        return Trapezoidal.internal_calculate_membership(
+            observations=observations,
+            centers=self.get_centers(),
+            widths=self.get_widths(),
+            plateaus=self.get_plateaus(),
+        )
+
+    def parameter_signature(self) -> ParameterSignature:
+        """
+        Extend the base signature with 'plateaus': it is a learnable parameter that
+        calculate_membership also depends on, so the membership cache must be able to tell
+        when it - not just centers/widths - has changed.
+
+        Returns:
+            A signature of this fuzzy set's parameters, including plateaus.
+        """
+        return signature_of(
+            [
+                self.get_centers(),
+                self.get_widths(),
+                self.get_mask(),
+                self.get_plateaus(),
+            ]
+        )
+
+    def to(self, *args, **kwargs):
+        super().to(*args, **kwargs)
+        self._plateaus = self._plateaus.to(*args, **kwargs)
+        # the base to() already clears the cache, but that happens before _plateaus (a
+        # parameter the cache also depends on) has itself been moved
+        self.clear_membership_cache()
+        return self
+
+    def save(self, path: Path) -> MutableMapping[str, Any]:
+        check_path_to_save_torch_module(path)
+        state_dict: MutableMapping = self.state_dict()
+        state_dict["class_name"] = self.__class__.__name__
+        state_dict["centers"] = self.get_centers()
+        state_dict["widths"] = self.get_widths()
+        state_dict["plateaus"] = self.get_plateaus()
+        state_dict["mask"] = self.get_mask()
+        torch.save(state_dict, path)
+        return state_dict
+
+    @classmethod
+    def load(cls, path: Path, device: torch.device) -> "Trapezoidal":
+        state_dict: MutableMapping = torch.load(path, weights_only=False)
+        centers = state_dict.pop("centers")
+        widths = state_dict.pop("widths")
+        plateaus = state_dict.pop("plateaus")
+        state_dict.pop("class_name", None)
+        return cls(
+            centers=centers.cpu().detach().numpy(),
+            widths=widths.cpu().detach().numpy(),
+            plateaus=plateaus.cpu().detach().numpy(),
+            device=device,
+        )
+
+    @torch.jit.ignore
+    def __eq__(self, other: Any) -> bool:
+        return (
+            isinstance(other, type(self))
+            and torch.equal(self.get_centers(), other.get_centers())
+            and torch.equal(self.get_widths(), other.get_widths())
+            and torch.equal(self.get_plateaus(), other.get_plateaus())
+        )
+
+    @torch.jit.ignore
+    def __hash__(self):
+        # hash by value (matching __eq__ above), not by the tensors' identity-based default
+        # hash - see FuzzySet.__hash__ for why that distinction matters
+        return hash(
+            (
+                type(self),
+                tuple(self.get_centers().flatten().tolist()),
+                tuple(self.get_widths().flatten().tolist()),
+                tuple(self.get_plateaus().flatten().tolist()),
+            )
+        )

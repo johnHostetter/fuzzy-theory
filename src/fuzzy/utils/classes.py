@@ -85,18 +85,16 @@ class TimeDistributed(torch.nn.Module):
 
         module_output = self.module(reshaped_input_data)
 
-        # reshape the output back to the original shape
+        # reshape the output back to the original shape; this is independent of
+        # batch_first, since unflattening a (dim0 * dim1, ...) tensor always restores
+        # the original leading-dimension order, regardless of what those two
+        # dimensions semantically represent
         output_dim = 1
         if module_output.ndim == 2:
             output_dim = module_output.size(-1)
-        if self.batch_first:
-            module_output = module_output.contiguous().view(
-                input_data.size(0), input_data.size(1), output_dim
-            )  # (samples, timesteps, output_size)
-        else:
-            module_output = module_output.view(
-                input_data.size(1), input_data.size(0), output_dim
-            )  # (timesteps, samples, output_size)
+        module_output = module_output.contiguous().view(
+            input_data.size(0), input_data.size(1), output_dim
+        )
 
         return module_output
 
@@ -151,8 +149,7 @@ class TorchJitModule(torch.nn.Module, ABC):
         if fuzzy_set_class is None:
             raise ValueError(
                 f"The class {class_name} was not found in the subclasses of "
-                f"{cls}. Please ensure that {class_name} is a subclass of {cls}."
-            )
+                f"{cls}. Please ensure that {class_name} is a subclass of {cls}.")
         return fuzzy_set_class
 
 
@@ -174,14 +171,12 @@ class NestedTorchJitModule(torch.nn.Module):
         Note: This does not preserve ParameterList structures, but rather concatenates the
         parameters into a single tensor, which is then saved to a file.
 
+        Args:
+            path: The path to save the NestedTorchJitModule to; it must be a directory.
+
         Returns:
             None
         """
-        if "." in path.name:
-            raise ValueError(
-                f"The path to save the {self.__class__} must not have a file extension, "
-                f"but got {path.name}"
-            )
         # get the attributes that are local to the class, but not inherited
         # from the super class
         local_attributes_only = get_object_attributes(self)
@@ -205,24 +200,30 @@ class NestedTorchJitModule(torch.nn.Module):
                         # save the fuzzy set using the fuzzy set's special
                         # protocol
                         module.save(
-                            path / attr / str(idx) / f"{module.__class__.__name__}.pt"
-                        )
+                            path / attr / str(idx) / f"{module.__class__.__name__}.pt")
                     else:
                         # unknown and unrecognized module, but attempt to save
                         # the module
                         torch.save(
                             module,
-                            path / attr / str(idx) / f"{module.__class__.__name__}.pt",
+                            path /
+                            attr /
+                            str(idx) /
+                            f"{module.__class__.__name__}.pt",
                         )
                 # remove the torch.nn.ModuleList from the local attributes
                 del local_attributes_only[attr]
 
         # save the remaining attributes
         with open(path / f"{self.__class__.__name__}.pickle", "wb") as handle:
-            pickle.dump(local_attributes_only, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(
+                local_attributes_only,
+                handle,
+                protocol=pickle.HIGHEST_PROTOCOL)
 
     @classmethod
-    def load(cls, path: Path, device: torch.device, **kwargs) -> "NestedTorchJitModule":
+    def load(cls, path: Path, device: torch.device,
+             **kwargs) -> "NestedTorchJitModule":
         """
         Load the torch.nn.Module from the given path.
 
@@ -316,7 +317,10 @@ class NestedTorchJitModule(torch.nn.Module):
                 except ValueError:
                     # unknown and unrecognized module, but attempt to
                     # load the module
-                    modules_list.append(torch.load(module_path, weights_only=False))
+                    modules_list.append(
+                        torch.load(
+                            module_path,
+                            weights_only=False))
             else:
-                raise UserWarning(f"Unexpected file found in {path}: {subdirectory}")
+                pass  # Unexpected file found (might be a *.yaml)
         return modules_list

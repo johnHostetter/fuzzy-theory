@@ -35,7 +35,8 @@ class TestEqualityOfTNorms(unittest.TestCase):
             None
         """
         minimum_t_norm = Minimum((0, 0), (1, 1), device=AVAILABLE_DEVICE)
-        another_minimum_t_norm = Minimum((0, 0), (1, 1), device=AVAILABLE_DEVICE)
+        another_minimum_t_norm = Minimum(
+            (0, 0), (1, 1), device=AVAILABLE_DEVICE)
         self.assertEqual(minimum_t_norm, another_minimum_t_norm)
 
     def test_other_not_n_ary(self) -> None:

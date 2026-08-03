@@ -26,9 +26,15 @@ class BinaryLinks(torch.nn.Module, Loggable):
     performing network morphism.
     """
 
-    def __init__(self, links: np.ndarray, device: torch.device, *args, **kwargs):
+    def __init__(
+            self,
+            links: np.ndarray,
+            device: torch.device,
+            *args,
+            **kwargs):
         super().__init__(*args, **kwargs)
-        self.links: torch.Tensor = torch.tensor(links, dtype=torch.int8, device=device)
+        self.links: torch.Tensor = torch.tensor(
+            links, dtype=torch.int8, device=device)
         # indices: torch.Tensor = torch.tensor(links.nonzero(), device=device)
         # self.links = torch.sparse_coo_tensor(
         #     indices=indices, values=torch.ones(indices.shape[1], dtype=torch.bool, device=device),
@@ -48,14 +54,14 @@ class BinaryLinks(torch.nn.Module, Loggable):
         self.device: torch.device = device
 
     # @log_method
-    def __hash__(self) -> int:
-        return hash(self.links)
-
-    # @log_method
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, BinaryLinks) and torch.equal(
             self.links.to_dense(), other.links.to_dense()
         )
+
+    # @log_method
+    def __hash__(self) -> int:
+        return hash(self.links)
 
     @property
     # @log_method
@@ -154,6 +160,20 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         self._compute_shape_cache()
         # self.streams = [torch.cuda.Stream() for _ in range(len(self.modules_list))]
 
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, GroupedLinks):
+            links = self.forward(membership=None)
+            other_links = self.forward(membership=None)
+            return (
+                links.shape == other_links.shape
+                and torch.allclose(links, other_links)
+                and self.membership_dimension == other.membership_dimension
+            )
+        return False
+
+    def __hash__(self) -> int:
+        return hash((self.forward(membership=None), self.membership_dimension))
+
     @property
     def shape(self) -> Size:
         """
@@ -197,9 +217,8 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         # splitting up logits/links for the purpose of intra-GPU parallelism, then you need to
         # change self.membership_dimension = 2
         # self.membership_dimension = 2
-        dim_sum = sum(
-            module.shape[self.membership_dimension] for module in self.modules_list[1:]
-        )
+        dim_sum = sum(module.shape[self.membership_dimension]
+                      for module in self.modules_list[1:])
         shape = tuple(
             s + dim_sum if i == self.membership_dimension else s
             for i, s in enumerate(base_shape)

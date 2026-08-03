@@ -10,7 +10,6 @@ import sympy
 import torch
 
 from ...abstract import FuzzySet
-from ...membership import Membership
 
 
 @dataclass(frozen=False)
@@ -45,20 +44,10 @@ class GeneralizedGuassian(FuzzySet):
                 f"The width multiplier must be > 0, but got"
                 f" {self._gaussian_kernel.width_multiplier}."
             )
-        self._width_multiplier = torch.nn.ParameterList(
-            [
-                self.make_parameter(
-                    self._gaussian_kernel.width_multiplier * np.ones_like(centers)
-                )
-            ]
-        )
-        self._slope_multiplier = torch.nn.ParameterList(
-            [
-                self.make_parameter(
-                    self._gaussian_kernel.slope_multiplier * np.ones_like(centers)
-                )
-            ]
-        )
+        self._width_multiplier = torch.nn.ParameterList([self.make_parameter(
+            self._gaussian_kernel.width_multiplier * np.ones_like(centers))])
+        self._slope_multiplier = torch.nn.ParameterList([self.make_parameter(
+            self._gaussian_kernel.slope_multiplier * np.ones_like(centers))])
 
     def get_width_multiplier(self) -> torch.Tensor:
         """
@@ -104,10 +93,8 @@ class GeneralizedGuassian(FuzzySet):
         Returns:
             The membership degrees of the observations for the Generalized Gaussian fuzzy set.
         """
-        vals = -1.0 * torch.pow(
-            (torch.pow(observations - centers, 2) / torch.pow(width_multiplier, 2)),
-            slope_multiplier,
-        )
+        vals = -1.0 * torch.pow((torch.pow(observations - centers, 2) /
+                                 torch.pow(width_multiplier, 2)), slope_multiplier, )
         # this works pretty well -- but does cause NaNs later on
         # vals = (
         #     -1.0 * torch.pow(observations - centers, 2) / torch.pow(width_multiplier, 2)
@@ -137,26 +124,6 @@ class GeneralizedGuassian(FuzzySet):
             slope_multiplier=self.get_slope_multiplier(),
         )
 
-    # pylint: disable=duplicate-code
-    def forward(self, observations) -> Membership:
-        if observations.ndim == self.get_centers().ndim:
-            observations = observations.unsqueeze(dim=-1)
-        degrees: torch.Tensor = self.calculate_membership(observations)
-
-        # assert (
-        #     not degrees.isnan().any()
-        # ), "NaN values detected in the membership degrees."
-        # assert (
-        #     not degrees.isinf().any()
-        # ), "Infinite values detected in the membership degrees."
-
-        return Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
-        )
-
-    # pylint: enable=duplicate-code
-
 
 class LogGaussian(FuzzySet):
     """
@@ -176,7 +143,6 @@ class LogGaussian(FuzzySet):
         super().__init__(centers=centers, widths=widths, device=device, **kwargs)
         self._gaussian_kernel = gaussian_kernel
         self.width_multiplier = self._gaussian_kernel.width_multiplier
-        self._buffer = None
         if int(self.width_multiplier) not in [1, 2]:
             raise ValueError(
                 "The width multiplier must be either 1.0 or 2.0, but got {self.width_multiplier}."
@@ -292,33 +258,6 @@ class LogGaussian(FuzzySet):
             centers=self.get_centers(),
             widths=self.get_widths(),
             width_multiplier=self.width_multiplier,
-            # buffer=self._buffer,
-        )
-
-    def forward(self, observations) -> Membership:
-        if self._buffer is None or self._buffer.shape != observations.shape:
-            self._buffer = torch.empty(
-                *observations.shape,
-                self.get_centers().shape[-1],
-                device=observations.device,
-                dtype=observations.dtype,
-            )
-
-        if observations.ndim == self.get_centers().ndim:
-            observations = observations.unsqueeze(dim=-1)
-
-        degrees: torch.Tensor = self.calculate_membership(observations)
-
-        # assert (
-        #     not degrees.isnan().any()
-        # ), "NaN values detected in the membership degrees."
-        # assert (
-        #     not degrees.isinf().any()
-        # ), "Infinite values detected in the membership degrees."
-
-        return Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
         )
 
 
@@ -375,23 +314,3 @@ class Gaussian(LogGaussian):
             widths=self.get_widths(),
             width_multiplier=1.0,
         )
-
-    # pylint: disable=duplicate-code
-    def forward(self, observations) -> Membership:
-        if observations.ndim == self.get_centers().ndim:
-            observations = observations.unsqueeze(dim=-1)
-        degrees: torch.Tensor = self.calculate_membership(observations)
-
-        # assert (
-        #     not degrees.isnan().any()
-        # ), "NaN values detected in the membership degrees."
-        # assert (
-        #     not degrees.isinf().any()
-        # ), "Infinite values detected in the membership degrees."
-
-        return Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
-            mask=self.get_mask(),
-        )
-
-    # pylint: enable=duplicate-code
