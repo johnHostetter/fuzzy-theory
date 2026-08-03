@@ -15,7 +15,7 @@ import torch
 
 from fuzzy.relations.compound import Compound
 from fuzzy.relations.linkage import BinaryLinks, GroupedLinks
-from fuzzy.relations.n_ary import NAryRelation
+from fuzzy.relations.n_ary import NAryMaskMethods, NAryRelation
 from fuzzy.relations.t_norm import Minimum, Product
 from fuzzy.sets.abstract import FuzzySet, FuzzySetInitMethod, FuzzySetShape
 from fuzzy.sets.group import FuzzySetGroup
@@ -27,6 +27,76 @@ N_VARIABLES: int = 4
 N_OBSERVATIONS: int = 3
 N_COMPOUNDS: int = 5
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+class _StochasticLinks(torch.nn.Module):
+    """
+    A minimal stand-in for a hypothetical non-deterministic links module (e.g. a future
+    Gumbel-Softmax-resampled logits module - see GroupedLinks' own docstring). Its forward()
+    returns a DIFFERENT value on every call, unlike BinaryLinks, which always returns the
+    same fixed tensor regardless of its argument. Used only to prove that NAryRelation's
+    links cache refuses to memoize anything that isn't provably a BinaryLinks.
+    """
+
+    def __init__(self, shape: torch.Size, device: torch.device):
+        super().__init__()
+        self._shape = shape
+        self._device = device
+        self.call_count = 0
+
+    @property
+    def shape(self) -> torch.Size:
+        """
+        Returns:
+            The shape of the (fake) links tensor this module would produce.
+        """
+        return self._shape
+
+    def forward(self, *_) -> torch.Tensor:
+        """
+        Returns:
+            A tensor filled with the current call count, so each call is trivially
+            distinguishable from the last.
+        """
+        self.call_count += 1
+        return torch.full(
+            self._shape, float(self.call_count), device=self._device
+        )
+
+
+class _SparseLinks(torch.nn.Module):
+    """
+    A minimal stand-in for a links module that returns an uncoalesced sparse tensor, used
+    only to exercise get_mask()'s defensive coalesce() branch. BinaryLinks always returns a
+    dense tensor, so this branch is otherwise unreachable through the public API today.
+    """
+
+    def __init__(self, shape: torch.Size, device: torch.device):
+        super().__init__()
+        self._shape = shape
+        self._device = device
+
+    @property
+    def shape(self) -> torch.Size:
+        """
+        Returns:
+            The shape of the (fake) sparse links tensor this module would produce.
+        """
+        return self._shape
+
+    def forward(self, *_) -> torch.Tensor:
+        """
+        Returns:
+            An uncoalesced sparse tensor with a duplicate index, filled with ones.
+        """
+        # a duplicate index makes the resulting sparse tensor uncoalesced
+        indices = torch.zeros(
+            (len(self._shape), 2), dtype=torch.long, device=self._device
+        )
+        values = torch.ones(2, device=self._device)
+        return torch.sparse_coo_tensor(
+            indices, values, size=self._shape, device=self._device
+        )
 
 
 class TestNAryRelation(unittest.TestCase):
@@ -347,6 +417,262 @@ class TestNAryRelation(unittest.TestCase):
             self.assertEqual(actual_module, loaded_module)
         # remove the directory and its contents
         shutil.rmtree(intended_destination)
+
+    def test_load_from_single_pt_file(self) -> None:
+        """
+        NAryRelation.load() supports loading from either a directory (the format save()
+        produces) or a single .pt file directly; the latter had no test coverage.
+
+        Returns:
+            None
+        """
+        n_ary = NAryRelation((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        state_dict: MutableMapping[str, Any] = n_ary.state_dict()
+        state_dict["nan_replacement"] = n_ary.nan_replacement
+        state_dict["class_name"] = "NAryRelation"
+        state_dict["indices"] = (
+            n_ary.indices if len(n_ary.indices) > 1 else n_ary.indices[0]
+        )
+        pt_path = Path("n_ary_relation_single_file.pt")
+        torch.save(state_dict, pt_path)
+        try:
+            loaded = NAryRelation.load(pt_path, device=AVAILABLE_DEVICE)
+            self.assertEqual(n_ary.indices, loaded.indices)
+            self.assertEqual(n_ary.nan_replacement, loaded.nan_replacement)
+        finally:
+            pt_path.unlink()
+
+    def test_unsupported_method_raises(self) -> None:
+        """
+        _cache_apply_mask_func() must raise NotImplementedError for any method value it
+        does not recognize.
+
+        Returns:
+            None
+        """
+        n_ary = NAryRelation((0, 1), device=AVAILABLE_DEVICE)
+        n_ary.method = "not_a_real_method"  # pylint: disable=protected-access
+        self.assertRaises(NotImplementedError, n_ary._cache_apply_mask_func)
+
+    def test_links_are_cacheable_false_when_grouped_links_none(self) -> None:
+        """
+        _links_are_cacheable() must report False (never crash) when grouped_links has not
+        been set up yet.
+
+        Returns:
+            None
+        """
+        n_ary = NAryRelation((0, 1), device=AVAILABLE_DEVICE)
+        n_ary.grouped_links = None
+        self.assertFalse(
+            n_ary._links_are_cacheable()  # pylint: disable=protected-access
+        )
+
+    def test_precompute_gather_indices_no_grouped_links(self) -> None:
+        """
+        _precompute_gather_indices() must report the relation as not gather-eligible
+        (never crash) when grouped_links has not been set up yet.
+
+        Returns:
+            None
+        """
+        n_ary = NAryRelation((0, 1), device=AVAILABLE_DEVICE)
+        n_ary.grouped_links = None
+        n_ary._precompute_gather_indices()  # pylint: disable=protected-access
+        self.assertFalse(n_ary._use_gather)  # pylint: disable=protected-access
+
+    def test_get_mask_coalesces_sparse_mask(self) -> None:
+        """
+        get_mask() must coalesce an uncoalesced sparse mask before returning it.
+        BinaryLinks never produces a sparse result, so this is exercised directly with a
+        fake links module instead.
+
+        Returns:
+            None
+        """
+        sparse_links = _SparseLinks(
+            shape=torch.Size([2, 2, 1]), device=AVAILABLE_DEVICE
+        )
+        n_ary = NAryRelation(
+            grouped_links=GroupedLinks(modules_list=[sparse_links]),
+            device=AVAILABLE_DEVICE,
+        )
+        mask = n_ary.get_mask()
+        self.assertTrue(mask.is_sparse)
+        self.assertTrue(mask.is_coalesced())
+
+    def test_links_cache_reused_on_second_call(self) -> None:
+        """
+        _ensure_links_cache() must not recompute the links on a second call when nothing
+        has changed (the common, BinaryLinks-only case): the exact same tensor object
+        should be reused.
+
+        Returns:
+            None
+        """
+        n_ary = NAryRelation((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        membership = self.test_gaussian_membership()
+        # pylint: disable=protected-access
+        n_ary._ensure_links_cache(membership)
+        first = n_ary._cached_links
+        n_ary._ensure_links_cache(membership)
+        second = n_ary._cached_links
+        # pylint: enable=protected-access
+        self.assertIs(first, second)
+
+    def test_links_not_cached_for_non_binary_links(self) -> None:
+        """
+        Regression/defensive test: a links module that is not BinaryLinks (e.g. a future
+        stochastic, Gumbel-Softmax-resampled module) must never be treated as cacheable,
+        since it could legitimately produce a different result on every call and this
+        cache has no way to detect that on its own.
+
+        Returns:
+            None
+        """
+        stochastic = _StochasticLinks(
+            shape=torch.Size([2, 2, 1]), device=AVAILABLE_DEVICE
+        )
+        grouped_links = GroupedLinks(modules_list=[stochastic])
+        n_ary = NAryRelation(grouped_links=grouped_links, device=AVAILABLE_DEVICE)
+        self.assertFalse(
+            n_ary._links_are_cacheable()  # pylint: disable=protected-access
+        )
+
+        membership = Membership(
+            degrees=torch.rand(3, 2, 2, device=AVAILABLE_DEVICE),
+            mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+        )
+        # pylint: disable=protected-access
+        n_ary._ensure_links_cache(membership)
+        first = n_ary._cached_links
+        n_ary._ensure_links_cache(membership)
+        second = n_ary._cached_links
+        # pylint: enable=protected-access
+        self.assertFalse(torch.equal(first, second))
+        self.assertEqual(stochastic.call_count, 2)
+
+    def test_gather_and_prod_paths_agree_on_nan_observations(self) -> None:
+        """
+        Regression test: _gather_apply_mask (the optimized path, chosen automatically
+        whenever a relation's links are all BinaryLinks with at most one active term per
+        variable/rule) used to disagree with _prod_apply_mask (the fallback) whenever an
+        observation was NaN on a term that is not the one a given rule selects, but
+        belongs to a variable another rule DOES select via a different term. Both must
+        give identical results, since which one runs is an invisible implementation
+        detail the caller has no control over.
+
+        Returns:
+            None
+        """
+        relation = NAryRelation(
+            [(0, 0), (1, 0)],
+            [(0, 1), (1, 1)],
+            [(0, 2)],
+            device=AVAILABLE_DEVICE,
+            method=NAryMaskMethods.PROD,
+        )
+        self.assertTrue(
+            relation._use_gather  # pylint: disable=protected-access
+        )
+
+        degrees = torch.rand(4, 2, 3, device=AVAILABLE_DEVICE)
+        degrees[2, 1, 2] = float("nan")  # var1-term2: not selected by any rule here
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(2, 3, device=AVAILABLE_DEVICE)
+        )
+
+        # pylint: disable=protected-access
+        gather_result = relation._gather_apply_mask(membership)
+        prod_result = relation._prod_apply_mask(membership)
+        # pylint: enable=protected-access
+        self.assertTrue(torch.allclose(gather_result, prod_result, equal_nan=True))
+
+    def test_nan_observation_does_not_corrupt_relation_gradient(self) -> None:
+        """
+        Regression test: a NaN observation (representing missing data - see
+        nan_replacement) used to corrupt the gradient of shared parameters for every
+        OTHER, valid observation, via IEEE754's 0 * NaN = NaN - both through
+        _prod_apply_mask's internal product reduction and through _gather_apply_mask's
+        NaN re-injection. Neither may leak a NaN gradient to a position whose own local
+        computation never touched NaN.
+
+        Returns:
+            None
+        """
+        relation = NAryRelation(
+            [(0, 0)], device=AVAILABLE_DEVICE, method=NAryMaskMethods.PROD
+        )
+        degrees = torch.tensor(
+            [[[0.3, 0.7]], [[float("nan"), float("nan")]], [[0.9, 0.1]]],
+            device=AVAILABLE_DEVICE,
+            requires_grad=True,
+        )
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(1, 2, device=AVAILABLE_DEVICE)
+        )
+        result = relation.apply_mask(membership)
+        result.sum().nan_to_num(0.0).backward()
+        self.assertFalse(bool(degrees.grad.isnan().any()))
+
+    def test_exp_sum_log_matches_prod(self) -> None:
+        """
+        NAryMaskMethods.EXP_SUM_LOG is documented as mathematically equivalent to PROD,
+        but was never exercised by any existing test.
+
+        Returns:
+            None
+        """
+        prod_relation = NAryRelation(
+            [(0, 0), (1, 0)],
+            [(0, 1), (1, 1)],
+            device=AVAILABLE_DEVICE,
+            method=NAryMaskMethods.PROD,
+        )
+        exp_sum_log_relation = NAryRelation(
+            [(0, 0), (1, 0)],
+            [(0, 1), (1, 1)],
+            device=AVAILABLE_DEVICE,
+            method=NAryMaskMethods.EXP_SUM_LOG,
+        )
+        degrees = torch.rand(4, 2, 2, device=AVAILABLE_DEVICE)
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
+        )
+        # call the method bodies directly to guarantee coverage regardless of whether
+        # this particular link structure happens to be gather-eligible
+        # pylint: disable=protected-access
+        prod_result = prod_relation._prod_apply_mask(membership)
+        exp_sum_log_result = exp_sum_log_relation._exp_sum_log_apply_mask(membership)
+        # pylint: enable=protected-access
+        self.assertTrue(
+            torch.allclose(prod_result, exp_sum_log_result, atol=1e-5)
+        )
+
+    def test_linear_sum_method(self) -> None:
+        """
+        NAryMaskMethods.LINEAR_SUM was not exercised by any existing test. Verify it
+        computes the documented linear combination of degrees and links directly.
+
+        Returns:
+            None
+        """
+        relation = NAryRelation(
+            [(0, 0), (1, 0)],
+            [(0, 1), (1, 1)],
+            device=AVAILABLE_DEVICE,
+            method=NAryMaskMethods.LINEAR_SUM,
+        )
+        degrees = torch.rand(4, 2, 2, device=AVAILABLE_DEVICE)
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
+        )
+        result = relation._linear_sum_apply_mask(  # pylint: disable=protected-access
+            membership
+        )
+        mask = relation.grouped_links(membership=membership)
+        expected = (degrees.unsqueeze(-1) * mask).sum(dim=(1, 2))
+        self.assertTrue(torch.allclose(result, expected, atol=1e-5))
 
 
 class TestProduct(TestNAryRelation):

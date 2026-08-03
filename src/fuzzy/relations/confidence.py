@@ -17,7 +17,10 @@ class CertaintyFactors(torch.nn.Module):
 
     def __init__(self, weights: torch.Tensor, device, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        weights.to(device)
+        # Tensor.to() is not in-place; the previous version discarded its return value,
+        # so weights were silently left on their original device whenever it differed
+        # from the requested one
+        weights = weights.to(device)
         self.weights = torch.nn.Parameter(
             weights,
             requires_grad=True,
@@ -69,8 +72,13 @@ class CertaintyFactors(torch.nn.Module):
         """
         file_path = path / "state_dict.pt"
         if file_path.is_file():
+            # map_location=device avoids two failure modes: torch.load() otherwise
+            # deserializes tensors onto whatever device they were *saved* from (which
+            # raises outright if that device, e.g. a CUDA GPU, isn't available on this
+            # machine), and even when it succeeds, __init__ would then need to move
+            # them again - map_location does it once, correctly, up front
             state_dict: MutableMapping = torch.load(
-                file_path, weights_only=False
+                file_path, map_location=device, weights_only=False
             )
             weights = state_dict.pop("weights")
             return CertaintyFactors(weights=weights, device=device)

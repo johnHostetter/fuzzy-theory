@@ -1112,6 +1112,43 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         """
         return observations
 
+    def _calculate_membership_nan_safe(self, observations: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate membership degrees without letting a NaN observation (representing a
+        missing value - see e.g. NAryRelation's nan_replacement) corrupt the gradient of
+        this fuzzy set's parameters for every OTHER, valid observation that shares them.
+
+        A membership formula such as Gaussian's exp(-((x-c)^2)/(2w^2)) has a local
+        derivative with respect to its parameters that is itself NaN whenever x is NaN,
+        regardless of what the downstream loss actually needs from that observation.
+        Since centers/widths are shared across the whole batch, PyTorch's chain rule
+        would otherwise multiply that NaN local derivative through - 0 * NaN = NaN under
+        IEEE754 - silently corrupting the gradient for the entire training step, not just
+        the one missing observation. Calculating on a NaN-free substitute, then
+        re-injecting NaN into the *output* via a constant (gradient-disconnected)
+        substitution, keeps the "NaN observation -> NaN degree" contract callers already
+        rely on, while torch.where's backward pass correctly contributes zero gradient at
+        exactly those positions instead of NaN.
+
+        Args:
+            observations: The (already-prepared) observations to calculate membership for.
+
+        Returns:
+            The membership degrees, identical in value to calculate_membership(observations),
+            but safe to backpropagate through even when some observations are NaN.
+        """
+        nan_mask = torch.isnan(observations)
+        if not bool(nan_mask.any()):
+            return self.calculate_membership(observations)
+
+        safe_observations = torch.where(
+            nan_mask, torch.zeros_like(observations), observations
+        )
+        degrees = self.calculate_membership(safe_observations)
+        return torch.where(
+            nan_mask.expand_as(degrees), torch.full_like(degrees, float("nan")), degrees
+        )
+
     # @log_method
     def forward(self, observations: torch.Tensor) -> Membership:
         """
@@ -1139,7 +1176,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
 
-        degrees: torch.Tensor = self.calculate_membership(
+        degrees: torch.Tensor = self._calculate_membership_nan_safe(
             self.prepare_observations(observations)
         )
 

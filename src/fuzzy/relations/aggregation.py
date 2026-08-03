@@ -27,8 +27,13 @@ class OrderedWeightedAveraging(torch.nn.Module, Loggable):
                 "is expected to equal the number of elements in the weight vector."
             )
         with torch.no_grad():
-            if weights.sum() == 1.0:
-                self.weights = torch.nn.parameter.Parameter(torch.abs(weights))
+            # validate the value that is actually stored (post-abs()), not the raw input -
+            # otherwise a vector with negative entries that happens to sum to 1.0 (e.g.
+            # [2.0, -1.0]) would pass validation here but be stored as [2.0, 1.0], which
+            # sums to 3.0 and silently violates this class's own invariant
+            abs_weights = torch.abs(weights)
+            if abs_weights.sum() == 1.0:
+                self.weights = torch.nn.parameter.Parameter(abs_weights)
             else:
                 raise AttributeError(
                     "The weight vector of the Ordered Weighted Averaging operator must sum to 1.0."

@@ -50,3 +50,29 @@ class TestCertaintyFactors(unittest.TestCase):
 
         shutil.rmtree(path)
         self.assertFalse(path.exists())
+
+    def test_device_argument_is_respected(self) -> None:
+        """
+        Regression test: __init__ used to call weights.to(device) without assigning the
+        result (Tensor.to() is not in-place), so the device argument was silently ignored
+        whenever the given weights weren't already on that device.
+
+        Returns:
+            None
+        """
+        cpu_weights = torch.ones([4], dtype=torch.float32, device="cpu")
+        certainty_factors = CertaintyFactors(weights=cpu_weights, device=AVAILABLE_DEVICE)
+        self.assertEqual(certainty_factors.weights.device.type, AVAILABLE_DEVICE.type)
+
+    def test_load_invalid_path_raises(self) -> None:
+        """
+        load() must raise a ValueError when given a path that does not contain a saved
+        CertaintyFactors.
+
+        Returns:
+            None
+        """
+        with self.assertRaises(ValueError):
+            CertaintyFactors.load(
+                Path("does_not_exist_certainty_factors_dir"), device=AVAILABLE_DEVICE
+            )

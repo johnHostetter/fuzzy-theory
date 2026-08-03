@@ -77,7 +77,7 @@ class NeurogenesisEnum(str, Enum):
     How to create and add new fuzzy sets to the neuro-fuzzy network.
     """
 
-    # NONE = "none"  # static premise layer
+    NONE = "none"  # static premise layer
     # Hostetter's 2025 dissertation
     MODIFIED_DELAYED_WELFORD = "modified_delayed_welford"
 

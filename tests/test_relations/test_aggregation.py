@@ -66,6 +66,26 @@ class TestOrderedWeightedAggregation(unittest.TestCase):
             # not sum to 1
             assert True
 
+    def test_validates_transformed_weights_not_raw(self) -> None:
+        """
+        Regression test: __init__ used to validate weights.sum() == 1.0 on the RAW input,
+        then store torch.abs(weights) without re-validating. A vector with negative
+        entries that happens to sum to 1.0 (e.g. [2.0, -1.0]) passed validation but was
+        stored as [2.0, 1.0], which sums to 3.0 - silently violating this class's own
+        invariant. Now the abs()-transformed vector is what gets validated, so this must
+        be rejected.
+
+        Returns:
+            None
+        """
+        weights = torch.tensor([2.0, -1.0])
+        self.assertEqual(weights.sum().item(), 1.0)  # passes the OLD (raw) check
+        self.assertNotEqual(
+            torch.abs(weights).sum().item(), 1.0
+        )  # but not the transformed value
+        with self.assertRaises(AttributeError):
+            OWA(in_features=2, weights=weights)
+
     def test_owa_calculation_1(self) -> None:
         """
         A OWA operator should sort the argument vector to produce an 'ordered argument vector',

@@ -451,15 +451,40 @@ class NAryRelation(TorchJitModule, Loggable):
         self._cached_links_complement = None
         self._cached_links_bool = None
 
+    def _links_are_cacheable(self) -> bool:
+        """
+        Whether this relation's links are safe to cache indefinitely (until an explicit
+        invalidate_links_cache() call).
+
+        Only BinaryLinks are safe: its forward() ignores its argument entirely and always
+        returns the same fixed tensor, so "compute once, reuse forever" is correct. Any
+        other module type in grouped_links.modules_list - such as a stochastic,
+        Gumbel-Softmax-resampled logits module (see GroupedLinks' own docstring) - could
+        legitimately produce a *different* result on every call, and this cache has no way
+        to detect that on its own; it can only be told to forget via
+        invalidate_links_cache(). Recomputing every call for anything other than
+        BinaryLinks keeps the cache safe by construction rather than relying on every
+        future caller remembering to invalidate it.
+
+        Returns:
+            True if every module backing this relation's links is a BinaryLinks.
+        """
+        if self.grouped_links is None:
+            return False
+        return all(
+            isinstance(module, BinaryLinks) for module in self.grouped_links.modules_list
+        )
+
     def _ensure_links_cache(self, membership: Membership) -> None:
         """
         Lazily compute and cache the links tensor and its derived forms.
         """
-        if self._cached_links is None:
-            links = self.grouped_links(membership=membership)
-            self._cached_links = links
-            self._cached_links_bool = links.bool()
-            self._cached_links_complement = 1 - links
+        if self._cached_links is not None and self._links_are_cacheable():
+            return
+        links = self.grouped_links(membership=membership)
+        self._cached_links = links
+        self._cached_links_bool = links.bool()
+        self._cached_links_complement = 1 - links
 
     def _apply_mask(
         self, membership: Membership, inplace: bool = False
@@ -559,12 +584,34 @@ class NAryRelation(TorchJitModule, Loggable):
         Optimized mask application using torch.gather. Produces a (batch, vars, rules)
         tensor directly instead of materializing the full (batch, vars, terms, rules)
         intermediate, reducing memory by a factor of n_terms.
+
+        This must reproduce _prod_apply_mask's NaN behaviour exactly, not just its
+        non-NaN values, since which of the two runs is an invisible implementation
+        detail (chosen automatically by _precompute_gather_indices). _prod_apply_mask's
+        formula - degrees * mask + (1 - mask), then a product over the term dimension -
+        means IEEE754's NaN * 0 = NaN causes a NaN in *any* term of a variable to poison
+        *every* rule that touches that variable at all, including rules that select a
+        different term of it, and even rules that do not use that variable's terms in
+        their antecedent at all (every term, active or not, participates in the product).
+        A plain torch.gather of only the selected term would miss all of that
+        propagation, so it is reconstructed explicitly below.
         """
         self.applied_mask = self._cached_mask
         degrees = membership.degrees
         batch_size = degrees.shape[0]
         idx = self._gather_indices.unsqueeze(0).expand(batch_size, -1, -1)
         selected = torch.gather(degrees, dim=2, index=idx)
+
+        # a NaN anywhere among a variable's terms must poison every rule that variable
+        # participates in (structurally active or not) - see docstring above
+        any_nan_per_variable = degrees.isnan().any(dim=2, keepdim=True)
+        if bool(any_nan_per_variable.any()):
+            selected = torch.where(
+                any_nan_per_variable.expand_as(selected),
+                torch.full_like(selected, float("nan")),
+                selected,
+            )
+
         if not self._all_active:
             # Preserve IEEE NaN propagation: inactive entries where the gathered
             # degree is NaN must stay NaN (matching NaN * 0 + 1 = NaN behavior),
@@ -642,7 +689,11 @@ class NAryRelation(TorchJitModule, Loggable):
             membership_shape[2],
         )
         self._ensure_links_cache(membership)
-        applied_mask = self._cached_links
+        # BinaryLinks stores its links as int8; torch.nn.functional.linear requires both
+        # operands to share a dtype, so without this cast this method raises
+        # "expected mat1 and mat2 to have the same dtype" for any real (non-float) links -
+        # a bug that had gone unnoticed because no test exercised this method before
+        applied_mask = self._cached_links.to(dtype=membership.degrees.dtype)
         n_rules = applied_mask.shape[-1]
         linear_result = torch.nn.functional.linear(  # pylint: disable=not-callable
             membership.degrees.view(batch_size, var_count * term_count),
