@@ -24,7 +24,7 @@ from ...utils import load_module_class
 from .configurations.abstract import FuzzySystem
 from .configurations.data import GranulationLayers, Shape
 from .configurations.impl import Defined
-from .defuzzification import Defuzzification, TSK
+from .defuzzification import TSK, Defuzzification
 
 
 class FuzzyLogicController(torch.nn.Sequential):
@@ -277,17 +277,15 @@ class FuzzyLogicController(torch.nn.Sequential):
         )
 
     def _defuzzify_tsk(
-            self,
-            observations: torch.Tensor,
-            rule_strengths) -> torch.Tensor:
+        self, observations: torch.Tensor, rule_strengths
+    ) -> torch.Tensor:
         return self.defuzzification(
-            observations=observations,
-            rule_activations=rule_strengths)
+            observations=observations, rule_activations=rule_strengths
+        )
 
     def _defuzzify_standard(
-            self,
-            observations: torch.Tensor,
-            rule_strengths) -> torch.Tensor:
+        self, observations: torch.Tensor, rule_strengths
+    ) -> torch.Tensor:
         return self.defuzzification(rule_strengths)
 
     def _forward_impl(
@@ -322,7 +320,10 @@ class FuzzyLogicController(torch.nn.Sequential):
         Returns:
             The defuzzified output of the FLC.
         """
-        if self.max_batch_chunk is not None and observations.shape[0] > self.max_batch_chunk:
+        if (
+            self.max_batch_chunk is not None
+            and observations.shape[0] > self.max_batch_chunk
+        ):
             return torch.cat(
                 [
                     self._forward_impl(chunk)

@@ -90,8 +90,9 @@ def signature_of(tensors: List[torch.Tensor]) -> ParameterSignature:
     Returns:
         A hashable and comparable signature of those tensors.
     """
-    return [(id(tensor), version_of(tensor), tensor.requires_grad)
-            for tensor in tensors]
+    return [
+        (id(tensor), version_of(tensor), tensor.requires_grad) for tensor in tensors
+    ]
 
 
 class MembershipCacheEntry:  # pylint: disable=too-few-public-methods
@@ -120,8 +121,7 @@ class MembershipCacheEntry:  # pylint: disable=too-few-public-methods
         parameter_signature: ParameterSignature,
         membership: Membership,
     ):
-        self.observations_ref: "weakref.ref[torch.Tensor]" = weakref.ref(
-            observations)
+        self.observations_ref: "weakref.ref[torch.Tensor]" = weakref.ref(observations)
         self.observations_version: int = version_of(observations)
         # see signature_of() for why requires_grad must be tracked alongside
         # identity/version
@@ -131,8 +131,9 @@ class MembershipCacheEntry:  # pylint: disable=too-few-public-methods
         self.membership: Membership = membership
         self.valid: bool = True
 
-    def matches(self, observations: torch.Tensor,
-                parameter_signature: ParameterSignature) -> bool:
+    def matches(
+        self, observations: torch.Tensor, parameter_signature: ParameterSignature
+    ) -> bool:
         """
         Determine whether this entry may be served for the given observations and parameters.
 
@@ -183,8 +184,7 @@ class MembershipCache:
 
     def __init__(self, maxsize: int = 2, enabled: bool = True):
         if maxsize < 1:
-            raise ValueError(
-                f"The cache size must be at least 1, but got {maxsize}.")
+            raise ValueError(f"The cache size must be at least 1, but got {maxsize}.")
         self.maxsize: int = maxsize
         self.enabled: bool = enabled
         self._entries: List[MembershipCacheEntry] = []
@@ -193,9 +193,8 @@ class MembershipCache:
         return len(self._entries)
 
     def lookup(
-            self,
-            observations: torch.Tensor,
-            parameter_signature: ParameterSignature) -> Optional[Membership]:
+        self, observations: torch.Tensor, parameter_signature: ParameterSignature
+    ) -> Optional[Membership]:
         """
         Retrieve a memoized membership for the given observations, if a valid one is held.
 
@@ -239,8 +238,7 @@ class MembershipCache:
             return
 
         self._discard_unusable()
-        entry = MembershipCacheEntry(
-            observations, parameter_signature, membership)
+        entry = MembershipCacheEntry(observations, parameter_signature, membership)
 
         degrees: torch.Tensor = membership.degrees
         if degrees.requires_grad and degrees.grad_fn is not None:
