@@ -421,6 +421,50 @@ class TestFuzzySetGroup(unittest.TestCase):
             observations, membership
         )
 
+    def test_save_and_load_preserves_cache_settings(self) -> None:
+        """
+        Regression test: cache_membership/membership_cache_size were only ever consumed
+        into the underscore-prefixed self._membership_cache, so get_object_attributes()
+        (which excludes names starting with '_') never saw them, and NestedTorchJitModule
+        .save()/.load() silently dropped them - a loaded group always reverted to the
+        constructor defaults (cache_membership=True, membership_cache_size=2) regardless
+        of what it was originally built with.
+
+        Returns:
+            None
+        """
+        group = FuzzySetGroup(
+            modules_list=[
+                Gaussian.create(
+                    shape=FuzzySetShape(n_variables=2, n_terms=3),
+                    device=AVAILABLE_DEVICE,
+                    method=FuzzySetInitMethod.LINEAR,
+                ),
+            ],
+            cache_membership=False,
+            membership_cache_size=5,
+        )
+        self.assertEqual(group.cache_membership, False)
+        self.assertEqual(group.membership_cache_size, 5)
+        self.assertEqual(group._membership_cache.enabled, False)  # pylint: disable=protected-access
+        self.assertEqual(group._membership_cache.maxsize, 5)  # pylint: disable=protected-access
+
+        group.save(Path("test_group_cache_settings"))
+        loaded_group: FuzzySetGroup = FuzzySetGroup.load(
+            Path("test_group_cache_settings"), device=AVAILABLE_DEVICE
+        )
+        try:
+            self.assertEqual(loaded_group.cache_membership, False)
+            self.assertEqual(loaded_group.membership_cache_size, 5)
+            self.assertEqual(
+                loaded_group._membership_cache.enabled, False  # pylint: disable=protected-access
+            )
+            self.assertEqual(
+                loaded_group._membership_cache.maxsize, 5  # pylint: disable=protected-access
+            )
+        finally:
+            shutil.rmtree(Path("test_group_cache_settings"), ignore_errors=True)
+
     def test_eq_with_different_lengths_and_different_content(self) -> None:
         """
         Returns:

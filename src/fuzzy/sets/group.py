@@ -62,6 +62,13 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         # self.create_logger(self.__class__.__name__, debug=False)
         self.modules_list = torch.nn.ModuleList(modules_list)
         self.device = device
+        # stored as plain (non-underscore-prefixed) attributes, rather than being
+        # consumed only by the cache below, so that get_object_attributes() picks
+        # them up and NestedTorchJitModule.save()/load() round-trips them (they are
+        # also constructor parameter names, so load() passes them back into __init__
+        # instead of silently reverting to the defaults above)
+        self.cache_membership = cache_membership
+        self.membership_cache_size = membership_cache_size
         # memoizes this group's forward pass (the concatenation of every module's response);
         # see fuzzy.sets.cache for when a result is re-used
         self._membership_cache = MembershipCache(

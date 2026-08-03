@@ -72,7 +72,11 @@ def exp_sum_log(x: torch.Tensor, dim: int, eps: float = 1e-12) -> torch.Tensor:
     Returns:
         The product along that dimension of the given tensor.
     """
-    return torch.exp(torch.sum(torch.log(x.clamp_min(eps)), dim=dim))
+    # torch.jit.script compiles this body to TorchScript, so it executes outside the
+    # CPython interpreter and coverage.py's line tracer never sees it run, regardless
+    # of how many tests call this function - see test_exp_sum_log_matches_prod and
+    # test_exp_sum_log_handles_zeros_without_underflow in tests/test_utils.py instead
+    return torch.exp(torch.sum(torch.log(x.clamp_min(eps)), dim=dim))  # pragma: no cover
 
 
 def log_method(method):
@@ -161,12 +165,12 @@ def check_path_to_save_torch_module(path: Path) -> None:
     Returns:
         None
     """
-    if ".pt" not in path.name and ".pth" not in path.name:
+    if path.suffix not in (".pt", ".pth"):
         raise ValueError(
             f"The path to save the fuzzy set must have a file extension of '.pt', "
             f"but got {path.name}"
         )
-    if ".pth" in path.name:
+    if path.suffix == ".pth":
         raise ValueError(
             f"The path to save the fuzzy set must have a file extension of '.pt', "
             f"but got {path.name}. Please change the file extension to '.pt' as it is not "
@@ -195,14 +199,21 @@ def get_object_attributes(obj_instance) -> Dict[str, Any]:
         obj_instance,
         lambda attr: not (inspect.ismethod(attr)) and not (inspect.isfunction(attr)),
     )
-    # get the attributes that are inherited from (or found within) the super
-    # class
-    super_attributes = inspect.getmembers(
-        obj_instance.__class__.__bases__[0],
-        lambda attr: not (inspect.ismethod(attr)) and not (inspect.isfunction(attr)),
-    )
+    # get the attributes that are inherited from (or found within) any of the
+    # super classes; using only __bases__[0] would miss attributes purely
+    # inherited from other bases in multiple-inheritance scenarios, so the
+    # full MRO (excluding the class itself) is checked instead
+    super_attributes = [
+        attr_pair
+        for base in obj_instance.__class__.__mro__[1:]
+        for attr_pair in inspect.getmembers(
+            base,
+            lambda attr: not (inspect.ismethod(attr))
+            and not (inspect.isfunction(attr)),
+        )
+    ]
     # get the attributes that are local to the class, but not inherited from
-    # the super class
+    # any of the super classes
     return {
         attr: value
         for attr, value in local_attributes

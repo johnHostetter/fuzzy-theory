@@ -85,18 +85,16 @@ class TimeDistributed(torch.nn.Module):
 
         module_output = self.module(reshaped_input_data)
 
-        # reshape the output back to the original shape
+        # reshape the output back to the original shape; this is independent of
+        # batch_first, since unflattening a (dim0 * dim1, ...) tensor always restores
+        # the original leading-dimension order, regardless of what those two
+        # dimensions semantically represent
         output_dim = 1
         if module_output.ndim == 2:
             output_dim = module_output.size(-1)
-        if self.batch_first:
-            module_output = module_output.contiguous().view(
-                input_data.size(0), input_data.size(1), output_dim
-            )  # (samples, timesteps, output_size)
-        else:
-            module_output = module_output.view(
-                input_data.size(1), input_data.size(0), output_dim
-            )  # (timesteps, samples, output_size)
+        module_output = module_output.contiguous().view(
+            input_data.size(0), input_data.size(1), output_dim
+        )
 
         return module_output
 
