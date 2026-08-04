@@ -19,6 +19,7 @@ from typing import (
     Union,
 )
 
+import numpy as np
 import torch
 from natsort import natsorted
 from torch.nn.modules.module import _forward_unimplemented
@@ -45,6 +46,156 @@ class Loggable:  # pylint: disable=too-few-public-methods
         self.logger = logging.getLogger(name)
 
         self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
+
+
+class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
+    """
+    Wraps a torch.nn.ParameterList and maintains a contiguous cached tensor for fast operations.
+    """
+
+    def __init__(
+        self, init_params=None, dtype=None, device=None, parameters: bool = True
+    ):
+        super().__init__()
+        self.params: Union[torch.nn.ParameterList, List[torch.Tensor]] = (
+            torch.nn.ParameterList() if parameters else []
+        )
+        self._cached_tensor = None
+        self._cached_signature = None
+        self._device = device
+        self._dtype = dtype
+
+        if init_params is not None:
+            for p in init_params:
+                self.add_parameter(p)
+
+    def __getitem__(self, item):
+        return self.params[item]
+
+    def __setitem__(self, idx, value):
+        # 1. Enforce that the incoming value is a valid PyTorch Parameter
+        if not isinstance(value, torch.nn.Parameter):
+            raise TypeError(f"Expected a torch.nn.Parameter, but got {type(value)}")
+
+        # 2. Update the internal tracker
+        # If using nn.ParameterList, it handles module registration
+        # automatically.
+        self.params[idx] = value
+
+        # 3. Optional: Give it a unique string key name on the parent module
+        # if your custom class relies on named parameters attribute binding.
+        # setattr(self, f"param_{idx}", value)
+
+        # 4. Invalidate the cached tensor
+        self._invalidate_cache()
+
+    def add_parameter(self, tensor: Union[np.ndarray, torch.Tensor]):
+        """
+        Add a new Parameter and invalidate cached tensor.
+        tensor: torch.Tensor (will be converted to Parameter)
+        """
+        if not isinstance(tensor, torch.Tensor):
+            tensor = torch.as_tensor(tensor, dtype=self._dtype, device=self._device)
+        if isinstance(self.params, torch.nn.ParameterList):
+            param = torch.nn.Parameter(tensor)
+        else:
+            param = tensor  # leave it unmodified
+        if self._device is not None:
+            param.data = param.data.to(self._device, dtype=self._dtype)
+        self.params.append(param)
+        self._invalidate_cache()
+
+    def _invalidate_cache(self) -> None:
+        """
+        Discard the cached concatenation, forcing the next access to rebuild it.
+
+        Returns:
+            None
+        """
+        self._cached_tensor = None
+        self._cached_signature = None
+
+    @torch.jit.ignore
+    def _concat_params(self, params_list: List[torch.Tensor]) -> torch.Tensor:
+        """
+        Return a cached concatenation of two or more parameters, rebuilding it if any
+        parameter was replaced or mutated in place since it was last built.
+
+        Pulled out of the 'tensor' property (and marked to be skipped by torch.jit.script)
+        because comparing two ParameterSignature values with '!=' is not something
+        TorchScript's type system supports; this keeps that comparison in ordinary Python
+        while leaving the property itself scriptable.
+
+        Args:
+            params_list: The parameters to concatenate, materialized as a plain list.
+
+        Returns:
+            The concatenation of the parameters along dim=-1.
+        """
+        # imported locally (rather than at module level) to avoid fuzzy.utils depending
+        # on fuzzy.sets at import time - fuzzy.sets already depends on fuzzy.utils, and
+        # while signature_of()'s own dependency chain does not currently cycle back
+        # here, importing it lazily keeps that true by construction rather than by
+        # accident
+        from fuzzy.sets.cache import signature_of  # pylint: disable=import-outside-toplevel,cyclic-import
+
+        signature = signature_of(params_list)
+        if self._cached_tensor is None or self._cached_signature != signature:
+            self._cached_tensor = torch.cat(params_list, dim=-1).contiguous()
+            self._cached_signature = signature
+        return self._cached_tensor
+
+    @property
+    def tensor(self):
+        """
+        Returns a contiguous tensor concatenating all parameters along dim=-1.
+
+        In the (overwhelmingly common) case of a single parameter, that parameter is returned
+        directly: concatenating one tensor only copies it, and the copy would both waste time
+        and - more importantly - go stale, since it does not observe subsequent in-place updates
+        to the parameter such as those an optimizer applies.
+
+        For several parameters the concatenation is cached, but the cache is keyed on the
+        identity and version counter of each parameter, so that replacing *or* updating any of
+        them rebuilds it. Without this, the concatenation would keep reporting the parameter
+        values as they were when it was first built.
+
+        Note: `self.params` (a torch.nn.ParameterList) is deliberately materialized into a
+        plain list before anything else; torch.jit.script cannot compile a bare `len(...)` or
+        indexing call directly against a ParameterList attribute in this position, but has no
+        trouble with a plain List[Tensor].
+        """
+        params_list: List[torch.Tensor] = list(self.params)
+        if len(params_list) == 0:
+            return torch.tensor([], device=self._device, dtype=self._dtype)
+
+        if len(params_list) == 1:
+            # avoid a copy that would immediately be at risk of going stale
+            return params_list[0]
+
+        return self._concat_params(params_list)
+
+    def to(self, *args, **kwargs):
+        """
+        Override to move both ParameterList and cached tensor.
+        """
+        super().to(*args, **kwargs)
+        # torch.nn.Module.to() accepts several call signatures - a device, a dtype, another
+        # tensor to match, or a combination - so args[0] is not reliably a device (e.g.
+        # .to(torch.float64) is a legitimate dtype-only call, and would otherwise corrupt
+        # _device with a dtype object). Replaying the same call against a throwaway tensor
+        # seeded with the current device/dtype and reading back what it resolved to avoids
+        # re-implementing that parsing here.
+        probe = torch.empty(0, dtype=self._dtype, device=self._device).to(
+            *args, **kwargs
+        )
+        self._device = probe.device
+        self._dtype = probe.dtype
+        # the parameters were moved, so any concatenation of them refers to the old device;
+        # rebuild it on next access rather than moving a copy that is about to
+        # go stale
+        self._invalidate_cache()
+        return self
 
 
 class TimeDistributed(torch.nn.Module):

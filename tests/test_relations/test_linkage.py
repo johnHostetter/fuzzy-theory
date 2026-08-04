@@ -194,7 +194,8 @@ class TestGroupedLinks(unittest.TestCase):
             nonlocal call_count
             call_count += 1
 
-        empty_grouped_links = GroupedLinks(modules_list=None, callback=callback)
+        empty_grouped_links = GroupedLinks(
+            modules_list=None, callback=callback)
         self.assertEqual(1, call_count)
 
         empty_grouped_links.append(self.binary_links_1)

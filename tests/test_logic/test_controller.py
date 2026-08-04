@@ -8,6 +8,7 @@ from typing import List, Tuple
 import numpy as np
 import torch
 
+from fuzzy.logic.control.configurations.data import ExecutionOptions
 from fuzzy.logic.control.controller import FuzzyLogicController as FLC
 from fuzzy.logic.control.defuzzification import TSK, Mamdani, ZeroOrder
 from fuzzy.logic.knowledge_base import KnowledgeBase
@@ -406,6 +407,70 @@ class TestTSK(unittest.TestCase):
 
         return flc, input_data, rules
 
+    def test_execution_options_defaults_match_previous_flat_kwargs(
+            self) -> None:
+        """
+        FuzzyLogicController used to take disabled_parameters/max_batch_chunk/
+        gradient_checkpointing as three flat keyword arguments; they are now bundled
+        into a single ExecutionOptions dataclass (execution=None defaults to
+        ExecutionOptions()). Confirm the defaults it falls back to still match what
+        the old flat defaults were.
+
+        Returns:
+            None
+        """
+        self.assertEqual([], self.fuzzy_logic_controller.disabled_parameters)
+        self.assertIsNone(self.fuzzy_logic_controller.max_batch_chunk)
+        self.assertFalse(self.fuzzy_logic_controller.gradient_checkpointing)
+
+    def test_max_batch_chunk_produces_the_same_output_as_unchunked(
+            self) -> None:
+        """
+        FuzzyLogicController.forward() splits the batch into chunks of at most
+        max_batch_chunk observations (and concatenates the per-chunk outputs) purely
+        as a memory/compute trade-off - it must not change the result. Toggles
+        max_batch_chunk on the SAME instance (rather than building a second FLC from
+        the same source) since ZeroOrder consequences are randomly reinitialized on
+        every FLC construction when no explicit source is given - a second instance
+        would produce a different result for reasons unrelated to chunking.
+
+        Returns:
+            None
+        """
+        unchunked_output = self.fuzzy_logic_controller(self.input_data)
+
+        self.fuzzy_logic_controller.max_batch_chunk = 2
+        try:
+            chunked_output = self.fuzzy_logic_controller(self.input_data)
+        finally:
+            self.fuzzy_logic_controller.max_batch_chunk = None
+
+        self.assertTrue(torch.allclose(unchunked_output, chunked_output))
+
+    def test_execution_options_are_applied_at_construction(self) -> None:
+        """
+        Confirm ExecutionOptions passed to the FLC constructor actually reach the
+        instance attributes forward() reads, not just that the (already covered
+        separately) defaults work.
+
+        Returns:
+            None
+        """
+        execution = ExecutionOptions(
+            disabled_parameters=["some_param"],
+            max_batch_chunk=3,
+            gradient_checkpointing=True,
+        )
+        flc = FLC(
+            source=self.fuzzy_logic_controller.source,
+            inference=ZeroOrder,
+            device=AVAILABLE_DEVICE,
+            execution=execution,
+        )
+        self.assertEqual(["some_param"], flc.disabled_parameters)
+        self.assertEqual(3, flc.max_batch_chunk)
+        self.assertTrue(flc.gradient_checkpointing)
+
     def test_tsk_consequences_are_built_on_the_requested_device(self) -> None:
         """
         Regression test: TSK.__init__ builds its randomly-initialized consequences with
@@ -634,9 +699,8 @@ class TestMamdani(unittest.TestCase):
             inference=Mamdani,
             device=torch.device("cpu"),
         )
-        self.assertEqual(
-            torch.device("cpu"), flc.defuzzification.output_links.device
-        )
+        self.assertEqual(torch.device("cpu"),
+                         flc.defuzzification.output_links.device)
 
         flc.defuzzification.to(torch.device("cuda"))
 

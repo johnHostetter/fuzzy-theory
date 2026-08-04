@@ -717,7 +717,8 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
 
         # disable the constraint for every instance, not just the first one built in
         # the process - a ClassVar-gated "only the first time" guard used to make this
-        # silently stop applying after the first instantiation anywhere in the process
+        # silently stop applying after the first instantiation anywhere in the
+        # process
         self.evolution.rule.epsilon_filter = 0.0
 
     # noinspection PyTypeChecker

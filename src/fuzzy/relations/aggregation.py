@@ -25,7 +25,8 @@ class OrderedWeightedAveraging(torch.nn.Module, Loggable):
         if self.in_features != len(weights):
             raise AttributeError(
                 "The number of input features expected in the Ordered Weighted Averaging operator "
-                "is expected to equal the number of elements in the weight vector.")
+                "is expected to equal the number of elements in the weight vector."
+            )
         with torch.no_grad():
             # validate the value that is actually stored (post-abs()), not the raw input -
             # otherwise a vector with negative entries that happens to sum to 1.0 (e.g.
@@ -71,7 +72,8 @@ class OrderedWeightedAveraging(torch.nn.Module, Loggable):
             return torch.zeros(1)
         # torch.xlogy(0, 0) is defined as 0 (the conventional entropy limit), unlike
         # 0 * torch.log(0) which is IEEE754 NaN (0 * -inf) and would poison the sum
-        # for any weight vector containing a zero outside the single-1.0 case above
+        # for any weight vector containing a zero outside the single-1.0 case
+        # above
         return -1 * torch.xlogy(self.weights, self.weights).sum()
 
     # @log_method
@@ -87,6 +89,5 @@ class OrderedWeightedAveraging(torch.nn.Module, Loggable):
             The aggregation of the ordered argument vector with the weight vector.
         """
         # namedtuple with 'values' and 'indices' properties
-        ordered_argument_vector = torch.sort(
-            input_observation, descending=True)
+        ordered_argument_vector = torch.sort(input_observation, descending=True)
         return (self.weights * ordered_argument_vector.values).sum()

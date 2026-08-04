@@ -172,7 +172,8 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         # content hash cannot guarantee. Falling back to identity keeps __hash__ at
         # least internally consistent (stable across calls, unlike hashing the tensor
         # freshly returned by self.forward() each time, which changes identity - and
-        # therefore hash - on every call since torch.cat allocates a new tensor).
+        # therefore hash - on every call since torch.cat allocates a new
+        # tensor).
         return id(self)
 
     @property

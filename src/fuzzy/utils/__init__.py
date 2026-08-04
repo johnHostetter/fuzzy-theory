@@ -2,7 +2,12 @@
 Re-exporting functions and classes from .functions and .classes modules.
 """
 
-from .classes import NestedTorchJitModule, TimeDistributed, TorchJitModule
+from .classes import (
+    DynamicParameterList,
+    NestedTorchJitModule,
+    TimeDistributed,
+    TorchJitModule,
+)
 from .functions import (
     all_subclasses,
     check_path_to_save_torch_module,
@@ -18,4 +23,5 @@ __all__ = [
     "TimeDistributed",
     "TorchJitModule",
     "NestedTorchJitModule",
+    "DynamicParameterList",
 ]

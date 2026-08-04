@@ -9,7 +9,7 @@ and fuzzy logic rule matrices. These components may then be used to create a fuz
 
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, List, MutableMapping, Optional, Type, Union
+from typing import Any, List, MutableMapping, Optional, Type
 
 import torch
 import torch.utils.checkpoint
@@ -22,7 +22,7 @@ from ...relations.t_norm import TNorm
 from ...sets import FuzzySetGroup
 from ...utils import load_module_class
 from .configurations.abstract import FuzzySystem
-from .configurations.data import GranulationLayers, Shape
+from .configurations.data import ExecutionOptions, GranulationLayers, Shape
 from .configurations.impl import Defined
 from .defuzzification import TSK, Defuzzification
 
@@ -38,20 +38,18 @@ class FuzzyLogicController(torch.nn.Sequential):
         source: FuzzySystem,
         inference: Type[Defuzzification],
         device: torch.device,
-        disabled_parameters: Union[None, List[str]] = None,
-        max_batch_chunk: Optional[int] = None,
-        gradient_checkpointing: bool = False,
+        execution: Optional[ExecutionOptions] = None,
         **kwargs,
     ):
         super().__init__(*[], **kwargs)
-        if disabled_parameters is None:
-            disabled_parameters = []
+        if execution is None:
+            execution = ExecutionOptions()
 
         self.source = source
         self.device: torch.device = device
-        self.disabled_parameters: List[str] = disabled_parameters
-        self.max_batch_chunk: Optional[int] = max_batch_chunk
-        self.gradient_checkpointing: bool = gradient_checkpointing
+        self.disabled_parameters: List[str] = execution.disabled_parameters
+        self.max_batch_chunk: Optional[int] = execution.max_batch_chunk
+        self.gradient_checkpointing: bool = execution.gradient_checkpointing
 
         # A = torch.ones((self.source.configuration["algorithm"].learning.batch.selection,
         #                 self.shape.n_outputs),
@@ -284,8 +282,12 @@ class FuzzyLogicController(torch.nn.Sequential):
         )
 
     def _defuzzify_standard(
-        self, observations: torch.Tensor, rule_strengths
+        self, _observations: torch.Tensor, rule_strengths
     ) -> torch.Tensor:
+        # _observations is intentionally unused here (this is the Mamdani/"standard"
+        # path - see Defuzzification.forward's docstring); the parameter exists so
+        # this and _defuzzify_tsk share an identical, interchangeable signature (see
+        # the self._defuzzify binding below)
         return self.defuzzification(rule_strengths)
 
     def _forward_impl(
@@ -306,7 +308,7 @@ class FuzzyLogicController(torch.nn.Sequential):
 
         return self._defuzzify(observations, rule_strengths)
 
-    def forward(
+    def forward(  # pylint: disable=arguments-renamed
         self, observations: torch.Tensor  # pylint: disable=redefined-builtin
     ) -> torch.Tensor:
         """

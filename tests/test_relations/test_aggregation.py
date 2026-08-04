@@ -267,6 +267,7 @@ class TestOrderedWeightedAggregation(unittest.TestCase):
         assert torch.isclose(owa.weights, weights).all()
         dispersion = owa.dispersion()
         self.assertFalse(bool(dispersion.isnan().any()))
-        # only the two nonzero entries (each 0.5) contribute: -(0.5*log(0.5)) * 2
+        # only the two nonzero entries (each 0.5) contribute: -(0.5*log(0.5)) *
+        # 2
         expected = -2 * (0.5 * torch.log(torch.tensor(0.5)))
         self.assertTrue(torch.isclose(dispersion, expected))

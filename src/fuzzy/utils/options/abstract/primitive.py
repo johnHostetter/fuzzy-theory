@@ -145,7 +145,8 @@ class CategoricalEnumOptions(CategoricalOptions, EnumPromoter):
         # base class (EnumPromoter.__init_subclass__) binds cls=EnumPromoter itself,
         # promoting the enum members onto the wrong class - every subclass would then
         # clobber the same shared EnumPromoter attributes instead of getting its own.
-        # Accessing it through type(self) binds cls to the actual concrete subclass.
+        # Accessing it through type(self) binds cls to the actual concrete
+        # subclass.
         type(self).__init_subclass__(enum_cls=self.enum_cls)
         # *args is intentionally NOT forwarded here: this class' options always come
         # from enum_cls (just promoted onto self.options above), never from
