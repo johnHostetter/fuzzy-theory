@@ -25,6 +25,25 @@ from .linkage import BinaryLinks, GroupedLinks
 # from line_profiler import profile
 
 
+# Deciding "is there any NaN in this tensor at all?" on a CUDA tensor requires either
+# a device sync (to pull the reduced boolean back to Python) or paying for the
+# NaN-handling unconditionally. Calibration (see benchmarks/) showed a CUDA
+# tensor.any()-then-bool() sync costs roughly 400-750us in practice, regardless of the
+# tensor's size - far more than a bare torch.cuda.synchronize() (~3us) - almost
+# certainly the cost of the reduction kernel plus the blocking scalar readback
+# together, not the sync primitive itself. Meanwhile, unconditionally doing the (cheap)
+# NaN-handling scales linearly with tensor size. Below this many elements, paying for
+# NaN-handling unconditionally is cheaper than syncing to find out whether it is
+# needed; above it, the sync-and-maybe-skip approach wins. selected.numel() is known
+# from tensor shape metadata alone, so checking it costs nothing on the GPU. This
+# threshold is an empirically-calibrated heuristic (measured on one GPU) rather than a
+# theoretically derived constant, so it may not sit exactly at the true crossover on
+# different hardware - but the crossover exists on any GPU where a sync has a
+# meaningfully higher fixed cost than issuing a same-sized elementwise kernel, which is
+# generally true.
+GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL: int = 4_000_000
+
+
 class NAryMaskMethods(str, Enum):
     """
     The available methods for completing n-ary fuzzy relations.
@@ -607,8 +626,21 @@ class NAryRelation(TorchJitModule, Loggable):
         # a NaN anywhere among a variable's terms must poison every rule that variable
         # participates in (structurally active or not) - see docstring above
         any_nan_per_variable = degrees.isnan().any(dim=2, keepdim=True)
-        has_nan = bool(any_nan_per_variable.any())
-        if has_nan:
+        if selected.numel() > GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL:
+            # large tensor: sync once to find out whether there is anything to do,
+            # and skip the (comparatively expensive at this size) NaN-handling
+            # entirely when there isn't - see GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL
+            has_nan = bool(any_nan_per_variable.any())
+            if has_nan:
+                selected = torch.where(
+                    any_nan_per_variable.expand_as(selected),
+                    torch.full_like(selected, float("nan")),
+                    selected,
+                )
+        else:
+            # small tensor: skip the sync entirely and always do the (cheap at this
+            # size) NaN-handling unconditionally
+            has_nan = True
             selected = torch.where(
                 any_nan_per_variable.expand_as(selected),
                 torch.full_like(selected, float("nan")),
@@ -627,11 +659,11 @@ class NAryRelation(TorchJitModule, Loggable):
             )
 
         if not has_nan:
-            # nan_to_num is a no-op away from NaN/inf, and has_nan already proves
-            # `selected` is NaN-free (it is only ever assembled from `degrees`
-            # entries and the constant 1.0 above, neither of which introduces a NaN
-            # when has_nan is False) - skipping it avoids a full elementwise pass
-            # over the (batch, vars, rules) tensor on the common, NaN-free path,
+            # only reachable from the large-tensor branch above; nan_to_num is a
+            # no-op away from NaN/inf, and has_nan already proves `selected` is
+            # NaN-free (it is only ever assembled from `degrees` entries and the
+            # constant 1.0 above, neither of which introduces a NaN when has_nan is
+            # False) - skipping it avoids a full elementwise pass over the tensor,
             # which profiling showed was the single largest cost in the rule engine
             # for FLCs with many input variables.
             return selected

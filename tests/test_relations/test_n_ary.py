@@ -16,7 +16,11 @@ import torch
 
 from fuzzy.relations.compound import Compound
 from fuzzy.relations.linkage import BinaryLinks, GroupedLinks
-from fuzzy.relations.n_ary import NAryMaskMethods, NAryRelation
+from fuzzy.relations.n_ary import (
+    GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL,
+    NAryMaskMethods,
+    NAryRelation,
+)
 from fuzzy.relations.t_norm import Minimum, Product
 from fuzzy.sets.abstract import FuzzySet, FuzzySetInitMethod, FuzzySetShape
 from fuzzy.sets.group import FuzzySetGroup
@@ -687,8 +691,37 @@ class TestNAryRelation(unittest.TestCase):
         )  # (batch, vars, rules): var0 only active for rule0, var1 only for rule1
         self.assertTrue(torch.equal(result, expected))
 
-    def test_gather_apply_mask_skips_nan_to_num_when_no_nan_present(
-            self) -> None:
+    @staticmethod
+    def _large_gather_relation_and_degrees(
+        with_nan: bool,
+    ) -> Tuple[NAryRelation, torch.Tensor, Membership]:
+        """
+        Build a gather-eligible relation (2 variables, 1 rule spanning both - a single
+        list of 2 tuples passed to NAryRelation is one rule, not two) with a large
+        enough batch size that selected.numel() exceeds
+        GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL, to exercise _gather_apply_mask's
+        sync-and-maybe-skip branch (as opposed to its always-unconditional small-tensor
+        branch).
+
+        Returns:
+            The relation, the degrees tensor, and the Membership wrapping it.
+        """
+        relation = NAryRelation(
+            [(0, 0), (1, 0)], device=AVAILABLE_DEVICE, method=NAryMaskMethods.PROD
+        )
+        # selected.numel() == batch_size * n_vars(2) * n_rules(1)
+        batch_size = GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL // 2 + 10
+        degrees = torch.rand(batch_size, 2, 1, device=AVAILABLE_DEVICE)
+        if with_nan:
+            degrees[0, 1, 0] = float("nan")
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+        )
+        return relation, degrees, membership
+
+    def test_gather_apply_mask_large_tensor_skips_nan_to_num_when_no_nan_present(
+        self,
+    ) -> None:
         """
         Regression/performance test: _gather_apply_mask used to call
         selected.nan_to_num(...) unconditionally on every call, even though it already
@@ -697,8 +730,34 @@ class TestNAryRelation(unittest.TestCase):
         variables showed this unconditional nan_to_num call over the full
         (batch, vars, rules) tensor was the single largest cost in the rule engine
         (~33% of the engine's GPU time) - pure waste on the common, NaN-free path,
-        since nan_to_num is a no-op there. It must be skipped when there is no NaN to
-        replace.
+        since nan_to_num is a no-op there. Above GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL
+        elements, it must be skipped when there is no NaN to replace.
+
+        Returns:
+            None
+        """
+        relation, _, membership = self._large_gather_relation_and_degrees(
+            with_nan=False
+        )
+        self.assertTrue(relation._use_gather)  # pylint: disable=protected-access
+
+        with mock.patch.object(
+            torch.Tensor, "nan_to_num", autospec=True
+        ) as mocked_nan_to_num:
+            relation._gather_apply_mask(  # pylint: disable=protected-access
+                membership
+            )
+        mocked_nan_to_num.assert_not_called()
+
+    def test_gather_apply_mask_small_tensor_always_calls_nan_to_num(self) -> None:
+        """
+        Below GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL, calibration showed a CUDA sync to
+        decide whether nan_to_num is needed (~400-750us, dominated by the reduction
+        kernel and blocking scalar readback, not the sync primitive itself - see
+        GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL's definition) costs far more than just
+        always doing the cheap NaN-handling unconditionally. So below the threshold,
+        _gather_apply_mask must skip the sync and always call nan_to_num, even when
+        there is no NaN present (a harmless no-op at this size).
 
         Returns:
             None
@@ -709,7 +768,7 @@ class TestNAryRelation(unittest.TestCase):
         self.assertTrue(
             relation._use_gather)  # pylint: disable=protected-access
         degrees = torch.rand(
-            4, 2, 1, device=AVAILABLE_DEVICE)  # no NaN anywhere
+            4, 2, 1, device=AVAILABLE_DEVICE)  # no NaN anywhere; tiny tensor
         membership = Membership(
             degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
         )
@@ -719,13 +778,12 @@ class TestNAryRelation(unittest.TestCase):
         ) as mocked_nan_to_num:
             relation._gather_apply_mask(
                 membership)  # pylint: disable=protected-access
-        mocked_nan_to_num.assert_not_called()
+        mocked_nan_to_num.assert_called_once()
 
     def test_gather_apply_mask_calls_nan_to_num_when_nan_present(self) -> None:
         """
-        The nan_to_num skip introduced above must not become an overzealous skip that
-        also applies when a NaN observation is actually present - nan_replacement must
-        still be honored whenever there is something to replace.
+        Regardless of tensor size, nan_replacement must still be honored whenever
+        there is something to actually replace.
 
         Returns:
             None
@@ -755,11 +813,50 @@ class TestNAryRelation(unittest.TestCase):
         )
         self.assertFalse(bool(result.isnan().any()))
 
+    def test_gather_apply_mask_large_tensor_calls_nan_to_num_when_nan_present(
+        self,
+    ) -> None:
+        """
+        The large-tensor sync-and-maybe-skip branch must still honor nan_replacement
+        whenever NaN is actually present, not just in the small-tensor branch.
+
+        Returns:
+            None
+        """
+        relation, _, membership = self._large_gather_relation_and_degrees(
+            with_nan=True
+        )
+        result = relation._gather_apply_mask(  # pylint: disable=protected-access
+            membership
+        )
+        self.assertFalse(bool(result.isnan().any()))
+
+    def test_gather_apply_mask_large_tensor_matches_manual_gather(self) -> None:
+        """
+        Correctness of the large-tensor branch, independent of the small-tensor
+        branch's own characterization test above - both branches must agree with an
+        independently-written manual computation, not just with each other.
+
+        Returns:
+            None
+        """
+        relation, degrees, membership = self._large_gather_relation_and_degrees(
+            with_nan=False
+        )
+        result = relation._gather_apply_mask(  # pylint: disable=protected-access
+            membership
+        )
+        expected = torch.empty_like(result)
+        for rule_idx, relation_indices in enumerate(relation.indices):
+            for var_idx, term_idx in relation_indices:
+                expected[:, var_idx, rule_idx] = degrees[:, var_idx, term_idx]
+        self.assertTrue(torch.equal(result, expected))
+
     def test_gather_apply_mask_no_nan_skip_preserves_gradient(self) -> None:
         """
-        Skipping the nan_to_num call when there is no NaN present must not change the
-        gradient computed with respect to the degrees that fed into it, since
-        nan_to_num is the identity function (including its gradient) away from NaN/inf.
+        The small-tensor branch's unconditional NaN-handling must not change the
+        gradient computed with respect to the degrees that fed into it, relative to
+        what nan_to_num's own (identity, away from NaN/inf) gradient would give.
 
         Returns:
             None

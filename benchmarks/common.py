@@ -163,12 +163,19 @@ def make_batch(
     Returns:
         A fresh random observation batch of shape (batch_size, n_inputs), in [0, 1) to
         match the antecedents built by build_flc.
+
+    Generates directly on `device` rather than on the CPU followed by `.to(device)`:
+    a CPU tensor freshly returned by torch.rand() is backed by pageable (not pinned)
+    host memory, and CUDA's pageable-memory H2D copy path is synchronous - so the old
+    generate-then-.to() pattern silently forced a device sync on every single call,
+    identically inflating every timing in this benchmark (both FLC's and the DNN's) by
+    a roughly constant amount and partially masking genuine improvements at the
+    (otherwise now sync-free) small end of the FLC's own scale.
     """
-    generator = None
+    generator = torch.Generator(device=device)
     if seed is not None:
-        generator = torch.Generator(device="cpu").manual_seed(seed)
-    data = torch.rand(batch_size, n_inputs, generator=generator)
-    return data.to(device)
+        generator = generator.manual_seed(seed)
+    return torch.rand(batch_size, n_inputs, device=device, generator=generator)
 
 
 def _synchronize(device: torch.device) -> None:

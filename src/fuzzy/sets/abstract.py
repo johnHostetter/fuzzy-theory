@@ -272,6 +272,20 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     # default.
     _validate_degrees: bool = False
 
+    # See NAryRelation's GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL (module-level there,
+    # since NAryRelation is not currently torch.jit.script-compatible) for the
+    # underlying calibration this mirrors: on a CUDA tensor, a sync to ask "is there
+    # any NaN at all?" (~400-750us in practice, dominated by the reduction kernel and
+    # blocking scalar readback, not the sync primitive itself) costs more than just
+    # always doing the NaN-safe substitution below this many (estimated) elements in
+    # the resulting degrees tensor, and less above it. A class attribute (not a module
+    # global) because torch.jit.script rejects references to arbitrary Python module
+    # globals from a scripted method; it accepts instance attributes assigned in
+    # __init__ instead (see _validate_degrees just above). Threshold is an
+    # empirically-calibrated heuristic (measured on one GPU), not a theoretically
+    # derived constant.
+    _nan_safe_sync_threshold_numel: int = 5_000_000
+
     def __init__(
         self,
         centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
@@ -303,6 +317,9 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # a subclass such as Lorentzian's class-level override take effect
         # under scripting
         self._validate_degrees: bool = self._validate_degrees
+        self._nan_safe_sync_threshold_numel: int = (
+            self._nan_safe_sync_threshold_numel
+        )
 
     # @log_method
     @staticmethod
@@ -1162,7 +1179,13 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             but safe to backpropagate through even when some observations are NaN.
         """
         nan_mask = torch.isnan(observations)
-        if not bool(nan_mask.any()):
+        # a free (no GPU sync), crude estimate of what the resulting degrees tensor's
+        # size will be, used only to decide whether syncing to ask "is there any NaN
+        # at all?" is worth its cost - see _nan_safe_sync_threshold_numel
+        estimated_degrees_numel = observations.numel() * self.get_centers().shape[-1]
+        if estimated_degrees_numel > self._nan_safe_sync_threshold_numel and not bool(
+            nan_mask.any()
+        ):
             return self.calculate_membership(observations)
 
         safe_observations = torch.where(

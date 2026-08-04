@@ -242,10 +242,16 @@ def main() -> None:
         help="Which shape axes to sweep (default: all five).",
     )
     parser.add_argument(
-        "--n-repeats", type=int, default=20, help="Timed repetitions per configuration."
+        "--n-repeats",
+        type=int,
+        default=100,
+        help="Timed repetitions per configuration. This environment's GPU timings are "
+        "noisy enough (std comparable to the mean) that 20 repeats produces "
+        "differences that look real but vanish at higher repeat counts - see the "
+        "cache_membership ablation in the findings writeup. Prefer erring high.",
     )
     parser.add_argument(
-        "--n-warmup", type=int, default=5, help="Untimed warmup calls beforehand."
+        "--n-warmup", type=int, default=10, help="Untimed warmup calls beforehand."
     )
     parser.add_argument(
         "--quick",

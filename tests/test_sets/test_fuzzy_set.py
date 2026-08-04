@@ -10,6 +10,7 @@ import shutil
 import unittest
 from pathlib import Path
 from typing import Any, MutableMapping
+from unittest import mock
 
 import numpy as np
 import torch
@@ -548,8 +549,12 @@ class TestFuzzySet(unittest.TestCase):
 
     def test_no_nan_fast_path_matches_calculate_membership(self) -> None:
         """
-        When no observation is NaN, _calculate_membership_nan_safe() should skip its
-        safety machinery entirely and return exactly what calculate_membership() would.
+        When no observation is NaN, _calculate_membership_nan_safe() must return
+        exactly what calculate_membership() would, regardless of which of its two
+        size-dependent strategies is used internally (see
+        test_no_nan_large_tensor_skips_safety_machinery and
+        test_no_nan_small_tensor_always_uses_safe_path for those specifically) - a
+        NaN-free torch.where is a value no-op either way.
 
         Returns:
             None
@@ -564,3 +569,81 @@ class TestFuzzySet(unittest.TestCase):
         via_forward = gaussian_mf(observations).degrees.to_dense()
         direct = gaussian_mf.calculate_membership(observations.unsqueeze(-1))
         self.assertTrue(torch.equal(via_forward, direct))
+
+    def test_no_nan_large_tensor_skips_safety_machinery(self) -> None:
+        """
+        Regression/performance test: _calculate_membership_nan_safe used to always
+        sync (bool(nan_mask.any())) to decide whether the NaN-safe substitution was
+        needed. Calibration showed that sync costs ~400-750us in practice (dominated by
+        the reduction kernel and blocking scalar readback, not the sync primitive
+        itself), while the substitution it decides whether to skip only costs that much
+        once the resulting degrees tensor is large - see
+        FuzzySet._nan_safe_sync_threshold_numel. Above that threshold, with no NaN
+        present, the substitution (implemented via torch.where) must still be skipped
+        entirely.
+
+        Returns:
+            None
+        """
+        gaussian_mf = Gaussian(
+            centers=np.array([0.0, 1.0, 0.5, 0.25, 0.75]),
+            widths=np.array([1.0, 1.0, 1.0, 1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
+        )
+        # degrees numel == batch_size * n_terms(5); comfortably exceeds the threshold
+        batch_size = gaussian_mf._nan_safe_sync_threshold_numel // 5 + 10  # pylint: disable=protected-access
+        observations = torch.rand(batch_size, 1, device=AVAILABLE_DEVICE)
+
+        with mock.patch("torch.where", autospec=True) as mocked_where:
+            gaussian_mf(observations)
+        mocked_where.assert_not_called()
+
+    def test_no_nan_small_tensor_always_uses_safe_path(self) -> None:
+        """
+        Below FuzzySet._nan_safe_sync_threshold_numel, the sync needed to decide
+        whether the NaN-safe substitution is necessary costs more than just always
+        performing it -
+        so below the threshold, the substitution (torch.where, called twice: once to
+        build the NaN-free input, once to re-inject NaN into the output) must always
+        run, even when there is no NaN present (a harmless no-op at this size).
+
+        Returns:
+            None
+        """
+        gaussian_mf = Gaussian(
+            centers=np.array([0.0, 1.0]),
+            widths=np.array([1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
+        )
+        observations = torch.tensor(
+            [[0.3], [0.6], [0.9]], device=AVAILABLE_DEVICE
+        )  # tiny; no NaN anywhere
+
+        with mock.patch(
+            "torch.where", autospec=True, side_effect=torch.where
+        ) as mocked_where:
+            gaussian_mf(observations)
+        self.assertEqual(mocked_where.call_count, 2)
+
+    def test_nan_observation_still_produces_nan_degree_large_tensor(self) -> None:
+        """
+        The large-tensor, sync-gated branch must still produce the documented
+        "NaN observation -> NaN degree" contract when a NaN is actually present, not
+        just in the small-tensor always-safe branch (see
+        test_nan_observation_still_produces_nan_degree for that one).
+
+        Returns:
+            None
+        """
+        gaussian_mf = Gaussian(
+            centers=np.array([0.0, 1.0, 0.5, 0.25, 0.75]),
+            widths=np.array([1.0, 1.0, 1.0, 1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
+        )
+        batch_size = gaussian_mf._nan_safe_sync_threshold_numel // 5 + 10  # pylint: disable=protected-access
+        observations = torch.rand(batch_size, 1, device=AVAILABLE_DEVICE)
+        observations[0, 0] = float("nan")
+
+        degrees = gaussian_mf(observations).degrees.to_dense()
+        self.assertTrue(bool(degrees[0].isnan().all()))
+        self.assertFalse(bool(degrees[1:].isnan().any()))
