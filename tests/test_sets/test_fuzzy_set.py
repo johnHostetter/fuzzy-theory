@@ -16,12 +16,8 @@ import numpy as np
 import torch
 
 from fuzzy.sets import Membership
-from fuzzy.sets.abstract import (
-    DynamicParameterList,
-    FuzzySet,
-    FuzzySetInitMethod,
-    FuzzySetShape,
-)
+from fuzzy.sets.abstract import (DynamicParameterList, FuzzySet,
+                                 FuzzySetInitMethod, FuzzySetShape)
 from fuzzy.sets.impl.basic import NoOp
 from fuzzy.sets.impl.gauss_variants.cmf import Gaussian
 

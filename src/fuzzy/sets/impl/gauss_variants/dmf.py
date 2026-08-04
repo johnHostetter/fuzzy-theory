@@ -144,9 +144,6 @@ class GaussianNoExpDMF(DimensionDependent):
             rho=self.rho,
         )
 
-    def prepare_observations(self, observations: torch.Tensor) -> torch.Tensor:
-        return observations.float()
-
 
 class GaussianDMF(DimensionDependent):
     """
@@ -221,6 +218,3 @@ class GaussianDMF(DimensionDependent):
             n_inputs=self.n_inputs,
             rho=self.rho,
         )
-
-    def prepare_observations(self, observations: torch.Tensor) -> torch.Tensor:
-        return observations.float()

@@ -365,36 +365,28 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
 
     @classmethod
     # @log_classmethod
-    def render_formula(cls) -> sympy.Expr:
+    def render_formula(cls, latex: bool) -> Union[str, sympy.Expr]:
         """
         Render of the fuzzy set's membership function.
 
-        Note: This is more beneficial for Python Console or Jupyter Notebook usage.
+        Args:
+            latex: Use False for Python Console or Jupyter Notebook. Otherwise, True will return
+            a LaTeX representation of the fuzzy set's membership function.
 
         Returns:
             Render of the fuzzy set's membership function.
         """
+        if latex:
+            return sympy.latex(cls.sympy_formula())
+
         sympy.init_printing(use_unicode=True)
         return cls.sympy_formula()
-
-    @classmethod
-    # @log_classmethod
-    def latex_formula(cls) -> str:
-        """
-        String LaTeX representation of the fuzzy set's membership function.
-
-        Note: This is more beneficial for animations or LaTeX documents.
-
-        Returns:
-            The LaTeX representation of the fuzzy set's membership function.
-        """
-        return sympy.latex(cls.sympy_formula())
 
     def _extra_save_state(self) -> MutableMapping[str, Any]:
         """
         Hook for subclasses with additional learnable parameters beyond centers/widths
         (e.g. Trapezoidal's plateaus) to contribute extra entries to the state_dict that
-        save() builds - avoiding the need to re-implement all of save() just to add one
+        save() builds - avoiding the need to re-implement save() just to add one
         more field.
 
         Returns:
@@ -410,7 +402,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         """
         Hook for subclasses to pop() their extra _extra_save_state() entries back out of
         the loaded state_dict and turn them into constructor kwargs - the counterpart to
-        _extra_save_state(), avoiding the need to re-implement all of load() just to
+        _extra_save_state(), avoiding the need to re-implement load() just to
         restore one more field.
 
         Args:
@@ -501,23 +493,25 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         self.clear_membership_cache()
 
     # @log_method
-    def _area_helper(self, fuzzy_sets) -> List[List[float]]:
+    def area(self) -> torch.Tensor:
         """
+        Calculate the area beneath the fuzzy curve (i.e., membership function) using torchquad.
+
+        This is a slightly expensive operation, but it is used for approximating the Mamdani fuzzy
+        inference with arbitrary continuous fuzzy sets.
+
+        Typically, the results will be cached somewhere, so that the area value can be reused.
+
         Splits the fuzzy set (if representing a fuzzy variable) into individual fuzzy sets (the
         fuzzy variable's possible fuzzy terms), and does so recursively until the base case is
         reached. Once the base case is reached (i.e., a single fuzzy set), the area under its
-        curve within the integration_domain is calculated. The result is a
-
-        Args:
-            fuzzy_sets: The fuzzy set to split into smaller fuzzy sets.
+        curve within the integration_domain is calculated.
 
         Returns:
-            A list of floats.
+            torch.Tensor
         """
         all_areas: List[List[float]] = []
-        for variable_params in zip(
-                fuzzy_sets.get_centers(),
-                fuzzy_sets.get_widths()):
+        for variable_params in zip(self.get_centers(), self.get_widths()):
             variable_centers, variable_widths = variable_params[0], variable_params[1]
             variable_areas = []
             for term_params in zip(variable_centers, variable_widths):
@@ -557,24 +551,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                     area = 0.0
                 variable_areas.append(area)
             all_areas.append(variable_areas)
-        return all_areas
-
-    # @log_method
-    def area(self) -> torch.Tensor:
-        """
-        Calculate the area beneath the fuzzy curve (i.e., membership function) using torchquad.
-
-        This is a slightly expensive operation, but it is used for approximating the Mamdani fuzzy
-        inference with arbitrary continuous fuzzy sets.
-
-        Typically, the results will be cached somewhere, so that the area value can be reused.
-
-        Returns:
-            torch.Tensor
-        """
-        return torch.tensor(
-            self._area_helper(self), device=self.device, dtype=torch.float32
-        )
+        return torch.tensor(all_areas, device=self.device, dtype=torch.float32)
 
     # @log_method
     def split_by_variables(self) -> Union[list, List[Type["FuzzySet"]]]:
@@ -987,21 +964,6 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         if cache is not None and cache.enabled:
             cache.store(observations, self.parameter_signature(), membership)
 
-    def prepare_observations(self, observations: torch.Tensor) -> torch.Tensor:
-        """
-        Adjust the observations immediately before the membership degrees are calculated.
-
-        This exists for fuzzy sets whose formula requires something of its input; the default is
-        to pass the observations through untouched.
-
-        Args:
-            observations: The observations to prepare.
-
-        Returns:
-            The observations, as the membership function expects them.
-        """
-        return observations
-
     def _calculate_membership_nan_safe(
         self, observations: torch.Tensor
     ) -> torch.Tensor:
@@ -1077,9 +1039,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
 
-        degrees: torch.Tensor = self._calculate_membership_nan_safe(
-            self.prepare_observations(observations)
-        )
+        degrees: torch.Tensor = self._calculate_membership_nan_safe(observations)
 
         if self._validate_degrees:
             assert (
