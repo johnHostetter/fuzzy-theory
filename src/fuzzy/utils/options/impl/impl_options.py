@@ -732,6 +732,5 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
         return [
             hyperparameter
             for hyperparameter in dataclasses_fields(self)
-            if hyperparameter
-            not in dataclasses_fields(type(ApproximatorHyperparameters))
+            if hyperparameter not in dataclasses_fields(ApproximatorHyperparameters)
         ]

@@ -178,6 +178,28 @@ class TestGroupedLinks(unittest.TestCase):
         empty_grouped_links.extend([self.binary_links_2])
         self.assertEqual((3, 6), empty_grouped_links.shape)
 
+    def test_construct_with_no_modules_still_invokes_callback(self) -> None:
+        """
+        The empty-modules_list branch of _compute_shape_cache must still invoke the
+        optional callback, exactly like the non-empty branch does, since __init__
+        calls _compute_shape_cache() unconditionally regardless of whether any
+        modules were supplied yet.
+
+        Returns:
+            None
+        """
+        call_count = 0
+
+        def callback() -> None:
+            nonlocal call_count
+            call_count += 1
+
+        empty_grouped_links = GroupedLinks(modules_list=None, callback=callback)
+        self.assertEqual(1, call_count)
+
+        empty_grouped_links.append(self.binary_links_1)
+        self.assertEqual(2, call_count)
+
     def test_eq_compares_against_other_not_self(self) -> None:
         """
         Regression guard: __eq__ used to compute other_links via self.forward(...) a

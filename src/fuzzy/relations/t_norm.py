@@ -164,11 +164,13 @@ class GeneralizedLukasiewicz(TNorm):
         # fixed/tested
         firing_strengths = intermediate_values.sum(dim=1)
         return Membership(
-            # elements=membership.elements,
             degrees=torch.nn.functional.relu(
                 firing_strengths
-                # subtract # of inputs - 1
-                - (membership.elements.shape[-1] - 1)
+                # subtract # of inputs - 1; membership.elements was dropped from
+                # Membership (see membership.py) - degrees.shape[1] (the vars
+                # dimension) is the direct replacement, since elements previously
+                # held the raw per-variable observations
+                - (membership.degrees.shape[1] - 1)
             ),
             mask=self.applied_mask,
         )

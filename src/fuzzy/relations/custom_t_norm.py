@@ -84,8 +84,14 @@ class TNormPipeline(torch.nn.Module):
             None
         """
         if path.is_dir():
+            # map_location=device avoids two failure modes: torch.load() otherwise
+            # deserializes tensors onto whatever device they were *saved* from (which
+            # raises outright if that device, e.g. a CUDA GPU, isn't available on this
+            # machine), and even when it succeeds, __init__ would then need to move
+            # them again - map_location does it once, correctly, up front (mirrors
+            # CertaintyFactors.load in confidence.py)
             state_dict: MutableMapping = torch.load(
-                path / "state_dict.pt", weights_only=False
+                path / "state_dict.pt", map_location=device, weights_only=False
             )
             n_relations: int = state_dict.pop("n_relations")
             configuration = InferenceConfig.load(

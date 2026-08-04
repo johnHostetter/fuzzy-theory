@@ -147,24 +147,40 @@ class CategoricalEnumOptions(CategoricalOptions, EnumPromoter):
         # clobber the same shared EnumPromoter attributes instead of getting its own.
         # Accessing it through type(self) binds cls to the actual concrete subclass.
         type(self).__init_subclass__(enum_cls=self.enum_cls)
-        super().__init__(*self.options, *args, **kwargs)
+        # *args is intentionally NOT forwarded here: this class' options always come
+        # from enum_cls (just promoted onto self.options above), never from
+        # constructor args - forwarding *args as well duplicated the options tuple
+        # whenever load() reconstructed an instance via cls(*loaded_dict["options"])
+        # (see CategoricalOptions.load), since that already IS self.options.
+        super().__init__(*self.options, **kwargs)
 
-    @staticmethod
-    def load(path: Path, cls=None) -> "CategoricalEnumOptions":
+    @classmethod
+    def load(cls, path: Path) -> "CategoricalEnumOptions":
         """
-        The function to load a CategoricalEnumOptions object. The 'cls' argument is ignored but
-        kept for consistency with the static load method from 'CategoricalOptions'.
+        Load a CategoricalEnumOptions object. Must be called on the concrete subclass
+        that was originally saved (e.g. MySubclass.load(path)), not on
+        CategoricalEnumOptions directly - the saved state has no record of which
+        subclass produced it (unlike enum_cls, which only exists as a class
+        attribute), so reconstructing the right type of object relies on the caller
+        already knowing it and invoking .load() on it.
+
         Args:
             path: The path where the CategoricalEnumOptions object is located.
-            cls: An ignored argument; kept for interface consistency.
 
         Returns:
-            An instance of CategoricalEnumOptions.
+            An instance of the concrete CategoricalEnumOptions subclass this was
+            called on.
         """
-        loaded_object = super().load(path=path, cls=CategoricalEnumOptions)
-        if isinstance(loaded_object, CategoricalEnumOptions):
-            return loaded_object
-        raise ValueError(f"Failed to load from: {path}")
+        # previously a @staticmethod that ignored its 'cls' argument and always
+        # reconstructed the base CategoricalEnumOptions class itself - which has no
+        # enum_cls of its own, so __init__ crashed with AttributeError on
+        # self.options. A classmethod naturally receives the concrete subclass that
+        # .load() was actually called on, which is what CategoricalOptions.load's own
+        # cls= parameter needs to build the right kind of object. Since a classmethod
+        # can only ever be invoked as CategoricalEnumOptions.load(...) or
+        # SomeSubclass.load(...), cls(*args) is always an instance of
+        # CategoricalEnumOptions - no isinstance check is needed here.
+        return CategoricalOptions.load(path=path, cls=cls)
 
 
 class GroupedOptions(Options):

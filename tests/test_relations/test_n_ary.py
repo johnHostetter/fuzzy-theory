@@ -21,7 +21,7 @@ from fuzzy.relations.n_ary import (
     NAryMaskMethods,
     NAryRelation,
 )
-from fuzzy.relations.t_norm import Minimum, Product
+from fuzzy.relations.t_norm import GeneralizedLukasiewicz, Minimum, Product
 from fuzzy.relations.t_norm import gather_prod as t_norm_gather_prod
 from fuzzy.sets.abstract import FuzzySet, FuzzySetInitMethod, FuzzySetShape
 from fuzzy.sets.group import FuzzySetGroup
@@ -1389,6 +1389,34 @@ class TestMinimum(TestNAryRelation):
         self.assertTrue(
             torch.allclose(min_membership.degrees.to_dense(), expected_degrees)
         )
+
+
+class TestGeneralizedLukasiewicz(TestNAryRelation):
+    """
+    Test the GeneralizedLukasiewicz n-ary relation.
+    """
+
+    def test_forward_does_not_crash_and_matches_formula(self) -> None:
+        """
+        Regression guard: forward() used to reference membership.elements, a field
+        that was dropped from Membership (see fuzzy.sets.membership) - every call
+        crashed with AttributeError, and this class had no test coverage at all.
+
+        Returns:
+            None
+        """
+        n_ary = GeneralizedLukasiewicz((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        membership = self.test_gaussian_membership()
+
+        result: Membership = n_ary.forward(membership)
+
+        intermediate_values = n_ary.apply_mask(membership=membership)
+        expected_firing_strengths = intermediate_values.sum(dim=1)
+        expected_degrees = torch.nn.functional.relu(
+            expected_firing_strengths - (membership.degrees.shape[1] - 1)
+        )
+        self.assertTrue(torch.allclose(result.degrees, expected_degrees))
+        self.assertFalse(bool(result.degrees.isnan().any()))
 
 
 class TestCompound(TestNAryRelation):

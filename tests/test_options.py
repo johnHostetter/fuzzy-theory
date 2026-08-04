@@ -296,6 +296,25 @@ class TestOptions(unittest.TestCase):
         nfn = NeuroFuzzyNetworkHyperparameters(evolution=custom_evolution)
         self.assertEqual(0.0, nfn.evolution.rule.epsilon_filter)
 
+    def test_fields_excludes_base_class_fields(self) -> None:
+        """
+        Regression guard: NeuroFuzzyNetworkHyperparameters.fields used to pass
+        type(ApproximatorHyperparameters) (the metaclass, i.e. `type`) to
+        dataclasses.fields() instead of the class itself, which always raised
+        TypeError - so `.fields` could never be accessed at all.
+
+        Returns:
+            None
+        """
+        nfn = NeuroFuzzyNetworkHyperparameters()
+        field_names = {hyperparameter.name for hyperparameter in nfn.fields}
+        # unique to the subclass
+        self.assertIn("structure", field_names)
+        self.assertIn("evolution", field_names)
+        # inherited from ApproximatorHyperparameters, so excluded
+        self.assertNotIn("display_name", field_names)
+        self.assertNotIn("abbrev_name", field_names)
+
     def test_categorical_enum_options_promotes_onto_concrete_subclass(self) -> None:
         """
         Regression guard: CategoricalEnumOptions.__init__ used to call
@@ -319,6 +338,31 @@ class TestOptions(unittest.TestCase):
         # NOT leaked onto the shared EnumPromoter base class
         self.assertFalse(hasattr(EnumPromoter, "A"))
         self.assertFalse(hasattr(EnumPromoter, "B"))
+
+    def test_categorical_enum_options_save_and_load(self) -> None:
+        """
+        Regression guard: CategoricalEnumOptions.load used to be a @staticmethod that
+        called zero-arg super() - which, having no enclosing self/cls to bind to
+        inside a staticmethod, fell back to treating its first positional argument
+        (path, a Path) as the instance, always raising TypeError. It has since become
+        a classmethod, called on the concrete subclass being loaded, so this checks
+        a real save/load round trip works and reproduces the original instance.
+
+        Returns:
+            None
+        """
+        path = self.dir / "categorical_enum_options.pickle"
+        options = DemoCategoricalEnumOptions()
+        options.selection = DemoEnum.A.value
+        options.save(path)
+
+        loaded = DemoCategoricalEnumOptions.load(path)
+
+        self.assertIsInstance(loaded, DemoCategoricalEnumOptions)
+        self.assertEqual(options.options, loaded.options)
+        self.assertEqual(options.selection, loaded.selection)
+        self.assertEqual(options, loaded)
+        os.remove(path)
 
     @staticmethod
     def create_grouped_options_from_kwargs(
