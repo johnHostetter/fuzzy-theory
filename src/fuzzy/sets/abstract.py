@@ -6,18 +6,17 @@ which contains a helpful interface understanding membership degrees.
 
 import abc
 import inspect
-
 # import logging
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, List, MutableMapping, NoReturn, Optional, Tuple, Type, Union
+from typing import (Any, List, MutableMapping, NoReturn, Optional, Tuple, Type,
+                    Union)
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-
 # import scienceplots is used via plt.style.context(["science",
 # "no-latex", "high-contrast"])
 import scienceplots  # noqa # pylint: disable=unused-import
@@ -32,7 +31,6 @@ from torchquad.utils.set_up_backend import set_up_backend
 
 from ..utils import TorchJitModule, check_path_to_save_torch_module
 from ..utils.classes import Loggable
-
 # from ..utils.functions import log_classmethod, log_func, log_method
 from .cache import MembershipCache, ParameterSignature, signature_of
 from .membership import Membership

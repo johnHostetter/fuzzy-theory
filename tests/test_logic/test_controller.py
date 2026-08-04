@@ -606,6 +606,42 @@ class TestMamdani(unittest.TestCase):
             device=AVAILABLE_DEVICE,
         )
 
+    @unittest.skipUnless(
+        torch.cuda.is_available(), "requires a second device (CUDA) to move to"
+    )
+    def test_to_moves_output_links_to_new_device(self) -> None:
+        """
+        Regression guard: Mamdani.to() used to call self.output_links.to(device)
+        without reassigning the result. output_links is a plain tensor (not a
+        Parameter or a registered buffer), so nn.Module.to()'s automatic handling
+        does not cover it, and Tensor.to() is not in-place - the device move used to
+        silently never take effect.
+
+        Returns:
+            None
+        """
+        antecedents, consequents, rules = toy_mamdani(
+            t_norm=Product, device=torch.device("cpu")
+        )
+        knowledge_base = KnowledgeBase.create(
+            linguistic_variables=LinguisticVariables(
+                inputs=antecedents, targets=consequents
+            ),
+            rules=rules,
+        )
+        flc = FLC(
+            source=knowledge_base,
+            inference=Mamdani,
+            device=torch.device("cpu"),
+        )
+        self.assertEqual(
+            torch.device("cpu"), flc.defuzzification.output_links.device
+        )
+
+        flc.defuzzification.to(torch.device("cuda"))
+
+        self.assertEqual("cuda", flc.defuzzification.output_links.device.type)
+
     def test_mamdani(self) -> None:
         """
         Test the Mamdani neuro-fuzzy network.

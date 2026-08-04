@@ -540,7 +540,11 @@ class Mamdani(Defuzzification):
             The defuzzification process.
         """
         super().to(device, *args, **kwargs)
-        self.output_links.to(device)
+        # output_links is a plain tensor, not a Parameter or a registered buffer, so
+        # nn.Module.to() (called above) does not know to move it - Tensor.to() is not
+        # in-place, so its return value must be reassigned or the move silently never
+        # happens
+        self.output_links = self.output_links.to(device)
         self.consequences.to(device)
         return self
 

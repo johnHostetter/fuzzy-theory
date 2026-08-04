@@ -141,7 +141,12 @@ class CategoricalEnumOptions(CategoricalOptions, EnumPromoter):
     enum_cls = None  # required
 
     def __init__(self, *args, **kwargs):
-        EnumPromoter.__init_subclass__(enum_cls=self.enum_cls)
+        # __init_subclass__ is implicitly a classmethod, so accessing it through the
+        # base class (EnumPromoter.__init_subclass__) binds cls=EnumPromoter itself,
+        # promoting the enum members onto the wrong class - every subclass would then
+        # clobber the same shared EnumPromoter attributes instead of getting its own.
+        # Accessing it through type(self) binds cls to the actual concrete subclass.
+        type(self).__init_subclass__(enum_cls=self.enum_cls)
         super().__init__(*self.options, *args, **kwargs)
 
     @staticmethod

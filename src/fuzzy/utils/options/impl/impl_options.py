@@ -10,7 +10,7 @@ they inherit from torch.nn.Module and can be used accordingly).
 from dataclasses import Field, field
 from dataclasses import fields as dataclasses_fields
 from pathlib import Path
-from typing import Callable, ClassVar, List, Union
+from typing import Callable, List, Union
 
 import scipy.stats
 import torch
@@ -36,7 +36,7 @@ from fuzzy.utils.options.impl.impl_enums import (
     SamplingEnum,
 )
 
-_64_BIT_INT: int = 2 ^ 63 - 1  # max magnitude of a 64-bit integer
+_64_BIT_INT: int = (2**63) - 1  # max magnitude of a 64-bit integer
 
 
 @dataclass(frozen=True)
@@ -59,7 +59,10 @@ class Range:
             A scipy.stats.range instance.
         """
         if self.step:
-            return scipy.stats.randint(self.low, self.high)
+            # scipy.stats.randint(low, high) samples from [low, high) - high excluded -
+            # whereas the rest of Range (contains(), to_optuna()) treats high as
+            # inclusive, so it must be offset by one to match
+            return scipy.stats.randint(int(self.low), int(self.high) + 1)
         if self.log:
             return scipy.stats.loguniform(self.low, self.high)
         return scipy.stats.uniform(self.low, self.high - self.low)
@@ -683,7 +686,6 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
     neuro-fuzzy networks.
     """
 
-    _initialized: ClassVar[bool] = False
     structure: StructureConfig = field(
         default_factory=StructureConfig,
         metadata={
@@ -713,9 +715,10 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
         self.display_name = "Concurrent Optimization of Fuzzy Inference Systems"
         self.abbrev_name = "CO-FIS"
 
-        if not NeuroFuzzyNetworkHyperparameters._initialized:
-            self.evolution.rule.epsilon_filter = 0.0  # disable the constraint
-            NeuroFuzzyNetworkHyperparameters._initialized = True
+        # disable the constraint for every instance, not just the first one built in
+        # the process - a ClassVar-gated "only the first time" guard used to make this
+        # silently stop applying after the first instantiation anywhere in the process
+        self.evolution.rule.epsilon_filter = 0.0
 
     # noinspection PyTypeChecker
     @property

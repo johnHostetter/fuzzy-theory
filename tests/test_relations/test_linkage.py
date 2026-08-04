@@ -156,6 +156,66 @@ class TestGroupedLinks(unittest.TestCase):
                 )
             )
 
+    def test_construct_with_no_modules_then_append(self) -> None:
+        """
+        Regression guard: constructing with modules_list=None/[] and building up
+        incrementally via append()/extend() is an explicitly supported workflow (per
+        those methods' docstrings), but _compute_shape_cache used to unconditionally
+        index modules_list[0], crashing with an IndexError before append() could ever
+        be called.
+
+        Returns:
+            None
+        """
+        empty_grouped_links = GroupedLinks(modules_list=None)
+        self.assertEqual(0, len(empty_grouped_links.modules_list))
+        self.assertEqual(torch.Size(), empty_grouped_links.shape)
+
+        empty_grouped_links.append(self.binary_links_1)
+        self.assertEqual(1, len(empty_grouped_links.modules_list))
+        self.assertEqual(self.binary_links_1.shape, empty_grouped_links.shape)
+
+        empty_grouped_links.extend([self.binary_links_2])
+        self.assertEqual((3, 6), empty_grouped_links.shape)
+
+    def test_eq_compares_against_other_not_self(self) -> None:
+        """
+        Regression guard: __eq__ used to compute other_links via self.forward(...) a
+        second time instead of other.forward(...), so the comparison degenerated to
+        self == self and two GroupedLinks with completely different link matrices
+        (but identical shape) were reported as equal.
+
+        Returns:
+            None
+        """
+        other_grouped_links = GroupedLinks(
+            modules_list=[self.binary_links_1, self.binary_links_1]
+        )
+        self.assertEqual(self.grouped_links.shape, other_grouped_links.shape)
+        self.assertNotEqual(self.grouped_links, other_grouped_links)
+
+        same_grouped_links = GroupedLinks(
+            modules_list=[self.binary_links_1, self.binary_links_2]
+        )
+        self.assertEqual(self.grouped_links, same_grouped_links)
+
+        self.assertNotEqual(self.grouped_links, "not a GroupedLinks")
+
+    def test_hash_is_stable_across_calls(self) -> None:
+        """
+        Regression guard: __hash__ used to hash the tensor freshly returned by
+        self.forward(...), which (for more than one underlying module) is a brand new
+        tensor object allocated by torch.cat on every call - so the same, unmodified
+        instance would hash to a different value each time, violating the basic
+        requirement that an object's hash stay constant over its lifetime.
+
+        Returns:
+            None
+        """
+        first_hash = hash(self.grouped_links)
+        second_hash = hash(self.grouped_links)
+        self.assertEqual(first_hash, second_hash)
+
     def test_save_and_load_linkage(self) -> None:
         """
         Test that we can save and load a GroupedLinks object.

@@ -69,7 +69,10 @@ class OrderedWeightedAveraging(torch.nn.Module, Loggable):
         # there is exactly one entry where it is equal to one
         if len(torch.where(self.weights == 1.0)[0]) == 1:
             return torch.zeros(1)
-        return -1 * (self.weights * torch.log(self.weights)).sum()
+        # torch.xlogy(0, 0) is defined as 0 (the conventional entropy limit), unlike
+        # 0 * torch.log(0) which is IEEE754 NaN (0 * -inf) and would poison the sum
+        # for any weight vector containing a zero outside the single-1.0 case above
+        return -1 * torch.xlogy(self.weights, self.weights).sum()
 
     # @log_method
     def forward(self, input_observation):
