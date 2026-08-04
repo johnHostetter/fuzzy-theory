@@ -465,10 +465,16 @@ class TSK(Defuzzification):
 
         # assert torch.allclose(rule_output.float(), old_rule_output)
 
-        fir_str_bar = rule_activations.degrees / torch.sum(
-            rule_activations.degrees, 1
-        ).unsqueeze(
-            1
+        # a product t-norm's rule strengths commonly underflow to exactly 0.0 in
+        # float32 once enough sub-1 factors are multiplied together (e.g. ~64+ input
+        # variables is enough for every rule to underflow) - without this offset, a
+        # batch element where every rule underflows divides 0.0 by 0.0, producing NaN
+        # that poisons the entire output (and gradient) for that batch, not just the
+        # degenerate element. Mirrors the same offset already used by the sibling
+        # Defuzzification.forward() (the "standard"/Mamdani path) for exactly this
+        # reason.
+        fir_str_bar = rule_activations.degrees / (
+            torch.sum(rule_activations.degrees, 1).unsqueeze(1) + 1e-32
         )  # [num_sam,num_rule]
         model_output = torch.einsum(
             "NRC,NR->NC", rule_output, fir_str_bar  # * self.weights

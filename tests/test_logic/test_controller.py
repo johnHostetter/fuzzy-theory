@@ -50,9 +50,8 @@ class TestTSK(unittest.TestCase):
             device=AVAILABLE_DEVICE,
         )
         # the first variable has fuzzy sets with centers 0, 1, 2 (the column)
-        centers = torch.nn.Parameter(
-            torch.tensor([[0, 1], [1, 2], [2, 3]], device=AVAILABLE_DEVICE).double()
-        )
+        centers = torch.nn.Parameter(torch.tensor(
+            [[0, 1], [1, 2], [2, 3]], device=AVAILABLE_DEVICE).double())
         actual_result = input_data.unsqueeze(dim=-1) - centers.T
         expected_result = torch.tensor(
             [
@@ -88,7 +87,9 @@ class TestTSK(unittest.TestCase):
             None
         """
         self.fuzzy_logic_controller.to(torch.device("cpu"))
-        self.assertEqual(torch.device("cpu"), self.fuzzy_logic_controller.device)
+        self.assertEqual(
+            torch.device("cpu"),
+            self.fuzzy_logic_controller.device)
         # check that this is reflected in each of its torch.nn.Modules
         for module in self.fuzzy_logic_controller.children():
             self.assertEqual(torch.device("cpu"), module.device)
@@ -196,8 +197,7 @@ class TestTSK(unittest.TestCase):
         )
         self.fuzzy_logic_controller.engine.nan_replacement = 0.0
         lower_rule_activations: Membership = self.fuzzy_logic_controller.engine(
-            self.fuzzy_logic_controller.input_granulation(data_with_missing)
-        )
+            self.fuzzy_logic_controller.input_granulation(data_with_missing))
         assert torch.allclose(
             lower_rule_activations.degrees,
             torch.tensor(
@@ -218,9 +218,7 @@ class TestTSK(unittest.TestCase):
         self.fuzzy_logic_controller.engine.nan_replacement = 1.0
         temp_upper_rule_activations: torch.Tensor = (
             self.fuzzy_logic_controller.engine.apply_mask(
-                self.fuzzy_logic_controller.input_granulation(data_with_missing)
-            )
-        )
+                self.fuzzy_logic_controller.input_granulation(data_with_missing)))
         assert torch.allclose(
             temp_upper_rule_activations,
             torch.tensor(
@@ -257,8 +255,7 @@ class TestTSK(unittest.TestCase):
             equal_nan=True,
         )
         upper_rule_activations: Membership = self.fuzzy_logic_controller.engine(
-            self.fuzzy_logic_controller.input_granulation(data_with_missing)
-        )
+            self.fuzzy_logic_controller.input_granulation(data_with_missing))
         assert torch.allclose(
             upper_rule_activations.degrees,
             torch.tensor(
@@ -347,9 +344,8 @@ class TestTSK(unittest.TestCase):
         )
         # check that rules were correctly created
         knowledge_base = KnowledgeBase.create(
-            linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
-            rules=rules,
-        )
+            linguistic_variables=LinguisticVariables(
+                inputs=antecedents, targets=[]), rules=rules, )
         rule_vertex = knowledge_base.graph.vs.find(item_eq=rules[0])
         self.assertEqual(
             rule_vertex["item"], rules[0]
@@ -399,7 +395,8 @@ class TestTSK(unittest.TestCase):
         assert flc.shape.n_outputs == 1
 
         actual_variables: List[FuzzySet] = flc.linguistic_variables().inputs
-        for actual_variable, expected_variable in zip(actual_variables, antecedents):
+        for actual_variable, expected_variable in zip(
+                actual_variables, antecedents):
             assert torch.allclose(
                 actual_variable.get_centers(), expected_variable.get_centers()
             )
@@ -437,17 +434,147 @@ class TestTSK(unittest.TestCase):
             ),
         ]
         knowledge_base = KnowledgeBase.create(
+            linguistic_variables=LinguisticVariables(
+                inputs=antecedents, targets=[]), rules=rules, )
+        flc = FLC(
+            source=knowledge_base,
+            inference=TSK,
+            device=AVAILABLE_DEVICE)
+
+        self.assertEqual(
+            flc.defuzzification.weights.device.type,
+            AVAILABLE_DEVICE.type)
+        self.assertEqual(
+            flc.defuzzification.bias.device.type,
+            AVAILABLE_DEVICE.type)
+
+        # the actual symptom: this used to raise a device-mismatch RuntimeError
+        output = flc(torch.tensor([[2.0]], device=AVAILABLE_DEVICE))
+        self.assertEqual(output.device.type, AVAILABLE_DEVICE.type)
+
+    def test_tsk_does_not_produce_nan_when_product_rule_strengths_underflow(
+        self,
+    ) -> None:
+        """
+        Regression test: a Product t-norm's rule strengths are the product of one
+        membership degree per input variable, each typically < 1.0 - multiplying
+        enough of them together (empirically, as few as ~32-64 input variables)
+        underflows to exactly 0.0 in float32. TSK.forward() divided by
+        sum(rule_activations.degrees, 1) with no epsilon offset, unlike the sibling
+        Defuzzification.forward() (the "standard"/Mamdani path), which already guards
+        the analogous division. Whenever every rule's strength underflowed for a given
+        batch element, that division became 0.0 / 0.0 = NaN, silently poisoning that
+        element's entire output (and gradient) rather than producing a well-defined
+        (if degenerate) result.
+
+        Returns:
+            None
+        """
+        n_inputs = 64  # empirically underflows every rule's strength to exactly 0.0
+        antecedents = [
+            Gaussian(
+                centers=np.array([0.0, 1.0]),
+                widths=np.array([0.3, 0.3]),
+                device=AVAILABLE_DEVICE,
+            )
+            for _ in range(n_inputs)
+        ]
+        rules = [
+            Rule(
+                premise=Product(
+                    *[(var_idx, 0) for var_idx in range(n_inputs)],
+                    device=AVAILABLE_DEVICE,
+                ),
+                consequence=NAryRelation((0, 0), device=AVAILABLE_DEVICE),
+            ),
+        ]
+        knowledge_base = KnowledgeBase.create(
             linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
             rules=rules,
         )
         flc = FLC(source=knowledge_base, inference=TSK, device=AVAILABLE_DEVICE)
 
-        self.assertEqual(flc.defuzzification.weights.device.type, AVAILABLE_DEVICE.type)
-        self.assertEqual(flc.defuzzification.bias.device.type, AVAILABLE_DEVICE.type)
+        observations = torch.rand(8, n_inputs, device=AVAILABLE_DEVICE)
+        with torch.no_grad():
+            rule_strengths = flc.engine(flc.input_granulation(observations))
+        # confirm the premise (underflow) actually occurs, so this test would have
+        # caught the regression - not vacuously passing because the setup no longer
+        # triggers it
+        self.assertTrue(bool((rule_strengths.degrees == 0.0).all()))
 
-        # the actual symptom: this used to raise a device-mismatch RuntimeError
-        output = flc(torch.tensor([[2.0]], device=AVAILABLE_DEVICE))
-        self.assertEqual(output.device.type, AVAILABLE_DEVICE.type)
+        output = flc(observations)
+        self.assertFalse(bool(output.isnan().any()))
+
+        # and the gradient must be well-defined too, not just the forward value
+        output.sum().backward()
+        for param in flc.defuzzification.parameters():
+            self.assertFalse(bool(param.grad.isnan().any()))
+
+    def test_tsk_epsilon_offset_does_not_perturb_normal_scale_output(self) -> None:
+        """
+        The epsilon offset added to guard against the underflow case above must not
+        meaningfully change TSK's output when rule strengths are a normal, non-tiny
+        scale (the common case, e.g. a handful of input variables) - 1e-32 is many
+        orders of magnitude below any realistic sum of rule strengths. Verified by
+        directly replicating the old (unguarded) formula from the real intermediate
+        rule strengths and confirming it agrees with the current, guarded output.
+
+        Returns:
+            None
+        """
+        antecedents = [
+            Gaussian(
+                centers=np.array([1.2, 3.0, 5.0, 7.0]),
+                widths=np.array([0.1, 0.4, 0.6, 0.8]),
+                device=AVAILABLE_DEVICE,
+            ),
+            Gaussian(
+                centers=np.array([0.2, 0.6, 0.9, 1.2]),
+                widths=np.array([0.4, 0.4, 0.5, 0.45]),
+                device=AVAILABLE_DEVICE,
+            ),
+        ]
+        rules = [
+            Rule(
+                premise=Product((0, 0), (1, 0), device=AVAILABLE_DEVICE),
+                consequence=NAryRelation((0, 0), device=AVAILABLE_DEVICE),
+            ),
+            Rule(
+                premise=Product((0, 1), (1, 1), device=AVAILABLE_DEVICE),
+                consequence=NAryRelation((0, 1), device=AVAILABLE_DEVICE),
+            ),
+        ]
+        knowledge_base = KnowledgeBase.create(
+            linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
+            rules=rules,
+        )
+        flc = FLC(source=knowledge_base, inference=TSK, device=AVAILABLE_DEVICE)
+        input_data = torch.tensor(
+            [[1.2, 0.2], [1.1, 0.3], [2.1, 0.1], [2.7, 0.15], [1.7, 0.25]],
+            device=AVAILABLE_DEVICE,
+        )
+
+        with torch.no_grad():
+            output = flc(input_data)
+
+            rule_strengths = flc.engine(flc.input_granulation(input_data))
+            # confirm this is actually the normal (non-underflowed) case, so this
+            # test is meaningfully exercising "epsilon negligible at normal scale"
+            self.assertFalse(bool((rule_strengths.degrees.sum(dim=1) == 0.0).any()))
+
+            tsk = flc.defuzzification
+            rule_output = (input_data @ tsk.weights).view(
+                input_data.shape[0], tsk.r, tsk.o
+            )
+            rule_output = rule_output + tsk.bias
+            rule_output = rule_output.transpose(1, 2)
+            fir_str_bar_unguarded = rule_strengths.degrees / torch.sum(
+                rule_strengths.degrees, 1
+            ).unsqueeze(1)
+            expected = torch.einsum(
+                "NRC,NR->NC", rule_output, fir_str_bar_unguarded
+            )
+        self.assertTrue(torch.allclose(output, expected, atol=1e-6))
 
 
 class TestMamdani(unittest.TestCase):
@@ -639,8 +766,7 @@ class TestMamdani(unittest.TestCase):
         )
         self.fuzzy_logic_controller.engine.nan_replacement = 0.0
         lower_rule_activations: Membership = self.fuzzy_logic_controller.engine(
-            self.fuzzy_logic_controller.input_granulation(data_with_missing)
-        )
+            self.fuzzy_logic_controller.input_granulation(data_with_missing))
         assert torch.allclose(
             lower_rule_activations.degrees.sort().values,
             torch.tensor(
@@ -661,9 +787,7 @@ class TestMamdani(unittest.TestCase):
         self.fuzzy_logic_controller.engine.nan_replacement = 1.0
         temp_upper_rule_activations: torch.Tensor = (
             self.fuzzy_logic_controller.engine.apply_mask(
-                self.fuzzy_logic_controller.input_granulation(data_with_missing)
-            )
-        )
+                self.fuzzy_logic_controller.input_granulation(data_with_missing)))
         assert torch.allclose(
             temp_upper_rule_activations,
             torch.tensor(
@@ -700,8 +824,7 @@ class TestMamdani(unittest.TestCase):
             equal_nan=True,
         )
         upper_rule_activations: Membership = self.fuzzy_logic_controller.engine(
-            self.fuzzy_logic_controller.input_granulation(data_with_missing)
-        )
+            self.fuzzy_logic_controller.input_granulation(data_with_missing))
         assert torch.allclose(
             upper_rule_activations.degrees,
             torch.tensor(
@@ -810,7 +933,8 @@ class TestMamdani(unittest.TestCase):
         # the number of rule vertices should equal len(rules)
         assert len(rule_vertices) == len(self.rules)
         # the recovered rules should be in the same order as the rules
-        for expected_rule, actual_rule in zip(self.rules, self.knowledge_base.rules):
+        for expected_rule, actual_rule in zip(
+                self.rules, self.knowledge_base.rules):
             self.assertEqual(expected_rule, actual_rule)
 
     def test_links_and_offsets(self) -> None:

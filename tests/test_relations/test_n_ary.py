@@ -739,17 +739,18 @@ class TestNAryRelation(unittest.TestCase):
         relation, _, membership = self._large_gather_relation_and_degrees(
             with_nan=False
         )
-        self.assertTrue(relation._use_gather)  # pylint: disable=protected-access
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
 
         with mock.patch.object(
             torch.Tensor, "nan_to_num", autospec=True
         ) as mocked_nan_to_num:
-            relation._gather_apply_mask(  # pylint: disable=protected-access
-                membership
-            )
+            relation._gather_apply_mask(
+                membership)  # pylint: disable=protected-access
         mocked_nan_to_num.assert_not_called()
 
-    def test_gather_apply_mask_small_tensor_always_calls_nan_to_num(self) -> None:
+    def test_gather_apply_mask_small_tensor_always_calls_nan_to_num(
+            self) -> None:
         """
         Below GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL, calibration showed a CUDA sync to
         decide whether nan_to_num is needed (~400-750us, dominated by the reduction
@@ -768,7 +769,8 @@ class TestNAryRelation(unittest.TestCase):
         self.assertTrue(
             relation._use_gather)  # pylint: disable=protected-access
         degrees = torch.rand(
-            4, 2, 1, device=AVAILABLE_DEVICE)  # no NaN anywhere; tiny tensor
+            4, 2, 1, device=AVAILABLE_DEVICE
+        )  # no NaN anywhere; tiny tensor
         membership = Membership(
             degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
         )
@@ -824,14 +826,14 @@ class TestNAryRelation(unittest.TestCase):
             None
         """
         relation, _, membership = self._large_gather_relation_and_degrees(
-            with_nan=True
-        )
+            with_nan=True)
         result = relation._gather_apply_mask(  # pylint: disable=protected-access
             membership
         )
         self.assertFalse(bool(result.isnan().any()))
 
-    def test_gather_apply_mask_large_tensor_matches_manual_gather(self) -> None:
+    def test_gather_apply_mask_large_tensor_matches_manual_gather(
+            self) -> None:
         """
         Correctness of the large-tensor branch, independent of the small-tensor
         branch's own characterization test above - both branches must agree with an
@@ -841,8 +843,7 @@ class TestNAryRelation(unittest.TestCase):
             None
         """
         relation, degrees, membership = self._large_gather_relation_and_degrees(
-            with_nan=False
-        )
+            with_nan=False)
         result = relation._gather_apply_mask(  # pylint: disable=protected-access
             membership
         )

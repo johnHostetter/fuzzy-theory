@@ -94,7 +94,8 @@ class TestGetObjectAttributes(unittest.TestCase):
     Test get_object_attributes.
     """
 
-    def test_purely_inherited_attribute_from_second_base_is_excluded(self) -> None:
+    def test_purely_inherited_attribute_from_second_base_is_excluded(
+            self) -> None:
         """
         Regression test: get_object_attributes used to only inspect
         obj_instance.__class__.__bases__[0] to determine which attributes are
@@ -116,7 +117,9 @@ class TestGetObjectAttributes(unittest.TestCase):
 
             second_attr = "from_second_base"
 
-        class Combined(FirstBase, SecondBase):  # pylint: disable=too-few-public-methods
+        class Combined(
+                FirstBase,
+                SecondBase):  # pylint: disable=too-few-public-methods
             """Combines both bases and adds a genuinely local attribute."""
 
             def __init__(self):
@@ -176,7 +179,8 @@ class TestExpSumLog(unittest.TestCase):
         Returns:
             None
         """
-        x = torch.tensor([[0.5, 0.25, 0.8], [0.1, 0.9, 0.2]], device=AVAILABLE_DEVICE)
+        x = torch.tensor([[0.5, 0.25, 0.8], [0.1, 0.9, 0.2]],
+                         device=AVAILABLE_DEVICE)
         actual = exp_sum_log(x, dim=-1)
         expected = torch.prod(x, dim=-1)
         self.assertTrue(torch.allclose(actual, expected, atol=1e-5))

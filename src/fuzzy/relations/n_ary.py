@@ -489,7 +489,9 @@ class NAryRelation(TorchJitModule, Loggable):
         Returns:
             True if every module backing this relation's links is a BinaryLinks.
         """
-        if self.grouped_links is None or not hasattr(self.grouped_links, "modules_list"):
+        if self.grouped_links is None or not hasattr(
+            self.grouped_links, "modules_list"
+        ):
             return False
         return all(
             isinstance(module, BinaryLinks)
@@ -577,7 +579,9 @@ class NAryRelation(TorchJitModule, Loggable):
         one active term.
         """
         self._use_gather = False
-        if self.grouped_links is None or not hasattr(self.grouped_links, "modules_list"):
+        if self.grouped_links is None or not hasattr(
+            self.grouped_links, "modules_list"
+        ):
             return
         if self.method not in (NAryMaskMethods.PROD, NAryMaskMethods.EXP_SUM_LOG):
             return
@@ -629,7 +633,8 @@ class NAryRelation(TorchJitModule, Loggable):
         if selected.numel() > GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL:
             # large tensor: sync once to find out whether there is anything to do,
             # and skip the (comparatively expensive at this size) NaN-handling
-            # entirely when there isn't - see GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL
+            # entirely when there isn't - see
+            # GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL
             has_nan = bool(any_nan_per_variable.any())
             if has_nan:
                 selected = torch.where(
