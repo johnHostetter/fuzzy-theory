@@ -9,6 +9,7 @@ from abc import ABC
 import torch
 
 from fuzzy.relations.n_ary import NAryRelation
+from fuzzy.relations.triton_kernels import TRITON_AVAILABLE, gather_prod
 from fuzzy.sets.membership import Membership
 
 
@@ -75,6 +76,36 @@ class Product(TNorm):
             The algebraic product membership value, according to the n-ary relation
             (i.e., which truth values to actually consider).
         """
+        # keep grouped_links/gather state in sync with the incoming shape before
+        # either path below relies on it - apply_mask() does this same check
+        # itself, so the fallback path redoes a cheap, harmless no-op comparison
+        membership_shape = membership.degrees.shape
+        if self.grouped_links.shape[:-1] != membership_shape[1:]:
+            self.resize(*membership_shape[1:])
+
+        if (
+            self._use_gather  # pylint: disable=protected-access
+            and self._all_active  # pylint: disable=protected-access
+            and TRITON_AVAILABLE
+            and membership.degrees.is_cuda
+            and not bool(membership.degrees.isnan().any())
+        ):
+            # fused Triton kernel: covers the common case (every variable
+            # structurally active for every rule, no NaN present) without
+            # materializing the (batch, vars, rules) intermediate that the
+            # general apply_mask()+prod() path below writes and immediately
+            # re-reads - see relations/triton_kernels.py for the full
+            # correctness argument and its limits (why the general path below
+            # is still needed for NaN-poisoning and partial variable coverage)
+            self.applied_mask = self._cached_mask  # pylint: disable=protected-access
+            return Membership(
+                degrees=gather_prod(
+                    membership.degrees,
+                    self._gather_indices,  # pylint: disable=protected-access
+                ),
+                mask=self.applied_mask,
+            )
+
         return Membership(
             degrees=self.apply_mask(membership=membership).prod(dim=-2, keepdim=False),
             mask=self.applied_mask,
