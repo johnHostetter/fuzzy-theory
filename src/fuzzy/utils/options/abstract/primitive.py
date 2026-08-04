@@ -140,7 +140,7 @@ class CategoricalEnumOptions(CategoricalOptions, EnumPromoter):
 
     enum_cls = None  # required
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *_args, **kwargs):
         # __init_subclass__ is implicitly a classmethod, so accessing it through the
         # base class (EnumPromoter.__init_subclass__) binds cls=EnumPromoter itself,
         # promoting the enum members onto the wrong class - every subclass would then
@@ -148,14 +148,18 @@ class CategoricalEnumOptions(CategoricalOptions, EnumPromoter):
         # Accessing it through type(self) binds cls to the actual concrete
         # subclass.
         type(self).__init_subclass__(enum_cls=self.enum_cls)
-        # *args is intentionally NOT forwarded here: this class' options always come
+        # _args is intentionally accepted-but-unused: this class' options always come
         # from enum_cls (just promoted onto self.options above), never from
-        # constructor args - forwarding *args as well duplicated the options tuple
+        # constructor args - forwarding it as well duplicated the options tuple
         # whenever load() reconstructed an instance via cls(*loaded_dict["options"])
-        # (see CategoricalOptions.load), since that already IS self.options.
+        # (see CategoricalOptions.load), since that already IS self.options. It must
+        # still be *accepted* (not dropped from the signature) so that same
+        # reconstruction call doesn't raise a TypeError over the extra positional
+        # arguments.
         super().__init__(*self.options, **kwargs)
 
     @classmethod
+    # pylint: disable-next=arguments-differ
     def load(cls, path: Path) -> "CategoricalEnumOptions":
         """
         Load a CategoricalEnumOptions object. Must be called on the concrete subclass
@@ -164,6 +168,10 @@ class CategoricalEnumOptions(CategoricalOptions, EnumPromoter):
         subclass produced it (unlike enum_cls, which only exists as a class
         attribute), so reconstructing the right type of object relies on the caller
         already knowing it and invoking .load() on it.
+
+        Deliberately a classmethod (unlike CategoricalOptions.load, a staticmethod
+        with an explicit cls= parameter) so that cls is always the concrete subclass
+        .load() was actually invoked on - see the crash this fixed, explained below.
 
         Args:
             path: The path where the CategoricalEnumOptions object is located.

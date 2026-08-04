@@ -45,6 +45,12 @@ if TRITON_AVAILABLE:
     def _add_combine(a, b):
         return a + b
 
+    # ALL_CAPS is the Triton community convention for tl.constexpr kernel parameters
+    # (matches e.g. the official Triton tutorials' BLOCK_SIZE), and a GPU kernel
+    # necessarily takes one argument per pointer/stride/size since Triton kernels
+    # cannot accept structs or dataclasses in their signature - both are inherent to
+    # writing a Triton kernel, not something to refactor away.
+    # pylint: disable=invalid-name,too-many-arguments,too-many-positional-arguments,too-many-locals
     @triton.jit
     def _gather_prod_fwd_kernel(
         degrees_ptr,
@@ -85,6 +91,10 @@ if TRITON_AVAILABLE:
         out_ptrs = out_ptr + pid_b * stride_ob + pid_r * stride_or
         tl.store(out_ptrs, acc)
 
+    # pylint: enable=invalid-name,too-many-arguments,too-many-positional-arguments,too-many-locals
+
+    # see _gather_prod_fwd_kernel above for why these are disabled
+    # pylint: disable=invalid-name,too-many-arguments,too-many-positional-arguments,too-many-locals
     @triton.jit
     def _gather_prod_bwd_kernel(
         degrees_ptr,
@@ -167,6 +177,8 @@ if TRITON_AVAILABLE:
             )
             tl.atomic_add(out_ptrs, grad_contribution, mask=v_mask)
 
+    # pylint: enable=invalid-name,too-many-arguments,too-many-positional-arguments,too-many-locals
+
     def _gather_prod_forward(degrees: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
         batch_size, n_vars, _ = degrees.shape
         n_rules = idx.shape[1]
@@ -212,6 +224,14 @@ if TRITON_AVAILABLE:
         )
         return grad_degrees
 
+    # torch.autograd.Function subclasses implementing only forward()/backward() (the
+    # standard reverse-mode-only API, as opposed to jvp/vmap for forward-mode AD or
+    # vmap support, neither used here) never override jvp/setup_context/vjp/vmap -
+    # this is how every custom autograd.Function in PyTorch is written, not something
+    # missing. Likewise, forward()/backward() necessarily have a narrower, concrete
+    # signature than the base class' generic *args - again the standard, idiomatic
+    # shape for every such subclass.
+    # pylint: disable=abstract-method,arguments-differ
     class _GatherProdReduce(torch.autograd.Function):
         """See module docstring; forward/backward for a gather-then-product reduction."""
 
@@ -226,6 +246,8 @@ if TRITON_AVAILABLE:
             degrees, idx = ctx.saved_tensors
             grad_degrees = _gather_prod_backward(degrees, idx, grad_output.contiguous())
             return grad_degrees, None
+
+    # pylint: enable=abstract-method,arguments-differ
 
 
 def gather_prod(degrees: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:

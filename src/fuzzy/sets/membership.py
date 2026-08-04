@@ -28,6 +28,11 @@ class NamedTensor(
         field_names=(
             "data",
             "names"))):
+    """
+    A tensor paired with a name for each of its dimensions (e.g., "batch", "variable"),
+    validated at construction to actually match the tensor's number of dimensions.
+    """
+
     def __new__(
         cls,
         data: torch.Tensor,

@@ -8,13 +8,9 @@ import unittest
 
 import torch
 
-from fuzzy.sets.cache import (
-    MembershipCache,
-    MembershipCacheEntry,
-    signature_of,
-    version_of,
-)
+from fuzzy.sets.cache import MembershipCache, MembershipCacheEntry
 from fuzzy.sets.membership import Membership
+from fuzzy.utils.functions import signature_of, version_of
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

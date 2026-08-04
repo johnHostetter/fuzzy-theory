@@ -182,10 +182,10 @@ class BoundAlphaEntmax(torch.nn.Module):
     def __init__(
         self,
         bounding_strategy: BoundAlphaEntmaxEnum,
+        *args,
         device=None,
         dim: int = -1,
         alpha: Union[None, torch.Tensor] = None,
-        *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -227,6 +227,17 @@ class BoundAlphaEntmax(torch.nn.Module):
     def forward(
         self, tensor: torch.Tensor, dim: Union[None, int] = None
     ) -> torch.Tensor:
+        """
+        Apply entmax_bisect to the given tensor using the bounded alpha parameter.
+
+        Args:
+            tensor: The tensor to apply entmax_bisect to.
+            dim: The dimension to apply entmax_bisect along; defaults to the
+                dimension given at construction (self.dim) if not provided.
+
+        Returns:
+            The result of entmax_bisect applied to the tensor.
+        """
         if dim is None:
             dim = self.dim  # use internal referenced dim for the forward
         bounded_alpha = self.bound_alpha()

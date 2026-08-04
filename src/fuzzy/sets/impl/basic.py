@@ -12,8 +12,8 @@ import torch
 
 from ...utils import check_path_to_save_torch_module
 from ...utils.classes import Loggable
+from ...utils.functions import ParameterSignature, signature_of
 from ..abstract import DynamicParameterList, FuzzySet
-from ..cache import ParameterSignature, signature_of
 
 
 class NoOp(FuzzySet):
@@ -436,30 +436,17 @@ class Trapezoidal(FuzzySet):
         self.clear_membership_cache()
         return self
 
-    def save(self, path: Path) -> MutableMapping[str, Any]:
-        check_path_to_save_torch_module(path)
-        state_dict: MutableMapping = self.state_dict()
-        state_dict["class_name"] = self.__class__.__name__
-        state_dict["centers"] = self.get_centers()
-        state_dict["widths"] = self.get_widths()
-        state_dict["plateaus"] = self.get_plateaus()
-        state_dict["mask"] = self.get_mask()
-        torch.save(state_dict, path)
-        return state_dict
+    def _extra_save_state(self) -> MutableMapping[str, Any]:
+        # see FuzzySet._extra_save_state - plateaus is Trapezoidal's one learnable
+        # parameter beyond the centers/widths/mask the base save() already
+        # handles
+        return {"plateaus": self.get_plateaus()}
 
     @classmethod
-    def load(cls, path: Path, device: torch.device) -> "Trapezoidal":
-        state_dict: MutableMapping = torch.load(path, weights_only=False)
-        centers = state_dict.pop("centers")
-        widths = state_dict.pop("widths")
-        plateaus = state_dict.pop("plateaus")
-        state_dict.pop("class_name", None)
-        return cls(
-            centers=centers.cpu().detach().numpy(),
-            widths=widths.cpu().detach().numpy(),
-            plateaus=plateaus.cpu().detach().numpy(),
-            device=device,
-        )
+    def _extra_load_kwargs(
+        cls, state_dict: MutableMapping[str, Any]
+    ) -> MutableMapping[str, Any]:
+        return {"plateaus": state_dict.pop("plateaus").cpu().detach().numpy()}
 
     @torch.jit.ignore
     def __eq__(self, other: Any) -> bool:

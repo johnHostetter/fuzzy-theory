@@ -13,7 +13,8 @@ import torch
 
 from ..utils import NestedTorchJitModule
 from ..utils.classes import Loggable
-from .cache import MembershipCache, ParameterSignature, signature_of
+from ..utils.functions import ParameterSignature, signature_of
+from .cache import MembershipCache
 
 # from ..utils.functions import log_method
 from .membership import Membership

@@ -24,7 +24,7 @@ import torch
 from natsort import natsorted
 from torch.nn.modules.module import _forward_unimplemented
 
-from fuzzy.utils.functions import all_subclasses, get_object_attributes
+from fuzzy.utils.functions import all_subclasses, get_object_attributes, signature_of
 
 
 class Loggable:  # pylint: disable=too-few-public-methods
@@ -54,8 +54,11 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
     """
 
     def __init__(
-        self, init_params=None, dtype=None, device=None, parameters: bool = True
-    ):
+            self,
+            init_params=None,
+            dtype=None,
+            device=None,
+            parameters: bool = True):
         super().__init__()
         self.params: Union[torch.nn.ParameterList, List[torch.Tensor]] = (
             torch.nn.ParameterList() if parameters else []
@@ -75,7 +78,8 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
     def __setitem__(self, idx, value):
         # 1. Enforce that the incoming value is a valid PyTorch Parameter
         if not isinstance(value, torch.nn.Parameter):
-            raise TypeError(f"Expected a torch.nn.Parameter, but got {type(value)}")
+            raise TypeError(
+                f"Expected a torch.nn.Parameter, but got {type(value)}")
 
         # 2. Update the internal tracker
         # If using nn.ParameterList, it handles module registration
@@ -95,7 +99,8 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
         tensor: torch.Tensor (will be converted to Parameter)
         """
         if not isinstance(tensor, torch.Tensor):
-            tensor = torch.as_tensor(tensor, dtype=self._dtype, device=self._device)
+            tensor = torch.as_tensor(
+                tensor, dtype=self._dtype, device=self._device)
         if isinstance(self.params, torch.nn.ParameterList):
             param = torch.nn.Parameter(tensor)
         else:
@@ -132,13 +137,6 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
         Returns:
             The concatenation of the parameters along dim=-1.
         """
-        # imported locally (rather than at module level) to avoid fuzzy.utils depending
-        # on fuzzy.sets at import time - fuzzy.sets already depends on fuzzy.utils, and
-        # while signature_of()'s own dependency chain does not currently cycle back
-        # here, importing it lazily keeps that true by construction rather than by
-        # accident
-        from fuzzy.sets.cache import signature_of  # pylint: disable=import-outside-toplevel,cyclic-import
-
         signature = signature_of(params_list)
         if self._cached_tensor is None or self._cached_signature != signature:
             self._cached_tensor = torch.cat(params_list, dim=-1).contiguous()
