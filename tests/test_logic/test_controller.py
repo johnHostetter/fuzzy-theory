@@ -489,10 +489,12 @@ class TestTSK(unittest.TestCase):
             ),
         ]
         knowledge_base = KnowledgeBase.create(
-            linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
-            rules=rules,
-        )
-        flc = FLC(source=knowledge_base, inference=TSK, device=AVAILABLE_DEVICE)
+            linguistic_variables=LinguisticVariables(
+                inputs=antecedents, targets=[]), rules=rules, )
+        flc = FLC(
+            source=knowledge_base,
+            inference=TSK,
+            device=AVAILABLE_DEVICE)
 
         observations = torch.rand(8, n_inputs, device=AVAILABLE_DEVICE)
         with torch.no_grad():
@@ -510,7 +512,8 @@ class TestTSK(unittest.TestCase):
         for param in flc.defuzzification.parameters():
             self.assertFalse(bool(param.grad.isnan().any()))
 
-    def test_tsk_epsilon_offset_does_not_perturb_normal_scale_output(self) -> None:
+    def test_tsk_epsilon_offset_does_not_perturb_normal_scale_output(
+            self) -> None:
         """
         The epsilon offset added to guard against the underflow case above must not
         meaningfully change TSK's output when rule strengths are a normal, non-tiny
@@ -545,10 +548,12 @@ class TestTSK(unittest.TestCase):
             ),
         ]
         knowledge_base = KnowledgeBase.create(
-            linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
-            rules=rules,
-        )
-        flc = FLC(source=knowledge_base, inference=TSK, device=AVAILABLE_DEVICE)
+            linguistic_variables=LinguisticVariables(
+                inputs=antecedents, targets=[]), rules=rules, )
+        flc = FLC(
+            source=knowledge_base,
+            inference=TSK,
+            device=AVAILABLE_DEVICE)
         input_data = torch.tensor(
             [[1.2, 0.2], [1.1, 0.3], [2.1, 0.1], [2.7, 0.15], [1.7, 0.25]],
             device=AVAILABLE_DEVICE,
@@ -559,8 +564,10 @@ class TestTSK(unittest.TestCase):
 
             rule_strengths = flc.engine(flc.input_granulation(input_data))
             # confirm this is actually the normal (non-underflowed) case, so this
-            # test is meaningfully exercising "epsilon negligible at normal scale"
-            self.assertFalse(bool((rule_strengths.degrees.sum(dim=1) == 0.0).any()))
+            # test is meaningfully exercising "epsilon negligible at normal
+            # scale"
+            self.assertFalse(
+                bool((rule_strengths.degrees.sum(dim=1) == 0.0).any()))
 
             tsk = flc.defuzzification
             rule_output = (input_data @ tsk.weights).view(
@@ -572,8 +579,7 @@ class TestTSK(unittest.TestCase):
                 rule_strengths.degrees, 1
             ).unsqueeze(1)
             expected = torch.einsum(
-                "NRC,NR->NC", rule_output, fir_str_bar_unguarded
-            )
+                "NRC,NR->NC", rule_output, fir_str_bar_unguarded)
         self.assertTrue(torch.allclose(output, expected, atol=1e-6))
 
 

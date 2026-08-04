@@ -40,42 +40,32 @@ class NamedTensor(
         return super().__new__(cls, data, names)
 
 
-class Membership(
-    namedtuple(
-        typename="Membership",
-        field_names=(
-            "degrees",
-            "mask"))):
-    """
-    The Membership class contains information describing both membership *degrees* and
-    membership *mask* for some given *elements*. The membership degrees are often the degree of
-    membership, truth, activation, applicability, etc. of a fuzzy set, or more generally, a concept.
-    The membership  mask is shaped such that it helps filter or 'mask' out membership degrees that
-    belong to fuzzy sets or concepts that are not actually real.
+# A plain namedtuple, deliberately *not* a subclass with a custom __new__: a
+# subclassed namedtuple is exotic enough that torch.compile's Dynamo tracer cannot
+# see through it (treats both construction and cross-function attribute access as an
+# opaque, untraceable object, forcing a graph break at both points), while a plain
+# namedtuple is fully transparent to it. The previous __new__ override's validation
+# logic had already been fully commented out, so this is a pure simplification with
+# no behavior change - see fuzzy.sets.abstract.FuzzySet.forward for where instances
+# are constructed and fuzzy.logic.control.defuzzification.TSK.forward for where an
+# incoming instance's fields are accessed across what can become a graph
+# boundary.
+Membership = namedtuple("Membership", ["degrees", "mask"])
+Membership.__doc__ = """
+The Membership class contains information describing both membership *degrees* and
+membership *mask* for some given *elements*. The membership degrees are often the degree of
+membership, truth, activation, applicability, etc. of a fuzzy set, or more generally, a concept.
+The membership  mask is shaped such that it helps filter or 'mask' out membership degrees that
+belong to fuzzy sets or concepts that are not actually real.
 
-    The distinction between the two is made as applying the mask will zero out membership degrees
-    that are not real, but this might be incorrectly interpreted as having zero degree of
-    membership to the fuzzy set.
+The distinction between the two is made as applying the mask will zero out membership degrees
+that are not real, but this might be incorrectly interpreted as having zero degree of
+membership to the fuzzy set.
 
-    By including the elements' information with the membership degrees and mask, it is possible to
-    keep track of the original elements that were used to calculate the membership degrees. This
-    is useful for debugging purposes, and it is also useful for understanding the membership
-    degrees and mask in the context of the original elements. Also, it can be used in conjunction
-    with the mask to filter out membership degrees that are not real, as well as assist in
-    performing advanced operations.
-    """
-
-    def __new__(cls, degrees: torch.Tensor, mask: torch.Tensor):
-        # assert isinstance(
-        #     degrees, torch.Tensor
-        # ), "The membership degrees must be a torch.Tensor"
-        # assert isinstance(
-        #     mask, torch.Tensor
-        # ), "The membership mask must be a torch.Tensor"
-        # assert all(
-        #     name is not None for name in degrees.names
-        # ), f"All dimensions of the membership degree tensor must be named: {degrees.names}"
-        # assert all(
-        #     name is not None for name in mask.names
-        # ), f"All dimensions of the mask tensor must be named: {mask.names}"
-        return super().__new__(cls, degrees, mask)
+By including the elements' information with the membership degrees and mask, it is possible to
+keep track of the original elements that were used to calculate the membership degrees. This
+is useful for debugging purposes, and it is also useful for understanding the membership
+degrees and mask in the context of the original elements. Also, it can be used in conjunction
+with the mask to filter out membership degrees that are not real, as well as assist in
+performing advanced operations.
+"""

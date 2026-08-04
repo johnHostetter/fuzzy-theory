@@ -78,7 +78,8 @@ class Product(TNorm):
         """
         # keep grouped_links/gather state in sync with the incoming shape before
         # either path below relies on it - apply_mask() does this same check
-        # itself, so the fallback path redoes a cheap, harmless no-op comparison
+        # itself, so the fallback path redoes a cheap, harmless no-op
+        # comparison
         membership_shape = membership.degrees.shape
         if self.grouped_links.shape[:-1] != membership_shape[1:]:
             self.resize(*membership_shape[1:])

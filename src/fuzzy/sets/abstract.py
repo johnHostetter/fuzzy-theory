@@ -1082,6 +1082,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             cache.clear()
 
     @torch.jit.ignore
+    @torch.compiler.disable
     def _lookup_membership(self, observations: torch.Tensor) -> Optional[Membership]:
         """
         Retrieve memoized membership degrees for the given observations, if they are still valid.
@@ -1090,6 +1091,15 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         which does not carry the cache over - simply calculates the membership degrees instead
         of failing.
 
+        @torch.compiler.disable mirrors the @torch.jit.ignore above, for the same reason:
+        this method's parameter_signature() call (see below) reads id(tensor), which
+        torch.compile's Dynamo tracer cannot trace through (identity is not a
+        graph-representable concept) - telling Dynamo not to trace into this method at
+        all, running it eagerly instead, is both correct (the cache is a pure Python-side
+        optimization, redundant once the surrounding model is already compiled) and
+        necessary (without it, Dynamo hits the untraceable id() call and breaks the
+        graph anyway, just less predictably).
+
         Args:
             observations: The observations that membership degrees are wanted for.
 
@@ -1097,16 +1107,26 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             The memoized Membership, or None if it has to be calculated.
         """
         cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
-        if cache is None:
+        if cache is None or not cache.enabled:
+            # skip computing parameter_signature() (which reads id(tensor) per
+            # parameter) when there is no cache to serve the lookup anyway or it is
+            # disabled - cache.lookup() would discard the signature unused, but as a
+            # function-call argument it would already have been computed by the time
+            # cache.lookup() runs to discard it
             return None
         return cache.lookup(observations, self.parameter_signature())
 
     @torch.jit.ignore
+    @torch.compiler.disable
     def _store_membership(
         self, observations: torch.Tensor, membership: Membership
     ) -> None:
         """
         Memoize the membership degrees calculated for the given observations.
+
+        See _lookup_membership's docstring for why this is also marked
+        @torch.compiler.disable and skips parameter_signature() when there is nothing
+        to store it into.
 
         Args:
             observations: The observations the membership degrees were calculated for.
@@ -1116,7 +1136,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             None
         """
         cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
-        if cache is not None:
+        if cache is not None and cache.enabled:
             cache.store(observations, self.parameter_signature(), membership)
 
     def prepare_observations(self, observations: torch.Tensor) -> torch.Tensor:

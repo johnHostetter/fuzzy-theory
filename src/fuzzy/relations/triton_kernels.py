@@ -123,9 +123,7 @@ if TRITON_AVAILABLE:
             )
             vals = tl.load(d_ptrs, mask=v_mask, other=1.0)
             is_zero = (vals == 0.0) & v_mask
-            nz_count += tl.reduce(
-                is_zero.to(tl.int32), axis=0, combine_fn=_add_combine
-            )
+            nz_count += tl.reduce(is_zero.to(tl.int32), axis=0, combine_fn=_add_combine)
             safe_vals = tl.where(is_zero | (~v_mask), 1.0, vals)
             block_prod = tl.reduce(safe_vals, axis=0, combine_fn=_mul_combine)
             prod_nonzero = prod_nonzero * block_prod
@@ -172,7 +170,9 @@ if TRITON_AVAILABLE:
     def _gather_prod_forward(degrees: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
         batch_size, n_vars, _ = degrees.shape
         n_rules = idx.shape[1]
-        out = torch.empty((batch_size, n_rules), device=degrees.device, dtype=degrees.dtype)
+        out = torch.empty(
+            (batch_size, n_rules), device=degrees.device, dtype=degrees.dtype
+        )
         _gather_prod_fwd_kernel[(batch_size, n_rules)](
             degrees,
             idx,
@@ -222,9 +222,7 @@ if TRITON_AVAILABLE:
             return out
 
         @staticmethod
-        def backward(
-            ctx, grad_output: torch.Tensor
-        ) -> Tuple[torch.Tensor, None]:
+        def backward(ctx, grad_output: torch.Tensor) -> Tuple[torch.Tensor, None]:
             degrees, idx = ctx.saved_tensors
             grad_degrees = _gather_prod_backward(degrees, idx, grad_output.contiguous())
             return grad_degrees, None

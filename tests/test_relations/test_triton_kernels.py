@@ -17,7 +17,9 @@ AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SKIP_REASON = "requires a CUDA device with triton installed"
 
 
-def _eager_gather_prod(degrees: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
+def _eager_gather_prod(
+        degrees: torch.Tensor,
+        idx: torch.Tensor) -> torch.Tensor:
     batch_size = degrees.shape[0]
     selected = torch.gather(
         degrees, dim=2, index=idx.unsqueeze(0).expand(batch_size, -1, -1)
@@ -25,7 +27,8 @@ def _eager_gather_prod(degrees: torch.Tensor, idx: torch.Tensor) -> torch.Tensor
     return selected.prod(dim=1)
 
 
-@unittest.skipUnless(TRITON_AVAILABLE and AVAILABLE_DEVICE.type == "cuda", SKIP_REASON)
+@unittest.skipUnless(TRITON_AVAILABLE and AVAILABLE_DEVICE.type ==
+                     "cuda", SKIP_REASON)
 class TestGatherProd(unittest.TestCase):
     """
     Test gather_prod against the eager torch.gather(...).prod(...) it replaces.
@@ -36,14 +39,18 @@ class TestGatherProd(unittest.TestCase):
         self.batch_size, self.n_vars, self.n_terms, self.n_rules = 16, 24, 5, 12
         self.degrees = (
             torch.rand(
-                self.batch_size, self.n_vars, self.n_terms, device=AVAILABLE_DEVICE
-            )
-            * 0.9
-            + 0.05
-        ).detach()
+                self.batch_size,
+                self.n_vars,
+                self.n_terms,
+                device=AVAILABLE_DEVICE) *
+            0.9 +
+            0.05).detach()
         self.idx = torch.randint(
-            0, self.n_terms, (self.n_vars, self.n_rules), device=AVAILABLE_DEVICE
-        )
+            0,
+            self.n_terms,
+            (self.n_vars,
+             self.n_rules),
+            device=AVAILABLE_DEVICE)
 
     def test_forward_matches_eager(self) -> None:
         """
@@ -63,7 +70,11 @@ class TestGatherProd(unittest.TestCase):
         degrees_b = self.degrees.clone().requires_grad_(True)
         gather_prod(degrees_a, self.idx).sum().backward()
         _eager_gather_prod(degrees_b, self.idx).sum().backward()
-        self.assertTrue(torch.allclose(degrees_a.grad, degrees_b.grad, atol=1e-4))
+        self.assertTrue(
+            torch.allclose(
+                degrees_a.grad,
+                degrees_b.grad,
+                atol=1e-4))
 
     def test_backward_matches_eager_with_zeros(self) -> None:
         """
@@ -91,7 +102,11 @@ class TestGatherProd(unittest.TestCase):
         out_b.sum().backward()
         self.assertFalse(bool(degrees_a.grad.isnan().any()))
         self.assertFalse(bool(degrees_b.grad.isnan().any()))
-        self.assertTrue(torch.allclose(degrees_a.grad, degrees_b.grad, atol=1e-4))
+        self.assertTrue(
+            torch.allclose(
+                degrees_a.grad,
+                degrees_b.grad,
+                atol=1e-4))
 
     def test_forward_matches_eager_all_zero_group(self) -> None:
         """
