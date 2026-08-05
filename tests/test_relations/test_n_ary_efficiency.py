@@ -86,9 +86,10 @@ class TestComputationalAbilities(unittest.TestCase):
         # max terms used in the above N-ary relation
         membership: Membership = membership_function(
             torch.randn(
-                N_OBSERVATIONS, self.n_variables, self.n_terms, device=AVAILABLE_DEVICE
-            )
-        )
+                N_OBSERVATIONS,
+                self.n_variables,
+                self.n_terms,
+                device=AVAILABLE_DEVICE))
         # check that the apply_mask works
         n_ary.apply_mask(membership)
 
@@ -123,7 +124,11 @@ class _StochasticLinks(torch.nn.Module):
             distinguishable from the last.
         """
         self.call_count += 1
-        return torch.full(self._shape, float(self.call_count), device=self._device)
+        return torch.full(
+            self._shape,
+            float(
+                self.call_count),
+            device=self._device)
 
 
 class TestNAryRelationEfficiency(TestNAryRelation):
@@ -194,7 +199,9 @@ class TestNAryRelationEfficiency(TestNAryRelation):
             shape=torch.Size([2, 2, 1]), device=AVAILABLE_DEVICE
         )
         grouped_links = GroupedLinks(modules_list=[stochastic])
-        n_ary = NAryRelation(grouped_links=grouped_links, device=AVAILABLE_DEVICE)
+        n_ary = NAryRelation(
+            grouped_links=grouped_links,
+            device=AVAILABLE_DEVICE)
         self.assertFalse(
             n_ary._links_are_cacheable()  # pylint: disable=protected-access
         )
@@ -232,7 +239,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
             device=AVAILABLE_DEVICE,
             method=NAryMaskMethods.PROD,
         )
-        self.assertTrue(relation._use_gather)  # pylint: disable=protected-access
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
 
         degrees = torch.rand(4, 2, 3, device=AVAILABLE_DEVICE)
         # var1-term2: not selected by any rule here
@@ -242,10 +250,14 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         )
 
         # pylint: disable=protected-access
-        gather_result = relation._gather_apply_mask(membership)
-        prod_result = relation._prod_apply_mask(membership)
+        gather_result, _ = relation._gather_apply_mask(membership)
+        prod_result, _ = relation._prod_apply_mask(membership)
         # pylint: enable=protected-access
-        self.assertTrue(torch.allclose(gather_result, prod_result, equal_nan=True))
+        self.assertTrue(
+            torch.allclose(
+                gather_result,
+                prod_result,
+                equal_nan=True))
 
     def test_gather_apply_mask_matches_manual_gather_when_no_nan(self) -> None:
         """
@@ -263,8 +275,10 @@ class TestNAryRelationEfficiency(TestNAryRelation):
             device=AVAILABLE_DEVICE,
             method=NAryMaskMethods.PROD,
         )
-        self.assertTrue(relation._use_gather)  # pylint: disable=protected-access
-        self.assertTrue(relation._all_active)  # pylint: disable=protected-access
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
+        self.assertTrue(
+            relation._all_active)  # pylint: disable=protected-access
 
         degrees = torch.rand(5, 2, 2, device=AVAILABLE_DEVICE)
         membership = Membership(
@@ -272,7 +286,7 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         )
 
         # pylint: disable=protected-access
-        result = relation._gather_apply_mask(membership)
+        result, _ = relation._gather_apply_mask(membership)
         # pylint: enable=protected-access
 
         # manually reproduce "for each rule, for each variable, pick the one term that
@@ -300,8 +314,10 @@ class TestNAryRelationEfficiency(TestNAryRelation):
             device=AVAILABLE_DEVICE,
             method=NAryMaskMethods.PROD,
         )
-        self.assertTrue(relation._use_gather)  # pylint: disable=protected-access
-        self.assertFalse(relation._all_active)  # pylint: disable=protected-access
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
+        self.assertFalse(
+            relation._all_active)  # pylint: disable=protected-access
 
         degrees = torch.tensor(
             [[[0.2], [0.9]], [[0.4], [0.1]]], device=AVAILABLE_DEVICE
@@ -311,7 +327,7 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         )
 
         # pylint: disable=protected-access
-        result = relation._gather_apply_mask(membership)
+        result, _ = relation._gather_apply_mask(membership)
         # pylint: enable=protected-access
 
         expected = torch.tensor(
@@ -368,15 +384,18 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         relation, _, membership = self._large_gather_relation_and_degrees(
             with_nan=False
         )
-        self.assertTrue(relation._use_gather)  # pylint: disable=protected-access
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
 
         with mock.patch.object(
             torch.Tensor, "nan_to_num", autospec=True
         ) as mocked_nan_to_num:
-            relation._gather_apply_mask(membership)  # pylint: disable=protected-access
+            relation._gather_apply_mask(  # pylint: disable=protected-access
+                membership)
         mocked_nan_to_num.assert_not_called()
 
-    def test_gather_apply_mask_small_tensor_always_calls_nan_to_num(self) -> None:
+    def test_gather_apply_mask_small_tensor_always_calls_nan_to_num(
+            self) -> None:
         """
         Below GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL, calibration showed a CUDA sync to
         decide whether nan_to_num is needed (~400-750us, dominated by the reduction
@@ -392,7 +411,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         relation = NAryRelation(
             [(0, 0), (1, 0)], device=AVAILABLE_DEVICE, method=NAryMaskMethods.PROD
         )
-        self.assertTrue(relation._use_gather)  # pylint: disable=protected-access
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
         degrees = torch.rand(
             4, 2, 1, device=AVAILABLE_DEVICE
         )  # no NaN anywhere; tiny tensor
@@ -403,7 +423,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         with mock.patch.object(
             torch.Tensor, "nan_to_num", autospec=True
         ) as mocked_nan_to_num:
-            relation._gather_apply_mask(membership)  # pylint: disable=protected-access
+            relation._gather_apply_mask(
+                membership)  # pylint: disable=protected-access
         mocked_nan_to_num.assert_called_once()
 
     def test_gather_apply_mask_calls_nan_to_num_when_nan_present(self) -> None:
@@ -417,7 +438,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         relation = NAryRelation(
             [(0, 0), (1, 0)], device=AVAILABLE_DEVICE, method=NAryMaskMethods.PROD
         )
-        self.assertTrue(relation._use_gather)  # pylint: disable=protected-access
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
         degrees = torch.rand(4, 2, 1, device=AVAILABLE_DEVICE)
         degrees[0, 1, 0] = float("nan")
         membership = Membership(
@@ -427,12 +449,13 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         with mock.patch.object(
             torch.Tensor, "nan_to_num", autospec=True
         ) as mocked_nan_to_num:
-            relation._gather_apply_mask(membership)  # pylint: disable=protected-access
+            relation._gather_apply_mask(
+                membership)  # pylint: disable=protected-access
         mocked_nan_to_num.assert_called_once()
 
         # and, unmocked, nan_replacement is actually honored (correctness, not just
         # that nan_to_num was invoked)
-        result = relation._gather_apply_mask(  # pylint: disable=protected-access
+        result, _ = relation._gather_apply_mask(  # pylint: disable=protected-access
             membership
         )
         self.assertFalse(bool(result.isnan().any()))
@@ -447,13 +470,15 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         Returns:
             None
         """
-        relation, _, membership = self._large_gather_relation_and_degrees(with_nan=True)
-        result = relation._gather_apply_mask(  # pylint: disable=protected-access
+        relation, _, membership = self._large_gather_relation_and_degrees(
+            with_nan=True)
+        result, _ = relation._gather_apply_mask(  # pylint: disable=protected-access
             membership
         )
         self.assertFalse(bool(result.isnan().any()))
 
-    def test_gather_apply_mask_large_tensor_matches_manual_gather(self) -> None:
+    def test_gather_apply_mask_large_tensor_matches_manual_gather(
+            self) -> None:
         """
         Correctness of the large-tensor branch, independent of the small-tensor
         branch's own characterization test above - both branches must agree with an
@@ -463,9 +488,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
             None
         """
         relation, degrees, membership = self._large_gather_relation_and_degrees(
-            with_nan=False
-        )
-        result = relation._gather_apply_mask(  # pylint: disable=protected-access
+            with_nan=False)
+        result, _ = relation._gather_apply_mask(  # pylint: disable=protected-access
             membership
         )
         expected = torch.empty_like(result)
@@ -486,13 +510,19 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         relation = NAryRelation(
             [(0, 0), (1, 0)], device=AVAILABLE_DEVICE, method=NAryMaskMethods.PROD
         )
-        self.assertTrue(relation._use_gather)  # pylint: disable=protected-access
+        self.assertTrue(
+            relation._use_gather)  # pylint: disable=protected-access
 
-        degrees = torch.rand(4, 2, 1, device=AVAILABLE_DEVICE, requires_grad=True)
+        degrees = torch.rand(
+            4,
+            2,
+            1,
+            device=AVAILABLE_DEVICE,
+            requires_grad=True)
         membership = Membership(
             degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
         )
-        result = relation._gather_apply_mask(  # pylint: disable=protected-access
+        result, _ = relation._gather_apply_mask(  # pylint: disable=protected-access
             membership
         )
         result.sum().backward()
@@ -526,10 +556,15 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         # call the method bodies directly to guarantee coverage regardless of whether
         # this particular link structure happens to be gather-eligible
         # pylint: disable=protected-access
-        prod_result = prod_relation._prod_apply_mask(membership)
-        exp_sum_log_result = exp_sum_log_relation._exp_sum_log_apply_mask(membership)
+        prod_result, _ = prod_relation._prod_apply_mask(membership)
+        exp_sum_log_result, _ = exp_sum_log_relation._exp_sum_log_apply_mask(
+            membership)
         # pylint: enable=protected-access
-        self.assertTrue(torch.allclose(prod_result, exp_sum_log_result, atol=1e-5))
+        self.assertTrue(
+            torch.allclose(
+                prod_result,
+                exp_sum_log_result,
+                atol=1e-5))
 
     def test_linear_sum_method(self) -> None:
         """
@@ -549,9 +584,10 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         membership = Membership(
             degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
         )
-        result = relation._linear_sum_apply_mask(  # pylint: disable=protected-access
+        result, mask_component = relation._linear_sum_apply_mask(  # pylint: disable=protected-access
             membership
         )
+        self.assertIsNone(mask_component)
         mask = relation.grouped_links(membership=membership)
         expected = (degrees.unsqueeze(-1) * mask).sum(dim=(1, 2))
         self.assertTrue(torch.allclose(result, expected, atol=1e-5))

@@ -50,12 +50,13 @@ class Minimum(TNorm):
         # first filter out the values that are not part of the relation
         # then take the minimum value of those that remain in the last
         # dimension
+        after_mask, applied_mask = self._apply_mask_with_mask(  # pylint: disable=protected-access
+            membership=membership
+        )
         return Membership(
             # elements=membership.elements,
-            degrees=self.apply_mask(membership=membership)
-            .min(dim=-2, keepdim=False)
-            .values,
-            mask=self.applied_mask,
+            degrees=after_mask.min(dim=-2, keepdim=False).values,
+            mask=applied_mask,
         )
 
 
@@ -106,21 +107,21 @@ class Product(TNorm):
             # re-reads - see relations/triton_kernels.py for the full
             # correctness argument and its limits (why the general path below
             # is still needed for NaN-poisoning and partial variable coverage)
-            self.applied_mask = self._cached_mask  # pylint: disable=protected-access
+            applied_mask = self._cached_mask  # pylint: disable=protected-access
             return Membership(
                 degrees=gather_prod(
                     membership.degrees,
                     self._gather_indices,  # pylint: disable=protected-access
                 ),
-                mask=self.applied_mask,
+                mask=applied_mask,
             )
 
+        after_mask, applied_mask = self._apply_mask_with_mask(  # pylint: disable=protected-access
+            membership=membership
+        )
         return Membership(
-            degrees=self.apply_mask(
-                membership=membership).prod(
-                dim=-2,
-                keepdim=False),
-            mask=self.applied_mask,
+            degrees=after_mask.prod(dim=-2, keepdim=False),
+            mask=applied_mask,
         )
 
 
@@ -143,8 +144,9 @@ class SoftmaxSum(TNorm):
         Returns:
             The applicability of the fuzzy compounds (e.g., fuzzy logic rules).
         """
-        intermediate_values: torch.Tensor = self.apply_mask(
-            membership=membership)
+        intermediate_values, applied_mask = self._apply_mask_with_mask(  # pylint: disable=protected-access
+            membership=membership
+        )
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be
         # fixed/tested
@@ -152,9 +154,8 @@ class SoftmaxSum(TNorm):
         max_values = firing_strengths.amax(dim=-1, keepdim=True)
         return Membership(
             # elements=membership.elements,
-            degrees=torch.nn.functional.softmax(
-                firing_strengths - max_values, dim=-1),
-            mask=self.applied_mask,
+            degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
+            mask=applied_mask,
         )
 
 
@@ -165,8 +166,9 @@ class GeneralizedLukasiewicz(TNorm):
     """
 
     def forward(self, membership: Membership) -> Membership:
-        intermediate_values: torch.Tensor = self.apply_mask(
-            membership=membership)
+        intermediate_values, applied_mask = self._apply_mask_with_mask(  # pylint: disable=protected-access
+            membership=membership
+        )
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be
         # fixed/tested
@@ -180,7 +182,7 @@ class GeneralizedLukasiewicz(TNorm):
                 # held the raw per-variable observations
                 - (membership.degrees.shape[1] - 1)
             ),
-            mask=self.applied_mask,
+            mask=applied_mask,
         )
 
 
@@ -215,8 +217,9 @@ class SoftmaxMean(TNorm):
         Returns:
             The applicability of the fuzzy compounds (e.g., fuzzy logic rules).
         """
-        intermediate_values: torch.Tensor = self.apply_mask(
-            membership=membership)
+        intermediate_values, applied_mask = self._apply_mask_with_mask(  # pylint: disable=protected-access
+            membership=membership
+        )
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be
         # fixed/tested
@@ -228,7 +231,6 @@ class SoftmaxMean(TNorm):
         )  # add this to prevent overflow
         return Membership(
             # elements=membership.elements,
-            degrees=torch.nn.functional.softmax(
-                firing_strengths - max_values, dim=-1),
-            mask=self.applied_mask,
+            degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
+            mask=applied_mask,
         )

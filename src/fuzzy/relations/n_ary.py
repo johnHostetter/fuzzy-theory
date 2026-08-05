@@ -98,7 +98,9 @@ class NAryRelation(TorchJitModule, Loggable):
         self.method: NAryMaskMethods = method
         # cache the selected method; very important for performance to avoid
         # branching
-        self._apply_mask_func: Callable[[Membership], torch.Tensor] = (
+        self._apply_mask_func: Callable[
+            [Membership], Tuple[torch.Tensor, Union[None, torch.Tensor]]
+        ] = (
             self._cache_apply_mask_func()
         )
         self.matrix = None  # created later (via self._rebuild)
@@ -153,9 +155,6 @@ class NAryRelation(TorchJitModule, Loggable):
         #         # mask=torch.empty(membership_shape, device=self.device),
         #     )
         # )
-        self.applied_mask: Union[None, torch.Tensor] = (
-            None  # created later (via self.apply_mask)
-        )
         self._cached_links: Union[None, torch.Tensor] = None
         self._cached_links_complement: Union[None, torch.Tensor] = None
         self._cached_links_bool: Union[None, torch.Tensor] = None
@@ -520,26 +519,22 @@ class NAryRelation(TorchJitModule, Loggable):
         self._cached_links_complement = 1 - links
 
     def _apply_mask(
-        self, membership: Membership, inplace: bool = False
-    ) -> torch.Tensor:
+        self, membership: Membership
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Get the applied mask from the GroupedLinks using the given Membership object. Caution
-        should be used with this method as it may or may not update the cached applied mask
-        depending on if inplace is True (default is False).
+        Get the after-mask tensor and the raw applied mask from the GroupedLinks using
+        the given Membership object.
 
         Args:
             membership: The Membership object to use in determining the applied mask.
-            inplace: Whether to modify the self.applied_mask with this obtained applied mask.
 
         Returns:
-            The applied mask based on the given membership.
+            The after-mask tensor, and the applied mask based on the given membership.
         """
         self._ensure_links_cache(membership)
         applied_mask = self._cached_links
-        if inplace:
-            self.applied_mask = applied_mask
         after_mask = membership.degrees.unsqueeze(-1) * applied_mask
-        return after_mask + self._cached_links_complement
+        return after_mask + self._cached_links_complement, applied_mask
 
     # @log_method
     # @profile
@@ -552,6 +547,28 @@ class NAryRelation(TorchJitModule, Loggable):
 
         Returns:
             The masked membership values (zero may or may not be a valid degree of truth).
+        """
+        return self._apply_mask_with_mask(membership)[0]
+
+    def _apply_mask_with_mask(
+        self, membership: Membership
+    ) -> Tuple[torch.Tensor, Union[None, torch.Tensor]]:
+        """
+        The implementation behind apply_mask(), also returning the raw mask that was
+        applied. TNorm.forward() implementations (see relations/t_norm.py) need both
+        values to build their returned Membership - they used to get the second one by
+        reading self.applied_mask right after calling apply_mask(), but mutating a
+        module attribute mid-forward is incompatible with torch.compile(fullgraph=True)
+        whenever that forward() runs inside torch.utils.checkpoint (Dynamo forbids
+        in-place attribute mutation inside a checkpoint's traced subgraph), so it is
+        returned directly instead.
+
+        Args:
+            membership: The membership values to apply the n-ary relation to.
+
+        Returns:
+            The masked membership values, and the raw applied mask (None for methods,
+            such as LINEAR_SUM, that have no single "applied mask" to expose).
         """
         membership_shape: torch.Size = membership.degrees.shape
         if self.grouped_links.shape[:-1] != membership_shape[1:]:
@@ -569,7 +586,9 @@ class NAryRelation(TorchJitModule, Loggable):
         # applied_mask = self.grouped_links.grouped_links.modules_list[0].logits
         return self._apply_mask_func(membership)
 
-    def _cache_apply_mask_func(self) -> Callable[[Membership], torch.Tensor]:
+    def _cache_apply_mask_func(
+        self,
+    ) -> Callable[[Membership], Tuple[torch.Tensor, Union[None, torch.Tensor]]]:
         if self.method == NAryMaskMethods.PROD:
             return self._prod_apply_mask
         if self.method == NAryMaskMethods.LINEAR_SUM:
@@ -615,7 +634,9 @@ class NAryRelation(TorchJitModule, Loggable):
         self._cached_mask = mask
         self._apply_mask_func = self._gather_apply_mask
 
-    def _gather_apply_mask(self, membership: Membership) -> torch.Tensor:
+    def _gather_apply_mask(
+        self, membership: Membership
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Optimized mask application using torch.gather. Produces a (batch, vars, rules)
         tensor directly instead of materializing the full (batch, vars, terms, rules)
@@ -632,7 +653,7 @@ class NAryRelation(TorchJitModule, Loggable):
         A plain torch.gather of only the selected term would miss all of that
         propagation, so it is reconstructed explicitly below.
         """
-        self.applied_mask = self._cached_mask
+        applied_mask = self._cached_mask
         degrees = membership.degrees
         batch_size = degrees.shape[0]
         idx = self._gather_indices.unsqueeze(0).expand(batch_size, -1, -1)
@@ -682,10 +703,12 @@ class NAryRelation(TorchJitModule, Loggable):
             # False) - skipping it avoids a full elementwise pass over the tensor,
             # which profiling showed was the single largest cost in the rule engine
             # for FLCs with many input variables.
-            return selected
-        return selected.nan_to_num(self.nan_replacement)
+            return selected, applied_mask
+        return selected.nan_to_num(self.nan_replacement), applied_mask
 
-    def _prod_apply_mask(self, membership: Membership) -> torch.Tensor:
+    def _prod_apply_mask(
+        self, membership: Membership
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         The default resolution strategy for applying the mask to the given fuzzy relation.
 
@@ -696,15 +719,15 @@ class NAryRelation(TorchJitModule, Loggable):
             The fuzzy relation values.
         """
         # torch.prod on large dims can be slow and non-fusible
-        after_mask: torch.Tensor = self._apply_mask(
-            membership=membership, inplace=True
-        )  # update self.applied_mask
+        after_mask, applied_mask = self._apply_mask(membership=membership)
         prod_result = after_mask.prod(dim=2, keepdim=False).nan_to_num(
             self.nan_replacement
         )
-        return prod_result
+        return prod_result, applied_mask
 
-    def _exp_sum_log_apply_mask(self, membership: Membership) -> torch.Tensor:
+    def _exp_sum_log_apply_mask(
+        self, membership: Membership
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         A possibly more efficient resolution strategy for applying the mask to the given
         fuzzy relation; it is mathematically equivalent to the product technique.
@@ -721,16 +744,16 @@ class NAryRelation(TorchJitModule, Loggable):
         # exp_sum_log_impl_result = torch.exp(
         #     torch.sum(torch.log(vals + 1e-12), dim=2)
         # ).nan_to_num(self.nan_replacement)
-        after_mask: torch.Tensor = self._apply_mask(
-            membership=membership, inplace=True
-        )  # update self.applied_mask
+        after_mask, applied_mask = self._apply_mask(membership=membership)
         exp_sum_log_func_result = exp_sum_log(after_mask, dim=2).nan_to_num(
             self.nan_replacement
         )
         # assert torch.allclose(exp_sum_log_impl_result, exp_sum_log_func_result)
-        return exp_sum_log_func_result
+        return exp_sum_log_func_result, applied_mask
 
-    def _linear_sum_apply_mask(self, membership: Membership) -> torch.Tensor:
+    def _linear_sum_apply_mask(
+        self, membership: Membership
+    ) -> Tuple[torch.Tensor, None]:
         """
         A very efficient resolution strategy for applying the mask to the given fuzzy relation if
         the summation is taken immediately afterward; it is *NOT* mathematically equivalent to the
@@ -762,7 +785,10 @@ class NAryRelation(TorchJitModule, Loggable):
             membership.degrees.view(batch_size, var_count * term_count),
             applied_mask.view(var_count * term_count, n_rules).T,
         )
-        return linear_result
+        # unlike PROD/EXP_SUM_LOG, this method never populated self.applied_mask
+        # before this refactor either - preserved as None here, not the local
+        # applied_mask above, to keep that pre-existing behavior unchanged
+        return linear_result, None
 
     # @log_method
     def forward(self, membership: Membership) -> Membership:

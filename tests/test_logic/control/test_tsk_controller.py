@@ -48,8 +48,9 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             device=AVAILABLE_DEVICE,
         )
         # the first variable has fuzzy sets with centers 0, 1, 2 (the column)
-        centers = torch.nn.Parameter(torch.tensor(
-            [[0, 1], [1, 2], [2, 3]], device=AVAILABLE_DEVICE).double())
+        centers = torch.nn.Parameter(
+            torch.tensor([[0, 1], [1, 2], [2, 3]], device=AVAILABLE_DEVICE).double()
+        )
         actual_result = input_data.unsqueeze(dim=-1) - centers.T
         expected_result = torch.tensor(
             [
@@ -85,9 +86,7 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             None
         """
         self.fuzzy_logic_controller.to(torch.device("cpu"))
-        self.assertEqual(
-            torch.device("cpu"),
-            self.fuzzy_logic_controller.device)
+        self.assertEqual(torch.device("cpu"), self.fuzzy_logic_controller.device)
         # check that this is reflected in each of its torch.nn.Modules
         for module in self.fuzzy_logic_controller.children():
             self.assertEqual(torch.device("cpu"), module.device)
@@ -143,6 +142,30 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
         assert_compile_fullgraph_matches_eager(
             self.fuzzy_logic_controller, self.input_data
         )
+
+    def test_compile_fullgraph_matches_eager_with_gradient_checkpointing(
+        self,
+    ) -> None:
+        """
+        Regression guard: gradient_checkpointing=True used to break
+        torch.compile(fullgraph=True), since NAryRelation.apply_mask() stashed its
+        result on self.applied_mask as a side effect, and Dynamo forbids in-place
+        module-attribute mutation inside torch.utils.checkpoint's traced subgraph
+        (the checkpointed function here is self.engine, an NAryRelation). Fixed by
+        threading the applied mask through as a return value instead - see
+        NAryRelation._apply_mask_with_mask.
+
+        Returns:
+            None
+        """
+        flc = FLC(
+            source=self.fuzzy_logic_controller.source,
+            inference=ZeroOrder,
+            device=AVAILABLE_DEVICE,
+            execution=ExecutionOptions(gradient_checkpointing=True),
+        )
+        flc.train()
+        assert_compile_fullgraph_matches_eager(flc, self.input_data)
 
     def _missing_data_expected(self) -> dict:
         return {
@@ -260,8 +283,9 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
         )
         # check that rules were correctly created
         knowledge_base = KnowledgeBase.create(
-            linguistic_variables=LinguisticVariables(
-                inputs=antecedents, targets=[]), rules=rules, )
+            linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
+            rules=rules,
+        )
         rule_vertex = knowledge_base.graph.vs.find(item_eq=rules[0])
         self.assertEqual(
             rule_vertex["item"], rules[0]
@@ -311,8 +335,7 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
         assert flc.shape.n_outputs == 1
 
         actual_variables: List[FuzzySet] = flc.linguistic_variables().inputs
-        for actual_variable, expected_variable in zip(
-                actual_variables, antecedents):
+        for actual_variable, expected_variable in zip(actual_variables, antecedents):
             assert torch.allclose(
                 actual_variable.get_centers(), expected_variable.get_centers()
             )
@@ -322,8 +345,7 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
 
         return flc, input_data, rules
 
-    def test_execution_options_defaults_match_previous_flat_kwargs(
-            self) -> None:
+    def test_execution_options_defaults_match_previous_flat_kwargs(self) -> None:
         """
         FuzzyLogicController used to take disabled_parameters/max_batch_chunk/
         gradient_checkpointing as three flat keyword arguments; they are now bundled
@@ -338,8 +360,7 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
         self.assertIsNone(self.fuzzy_logic_controller.max_batch_chunk)
         self.assertFalse(self.fuzzy_logic_controller.gradient_checkpointing)
 
-    def test_max_batch_chunk_produces_the_same_output_as_unchunked(
-            self) -> None:
+    def test_max_batch_chunk_produces_the_same_output_as_unchunked(self) -> None:
         """
         FuzzyLogicController.forward() splits the batch into chunks of at most
         max_batch_chunk observations (and concatenates the per-chunk outputs) purely
@@ -414,19 +435,13 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             ),
         ]
         knowledge_base = KnowledgeBase.create(
-            linguistic_variables=LinguisticVariables(
-                inputs=antecedents, targets=[]), rules=rules, )
-        flc = FLC(
-            source=knowledge_base,
-            inference=TSK,
-            device=AVAILABLE_DEVICE)
+            linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
+            rules=rules,
+        )
+        flc = FLC(source=knowledge_base, inference=TSK, device=AVAILABLE_DEVICE)
 
-        self.assertEqual(
-            flc.defuzzification.weights.device.type,
-            AVAILABLE_DEVICE.type)
-        self.assertEqual(
-            flc.defuzzification.bias.device.type,
-            AVAILABLE_DEVICE.type)
+        self.assertEqual(flc.defuzzification.weights.device.type, AVAILABLE_DEVICE.type)
+        self.assertEqual(flc.defuzzification.bias.device.type, AVAILABLE_DEVICE.type)
 
         # the actual symptom: this used to raise a device-mismatch RuntimeError
         output = flc(torch.tensor([[2.0]], device=AVAILABLE_DEVICE))
@@ -469,12 +484,10 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             ),
         ]
         knowledge_base = KnowledgeBase.create(
-            linguistic_variables=LinguisticVariables(
-                inputs=antecedents, targets=[]), rules=rules, )
-        flc = FLC(
-            source=knowledge_base,
-            inference=TSK,
-            device=AVAILABLE_DEVICE)
+            linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
+            rules=rules,
+        )
+        flc = FLC(source=knowledge_base, inference=TSK, device=AVAILABLE_DEVICE)
 
         observations = torch.rand(8, n_inputs, device=AVAILABLE_DEVICE)
         with torch.no_grad():
@@ -492,8 +505,7 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
         for param in flc.defuzzification.parameters():
             self.assertFalse(bool(param.grad.isnan().any()))
 
-    def test_tsk_epsilon_offset_does_not_perturb_normal_scale_output(
-            self) -> None:
+    def test_tsk_epsilon_offset_does_not_perturb_normal_scale_output(self) -> None:
         """
         The epsilon offset added to guard against the underflow case above must not
         meaningfully change TSK's output when rule strengths are a normal, non-tiny
@@ -528,12 +540,10 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             ),
         ]
         knowledge_base = KnowledgeBase.create(
-            linguistic_variables=LinguisticVariables(
-                inputs=antecedents, targets=[]), rules=rules, )
-        flc = FLC(
-            source=knowledge_base,
-            inference=TSK,
-            device=AVAILABLE_DEVICE)
+            linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
+            rules=rules,
+        )
+        flc = FLC(source=knowledge_base, inference=TSK, device=AVAILABLE_DEVICE)
         input_data = torch.tensor(
             [[1.2, 0.2], [1.1, 0.3], [2.1, 0.1], [2.7, 0.15], [1.7, 0.25]],
             device=AVAILABLE_DEVICE,
@@ -546,8 +556,7 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             # confirm this is actually the normal (non-underflowed) case, so this
             # test is meaningfully exercising "epsilon negligible at normal
             # scale"
-            self.assertFalse(
-                bool((rule_strengths.degrees.sum(dim=1) == 0.0).any()))
+            self.assertFalse(bool((rule_strengths.degrees.sum(dim=1) == 0.0).any()))
 
             tsk = flc.defuzzification
             rule_output = (input_data @ tsk.weights).view(
@@ -558,6 +567,5 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             fir_str_bar_unguarded = rule_strengths.degrees / torch.sum(
                 rule_strengths.degrees, 1
             ).unsqueeze(1)
-            expected = torch.einsum(
-                "NRC,NR->NC", rule_output, fir_str_bar_unguarded)
+            expected = torch.einsum("NRC,NR->NC", rule_output, fir_str_bar_unguarded)
         self.assertTrue(torch.allclose(output, expected, atol=1e-6))
