@@ -1,6 +1,5 @@
 name: Lint
-
-on: [push, pull_request]
+on: push
 
 jobs:
   lint:
@@ -12,6 +11,7 @@ jobs:
       - uses: psf/black@stable
         with:
           version: "25.11.0"
+          options: ""
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "style: format with black"
