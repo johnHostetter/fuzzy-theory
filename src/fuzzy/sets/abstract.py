@@ -33,7 +33,51 @@ from .membership import Membership
 
 # FuzzySetShape/FuzzySetInitResult/FuzzySetInitMethod re-exported here for backward
 # compatibility (they used to be defined in this module)
-from .shape import FuzzySetInitMethod, FuzzySetInitResult, FuzzySetShape  # noqa: F401
+from .shape import FuzzySetInitResult  # noqa: F401
+from .shape import FuzzySetInitMethod, FuzzySetShape, MembershipConfig
+
+
+# pylint: disable-next=too-few-public-methods,abstract-method
+class _FuzzySetParameters(torch.nn.Module):
+    """
+    Bundles a FuzzySet's centers, widths, and mask DynamicParameterLists into a single
+    submodule, so FuzzySet itself holds one attribute for its raw parameter storage
+    instead of three. Private to this module - FuzzySet's public accessors
+    (get_centers()/get_widths()/get_mask()) are unaffected by this internal grouping,
+    and nothing outside FuzzySet should reference this class directly.
+
+    A torch.nn.Module (not a plain container) so centers/widths/mask remain properly
+    registered submodules of the surrounding FuzzySet - required for torch.jit.script,
+    which supports nested submodule attribute access natively but cannot represent an
+    arbitrary Python object (e.g. a dataclass) as an attribute type.
+    """
+
+    def __init__(
+        self,
+        centers: DynamicParameterList,
+        widths: DynamicParameterList,
+        mask: DynamicParameterList,
+    ):
+        super().__init__()
+        self.centers = centers
+        self.widths = widths
+        self.mask = mask
+
+    def to(self, *args, **kwargs):
+        """
+        Move centers, widths, and mask to a new device/dtype.
+
+        Returns:
+            self
+        """
+        super().to(*args, **kwargs)
+        # each DynamicParameterList.to() does its own device/dtype bookkeeping and
+        # cache invalidation beyond what torch.nn.Module.to()'s default recursive
+        # _apply() performs - see DynamicParameterList.to()'s own docstring
+        self.centers = self.centers.to(*args, **kwargs)
+        self.widths = self.widths.to(*args, **kwargs)
+        self.mask = self.mask.to(*args, **kwargs)
+        return self
 
 
 class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
@@ -77,25 +121,24 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
         widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
         device: torch.device,
-        use_sparse_tensor: bool = False,
-        cache_membership: bool = True,
-        membership_cache_size: int = 2,
+        membership_config: Optional[MembershipConfig] = None,
         # debug: bool = False,
     ):
         super().__init__()
+        self.__check_args(centers, widths)
         self.device = device
         # self.create_logger(self.__class__.__name__, debug=debug)
-        self.__check_args(centers, widths)
 
-        self._centers = None
-        self._widths = None
-        self._mask = None
-        self.__alloc_members(centers, use_sparse_tensor, widths)
+        if not membership_config:
+            membership_config = MembershipConfig()
+        self.membership_config = membership_config
 
+        self._params = self.__alloc_members(centers, widths)
         # memoizes membership calculations; see fuzzy.sets.cache for when a
         # result is re-used
         self._membership_cache = MembershipCache(
-            maxsize=membership_cache_size, enabled=cache_membership
+            maxsize=membership_config.membership_cache_size,
+            enabled=membership_config.cache_membership,
         )
 
         # torch.jit.script only picks up attributes assigned in __init__, so the class-level
@@ -105,9 +148,21 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         self._validate_degrees: bool = self._validate_degrees
         self._nan_safe_sync_threshold_numel: int = self._nan_safe_sync_threshold_numel
 
+        # forward() (a scripted method) cannot reference self.membership_config.enable_sparse
+        # directly: TorchScript's attribute-type checker cannot represent an arbitrary
+        # dataclass (MembershipConfig) as a scriptable type, even though the dataclass
+        # itself is harmless as an attribute that no scripted method touches. Pulling out
+        # just the one field forward() needs, as a plain bool, keeps membership_config
+        # itself available for everything else (save/load, __init__, etc.) without breaking
+        # torch.jit.script(fuzzy_set).
+        self.enable_sparse: bool = membership_config.enable_sparse
+
     # @log_method
     @staticmethod
-    def __check_args(centers: np.ndarray, widths: np.ndarray) -> None:
+    def __check_args(
+        centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
+        widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
+    ) -> None:
         """
         Check that the provided argument values are accepted variable types and that their
         dimensionality is correct. This function will raise a ValueError if the argument values
@@ -148,26 +203,29 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
 
     # @log_method
     def __alloc_members(
-        self, centers: np.ndarray, use_sparse_tensor: bool, widths: np.ndarray
-    ) -> None:
+        self,
+        centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
+        widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
+    ) -> _FuzzySetParameters:
         if centers.ndim == 1 and widths.ndim == 1:
             # assuming that the array is a single linguistic variable
             centers, widths = centers[None, :], widths[None, :]
 
         # avoid allocating new memory for the centers and widths
         # use torch.float32 to save memory and speed up computations
-        self._centers = DynamicParameterList(
-            init_params=[centers], dtype=torch.float32, device=self.device
-        )
-        self._widths = DynamicParameterList(
-            init_params=[widths], dtype=torch.float32, device=self.device
-        )
-        self.use_sparse_tensor = use_sparse_tensor
-        self._mask = DynamicParameterList(
-            init_params=[self.make_mask(widths)],
-            dtype=torch.uint8,
-            device=self.device,
-            parameters=False,
+        return _FuzzySetParameters(
+            centers=DynamicParameterList(
+                init_params=[centers], dtype=torch.float32, device=self.device
+            ),
+            widths=DynamicParameterList(
+                init_params=[widths], dtype=torch.float32, device=self.device
+            ),
+            mask=DynamicParameterList(
+                init_params=[self.make_mask(widths)],
+                dtype=torch.uint8,
+                device=self.device,
+                parameters=False,
+            ),
         )
 
     # @log_method
@@ -182,14 +240,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # submodules
         super().to(*args, **kwargs)
 
-        # special handling for DynamicParameterList
-        self._centers = self._centers.to(*args, **kwargs)
-        self._widths = self._widths.to(*args, **kwargs)
-
-        # special handling for the non-parameter tensors, such as mask
-        # self._mask = [mask.to(*args, **kwargs) for mask in self._mask]
-        self._mask = self._mask.to(*args, **kwargs)
-        self.device = self._centers[0].device
+        # special handling for DynamicParameterList (see
+        # _FuzzySetParameters.to())
+        self._params = self._params.to(*args, **kwargs)
+        self.device = self._params.centers[0].device
         # memberships were calculated on the previous device, and moving parameters replaces
         # their data without bumping a version counter, so the memo cannot be
         # trusted
@@ -333,7 +387,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             The concatenated centers of the fuzzy set.
         """
-        return self._centers.tensor
+        return self._params.centers.tensor
 
     # @log_method
     def get_widths(self) -> torch.Tensor:
@@ -343,7 +397,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             The concatenated widths of the fuzzy set.
         """
-        return self._widths.tensor
+        return self._params.widths.tensor
 
     # @log_method
     def get_mask(self) -> torch.Tensor:
@@ -353,7 +407,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             The concatenated mask of the fuzzy set.
         """
-        return self._mask.tensor
+        return self._params.mask.tensor
 
     def _extra_save_state(self) -> MutableMapping[str, Any]:
         """
@@ -455,11 +509,11 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                 f"The mode must be either 'horizontal' or 'vertical', but got '{mode}'."
             )
         with torch.no_grad():
-            self._centers[0] = torch.nn.Parameter(
-                method_of_extension([self._centers[0], centers])
+            self._params.centers[0] = torch.nn.Parameter(
+                method_of_extension([self._params.centers[0], centers])
             )
-            self._widths[0] = torch.nn.Parameter(
-                method_of_extension([self._widths[0], widths])
+            self._params.widths[0] = torch.nn.Parameter(
+                method_of_extension([self._params.widths[0], widths])
             )
         # the fuzzy set now describes more terms, so previously calculated membership degrees
         # no longer have the right shape
@@ -889,7 +943,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             ), "Infinite values detected in the membership degrees."
 
         membership = Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
+            degrees=degrees.to_sparse() if self.enable_sparse else degrees,
             mask=self.get_mask(),
         )
         self._store_membership(original_observations, membership)

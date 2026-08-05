@@ -237,14 +237,15 @@ class TestFuzzySet(unittest.TestCase):
 
         gaussian_mf.to(torch.float64)
 
-        self.assertEqual(gaussian_mf._centers._device, resolved_device)
-        self.assertEqual(gaussian_mf._centers._dtype, torch.float64)
+        self.assertEqual(gaussian_mf._params.centers._device, resolved_device)
+        self.assertEqual(gaussian_mf._params.centers._dtype, torch.float64)
         self.assertEqual(gaussian_mf.get_centers().dtype, torch.float64)
 
         # adding a parameter afterward must use the up-to-date dtype, not a
         # stale one
-        gaussian_mf._centers.add_parameter(np.array([[2.0, 3.0]]))
-        self.assertEqual(gaussian_mf._centers.params[-1].dtype, torch.float64)
+        gaussian_mf._params.centers.add_parameter(np.array([[2.0, 3.0]]))
+        self.assertEqual(
+            gaussian_mf._params.centers.params[-1].dtype, torch.float64)
 
         # an empty DynamicParameterList must not raise when .to() is given a
         # dtype only

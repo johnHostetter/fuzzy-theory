@@ -12,6 +12,7 @@ from fuzzy.sets import Membership
 from fuzzy.sets.abstract import FuzzySetInitMethod, FuzzySetShape
 from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.shape import MembershipConfig
 from fuzzy.utils.functions import get_object_attributes
 
 AVAILABLE_DEVICE: torch.device = torch.device(
@@ -255,13 +256,13 @@ class TestFuzzySetGroup(unittest.TestCase):
                     shape=FuzzySetShape(n_variables=2, n_terms=3),
                     device=AVAILABLE_DEVICE,
                     method=FuzzySetInitMethod.LINEAR,
-                    use_sparse_tensor=True,
+                    membership_config=MembershipConfig(enable_sparse=True),
                 ),
                 Gaussian.create(
                     shape=FuzzySetShape(n_variables=2, n_terms=3),
                     device=AVAILABLE_DEVICE,
                     method=FuzzySetInitMethod.LINEAR,
-                    use_sparse_tensor=False,
+                    membership_config=MembershipConfig(enable_sparse=False),
                 ),
             ]
         )
@@ -279,13 +280,13 @@ class TestFuzzySetGroup(unittest.TestCase):
                     shape=FuzzySetShape(n_variables=2, n_terms=3),
                     device=AVAILABLE_DEVICE,
                     method=FuzzySetInitMethod.LINEAR,
-                    use_sparse_tensor=True,
+                    membership_config=MembershipConfig(enable_sparse=True),
                 ),
                 Gaussian.create(
                     shape=FuzzySetShape(n_variables=2, n_terms=3),
                     device=AVAILABLE_DEVICE,
                     method=FuzzySetInitMethod.LINEAR,
-                    use_sparse_tensor=True,
+                    membership_config=MembershipConfig(enable_sparse=True),
                 ),
             ]
         )

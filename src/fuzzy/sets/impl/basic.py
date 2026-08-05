@@ -169,7 +169,20 @@ class Lorentzian(FuzzySet):
         Returns:
             The membership degrees of the observations for the Lorentzian fuzzy set.
         """
-        return 1 / (1 + torch.pow((centers - observations) / (0.5 * widths), 2))
+        # unlike (centers - observations) / (0.5 * widths), squaring numerator and
+        # denominator separately (mathematically equivalent when widths != 0) allows
+        # an epsilon to be added to the denominator - mirroring the same +1e-32 guard
+        # Gaussian's formula already uses. Without it, a zero-width "missing" term
+        # (see FuzzySet.make_mask/stack) evaluated exactly at its own center divides
+        # 0 by 0, producing NaN instead of the well-defined limiting value of 1.0 -
+        # this was previously masked only by Lorentzian defaulting _validate_degrees
+        # to True (an assertion, not a fix) while every other fuzzy set defaulted to
+        # False.
+        return 1 / (
+            1
+            + torch.pow(centers - observations, 2)
+            / (torch.pow(0.5 * widths, 2) + 1e-32)
+        )
 
     @classmethod
     @torch.jit.ignore

@@ -16,6 +16,7 @@ import torch
 
 from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.impl import Gaussian, Trapezoidal
+from fuzzy.sets.shape import MembershipConfig
 
 AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -28,7 +29,7 @@ def make_gaussian(cache_membership: bool = True) -> Gaussian:
         centers=np.array([0.0, 1.0]),
         widths=np.array([1.0, 1.0]),
         device=AVAILABLE_DEVICE,
-        cache_membership=cache_membership,
+        membership_config=MembershipConfig(cache_membership=cache_membership),
     )
 
 
@@ -43,13 +44,13 @@ def make_gaussian_pair() -> "tuple[Gaussian, Gaussian]":
         centers=centers.copy(),
         widths=widths.copy(),
         device=AVAILABLE_DEVICE,
-        cache_membership=True,
+        membership_config=MembershipConfig(cache_membership=True),
     )
     uncached_mf = Gaussian(
         centers=centers.copy(),
         widths=widths.copy(),
         device=AVAILABLE_DEVICE,
-        cache_membership=False,
+        membership_config=MembershipConfig(cache_membership=False),
     )
     return cached_mf, uncached_mf
 

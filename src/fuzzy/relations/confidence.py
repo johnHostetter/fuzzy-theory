@@ -27,7 +27,8 @@ class CertaintyFactors(torch.nn.Module):
         )
 
     @staticmethod
-    def create_default(n_features: int, device, *args, **kwargs) -> "CertaintyFactors":
+    def create_default(n_features: int, device, *args,
+                       **kwargs) -> "CertaintyFactors":
         """
         A protocol to create an instance with default settings.
 

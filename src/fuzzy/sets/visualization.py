@@ -140,7 +140,8 @@ class FuzzySetPlot:
             elif centers.ndim == 2 or centers.shape[0] > 1:
                 x_values = x_values[:, None, None]
 
-            memberships: torch.Tensor = fuzzy_set.calculate_membership(x_values)
+            memberships: torch.Tensor = fuzzy_set.calculate_membership(
+                x_values)
             if memberships.ndim == 2:
                 memberships = memberships.unsqueeze(
                     dim=1

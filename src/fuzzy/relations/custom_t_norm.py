@@ -45,10 +45,12 @@ class TNormPipeline(torch.nn.Module):
         ):
             self.layer_norm = kwargs["layer_norm"]
         elif configuration.rule.elevation == RuleElevationEnum.LAYER_NORMALIZATION:
-            self.layer_norm = torch.nn.LayerNorm([self.n_relations], device=device)
+            self.layer_norm = torch.nn.LayerNorm(
+                [self.n_relations], device=device)
 
         self.certainty = None
-        if "certainty" in kwargs and isinstance(kwargs["certainty"], CertaintyFactors):
+        if "certainty" in kwargs and isinstance(
+                kwargs["certainty"], CertaintyFactors):
             self.certainty = kwargs["certainty"]
         elif configuration.rule.weights == RuleWeightsEnum.CERTAINTY_FACTORS:
             self.certainty = CertaintyFactors.create_default(
@@ -99,8 +101,9 @@ class TNormPipeline(torch.nn.Module):
             )
 
             t_norm_pipeline = TNormPipeline(
-                configuration=configuration, n_relations=n_relations, device=device
-            )
+                configuration=configuration,
+                n_relations=n_relations,
+                device=device)
             t_norm_pipeline.load_state_dict(state_dict)
             return t_norm_pipeline
 

@@ -3,7 +3,7 @@ Describes the shape of homogeneous fuzzy sets and the built-in strategies for
 initializing their centers and widths from that shape.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any, Union
 
@@ -31,6 +31,27 @@ class FuzzySetInitResult:
 
     centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]]
     widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]]
+
+
+@dataclass
+class MembershipConfig:
+    """
+    This dataclass assists in configuring how to handle membership calculations, such as whether
+    to represent them with PyTorch's sparse tensors and/or cache them for follow-up retrieval.
+    """
+
+    enable_sparse: bool = field(
+        default=False,
+        metadata={
+            "help": "Whether to enable sparse tensors to represent membership degrees."
+        },
+    )
+    cache_membership: bool = field(
+        default=False, metadata={
+            "help": "Whether to cache the membership of the fuzzy sets."}, )
+    membership_cache_size: int = field(
+        default=2, metadata={
+            "help": "The size of membership cache for fuzzy sets."})
 
 
 class FuzzySetInitMethod(Enum):
