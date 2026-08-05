@@ -44,10 +44,20 @@ class GeneralizedGuassian(FuzzySet):
                 f"The width multiplier must be > 0, but got"
                 f" {self._gaussian_kernel.width_multiplier}."
             )
-        self._width_multiplier = torch.nn.ParameterList([self.make_parameter(
-            self._gaussian_kernel.width_multiplier * np.ones_like(centers))])
-        self._slope_multiplier = torch.nn.ParameterList([self.make_parameter(
-            self._gaussian_kernel.slope_multiplier * np.ones_like(centers))])
+        self._width_multiplier = torch.nn.ParameterList(
+            [
+                self.make_parameter(
+                    self._gaussian_kernel.width_multiplier * np.ones_like(centers)
+                )
+            ]
+        )
+        self._slope_multiplier = torch.nn.ParameterList(
+            [
+                self.make_parameter(
+                    self._gaussian_kernel.slope_multiplier * np.ones_like(centers)
+                )
+            ]
+        )
 
     def get_width_multiplier(self) -> torch.Tensor:
         """
@@ -93,8 +103,10 @@ class GeneralizedGuassian(FuzzySet):
         Returns:
             The membership degrees of the observations for the Generalized Gaussian fuzzy set.
         """
-        vals = -1.0 * torch.pow((torch.pow(observations - centers, 2) /
-                                 torch.pow(width_multiplier, 2)), slope_multiplier, )
+        vals = -1.0 * torch.pow(
+            (torch.pow(observations - centers, 2) / torch.pow(width_multiplier, 2)),
+            slope_multiplier,
+        )
         # this works pretty well -- but does cause NaNs later on
         # vals = (
         #     -1.0 * torch.pow(observations - centers, 2) / torch.pow(width_multiplier, 2)

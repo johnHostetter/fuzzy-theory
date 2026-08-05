@@ -10,17 +10,18 @@ import numpy as np
 import torch
 
 from fuzzy.sets.impl import Trapezoidal, Triangular
+from tests import AVAILABLE_DEVICE
 
-from .common import get_test_elements
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from .common import (
+    assert_jit_script_matches_eager,
+    assert_membership_matches_numpy,
+    get_test_elements,
+)
 
 
 def trapezoidal_numpy(
-        element: np.ndarray,
-        center: np.ndarray,
-        width: np.ndarray,
-        plateau: np.ndarray):
+    element: np.ndarray, center: np.ndarray, width: np.ndarray, plateau: np.ndarray
+):
     """
     Trapezoidal membership function implemented in Numpy for testing.
 
@@ -48,6 +49,12 @@ class TestTrapezoidal(unittest.TestCase):
         self.elements = get_test_elements(device=AVAILABLE_DEVICE)
 
     def test_single_input(self) -> None:
+        """
+        Test that single input works for the Trapezoidal membership function.
+
+        Returns:
+            None
+        """
         element = np.array([0.0], dtype=np.float32)
         trapezoidal_mf = Trapezoidal(
             centers=np.array([0.5]),
@@ -75,20 +82,19 @@ class TestTrapezoidal(unittest.TestCase):
             trapezoidal_mf.get_plateaus(),
             torch.tensor(plateau, device=AVAILABLE_DEVICE),
         )
-        assert np.allclose(
-            mu_pytorch.cpu().detach().numpy(),
-            mu_numpy,
-            atol=1e-2)
+        assert_membership_matches_numpy(mu_pytorch, mu_numpy, atol=1e-2)
 
-        trapezoidal_mf_scripted = torch.jit.script(trapezoidal_mf)
-        assert torch.allclose(
-            trapezoidal_mf_scripted(
-                torch.tensor(element, device=AVAILABLE_DEVICE)
-            ).degrees.to_dense(),
-            mu_pytorch,
+        assert_jit_script_matches_eager(
+            trapezoidal_mf, torch.tensor(element, device=AVAILABLE_DEVICE), mu_pytorch
         )
 
     def test_multi_input(self) -> None:
+        """
+        Test that multiple input works for the Trapezoidal membership function.
+
+        Returns:
+            None
+        """
         trapezoidal_mf = Trapezoidal(
             centers=np.array([0.5]),
             widths=np.array([0.8]),
@@ -115,43 +121,32 @@ class TestTrapezoidal(unittest.TestCase):
             trapezoidal_mf.get_plateaus(),
             torch.tensor(plateaus, device=AVAILABLE_DEVICE),
         )
-        assert np.allclose(
-            mu_pytorch.squeeze(
-                dim=1).cpu().detach().numpy(),
-            mu_numpy,
-            atol=1e-2)
+        assert_membership_matches_numpy(mu_pytorch, mu_numpy, squeeze_dim=1, atol=1e-2)
 
-        trapezoidal_mf_scripted = torch.jit.script(trapezoidal_mf)
-        assert torch.allclose(
-            trapezoidal_mf_scripted(
-                self.elements).degrees.to_dense(),
-            mu_pytorch)
+        assert_jit_script_matches_eager(trapezoidal_mf, self.elements, mu_pytorch)
 
     def test_multi_input_with_multiple_sets(self) -> None:
+        """
+        Test that multiple input works for the Trapezoidal membership function when
+        multiple fuzzy sets are specified.
+
+        Returns:
+            None
+        """
         centers = np.array([0.0, 0.25, 0.5, 0.75, 1.0], dtype=np.float32)
         widths = np.array([0.5, 0.5, 0.5, 0.5, 0.5], dtype=np.float32)
         plateaus = np.array([0.1, 0.1, 0.1, 0.1, 0.1], dtype=np.float32)
         trapezoidal_mf = Trapezoidal(
-            centers=centers,
-            widths=widths,
-            plateaus=plateaus,
-            device=AVAILABLE_DEVICE)
+            centers=centers, widths=widths, plateaus=plateaus, device=AVAILABLE_DEVICE
+        )
         mu_pytorch = trapezoidal_mf(self.elements).degrees.to_dense()
         mu_numpy = trapezoidal_numpy(
             self.elements.cpu().detach().numpy(), centers, widths, plateaus
         )
 
-        assert np.allclose(
-            mu_pytorch.squeeze(
-                dim=1).cpu().detach().numpy(),
-            mu_numpy,
-            atol=1e-2)
+        assert_membership_matches_numpy(mu_pytorch, mu_numpy, squeeze_dim=1, atol=1e-2)
 
-        trapezoidal_mf_scripted = torch.jit.script(trapezoidal_mf)
-        assert torch.allclose(
-            trapezoidal_mf_scripted(
-                self.elements).degrees.to_dense(),
-            mu_pytorch)
+        assert_jit_script_matches_eager(trapezoidal_mf, self.elements, mu_pytorch)
 
     def test_degenerate_to_triangular(self) -> None:
         """When plateaus = 0, the Trapezoidal MF should match Triangular."""
@@ -160,10 +155,8 @@ class TestTrapezoidal(unittest.TestCase):
         plateaus = np.array([0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
 
         trapezoidal_mf = Trapezoidal(
-            centers=centers,
-            widths=widths,
-            plateaus=plateaus,
-            device=AVAILABLE_DEVICE)
+            centers=centers, widths=widths, plateaus=plateaus, device=AVAILABLE_DEVICE
+        )
         triangular_mf = Triangular(
             centers=centers, widths=widths, device=AVAILABLE_DEVICE
         )
@@ -188,14 +181,18 @@ class TestTrapezoidal(unittest.TestCase):
         assert torch.allclose(mu, torch.ones_like(mu), atol=1e-6)
 
     def test_save_and_load(self) -> None:
+        """
+        Test that saving and loading a Trapezoidal fuzzy set works as intended.
+
+        Returns:
+            None
+        """
         centers = np.array([0.0, 0.5, 1.0], dtype=np.float32)
         widths = np.array([0.5, 0.5, 0.5], dtype=np.float32)
         plateaus = np.array([0.1, 0.2, 0.15], dtype=np.float32)
         trapezoidal_mf = Trapezoidal(
-            centers=centers,
-            widths=widths,
-            plateaus=plateaus,
-            device=AVAILABLE_DEVICE)
+            centers=centers, widths=widths, plateaus=plateaus, device=AVAILABLE_DEVICE
+        )
 
         with tempfile.NamedTemporaryFile(suffix=".pt", delete=False) as f:
             path = Path(f.name)
@@ -203,15 +200,9 @@ class TestTrapezoidal(unittest.TestCase):
         trapezoidal_mf.save(path)
         loaded_mf = Trapezoidal.load(path, device=AVAILABLE_DEVICE)
 
-        assert torch.allclose(
-            trapezoidal_mf.get_centers(),
-            loaded_mf.get_centers())
-        assert torch.allclose(
-            trapezoidal_mf.get_widths(),
-            loaded_mf.get_widths())
-        assert torch.allclose(
-            trapezoidal_mf.get_plateaus(),
-            loaded_mf.get_plateaus())
+        assert torch.allclose(trapezoidal_mf.get_centers(), loaded_mf.get_centers())
+        assert torch.allclose(trapezoidal_mf.get_widths(), loaded_mf.get_widths())
+        assert torch.allclose(trapezoidal_mf.get_plateaus(), loaded_mf.get_plateaus())
 
         mu_original = trapezoidal_mf(self.elements).degrees.to_dense()
         mu_loaded = loaded_mf(self.elements).degrees.to_dense()
@@ -220,6 +211,12 @@ class TestTrapezoidal(unittest.TestCase):
         path.unlink()
 
     def test_plateaus_must_be_numpy(self) -> None:
+        """
+        Test that the plateaus of a Trapezoidal fuzzy set must be a numpy array.
+
+        Returns:
+            None
+        """
         with self.assertRaises(ValueError):
             Trapezoidal(
                 centers=np.array([0.5]),

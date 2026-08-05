@@ -17,8 +17,7 @@ from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.relations.t_norm import Product, TNorm
 from fuzzy.sets.impl import Gaussian
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from tests import AVAILABLE_DEVICE
 
 
 def get_premises(device: torch.device) -> List[Gaussian]:

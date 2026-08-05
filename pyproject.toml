@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fuzzy-theory"
-version = "0.0.8"
+version = "0.0.9"
 authors = [
   { name="John Wesley Hostetter", email="jhostetter16@gmail.com" },
 ]
@@ -45,3 +45,6 @@ packages = ["src/fuzzy"]
 
 [tool.isort]
 known_first_party=["fuzzy", "regime"]
+
+[dependency-groups]
+dev = ["black==25.11.0"]

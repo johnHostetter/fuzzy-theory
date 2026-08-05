@@ -20,8 +20,7 @@ from fuzzy.utils.functions import (
     log_method,
     module_class,
 )
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from tests import AVAILABLE_DEVICE
 
 
 class TestCheckPathToSaveTorchModule(unittest.TestCase):
@@ -116,7 +115,8 @@ class TestGetObjectAttributes(unittest.TestCase):
 
             second_attr = "from_second_base"
 
-        class Combined(FirstBase, SecondBase):  # pylint: disable=too-few-public-methods
+        # pylint: disable-next=too-few-public-methods
+        class Combined(FirstBase, SecondBase):
             """Combines both bases and adds a genuinely local attribute."""
 
             def __init__(self):
@@ -203,6 +203,7 @@ class TestLoggingDecorators(unittest.TestCase):
             None
         """
 
+        # pylint: disable-next=too-few-public-methods
         class Greeter:
             """A class whose method is wrapped with log_method."""
 
@@ -227,6 +228,7 @@ class TestLoggingDecorators(unittest.TestCase):
             None
         """
 
+        # pylint: disable-next=too-few-public-methods
         class Factory:
             """A class whose classmethod is wrapped with log_classmethod."""
 

@@ -47,8 +47,13 @@ class DimensionDependent(FuzzySet, abc.ABC):
         **kwargs,
     ):
         super().__init__(centers=centers, widths=widths, device=device, **kwargs)
+        # dtype must be wide enough to hold n_inputs without overflow (this class
+        # exists specifically for high-dimensional problems - a fixed-width int dtype
+        # such as int8 silently wraps around for as few as 128 inputs) and must be a
+        # floating type since n_inputs is only ever used via .log() and torch.pow()
+        # below
         self.n_inputs: torch.Tensor = torch.tensor(
-            [centers.shape[0]], dtype=torch.int8, device=device
+            [centers.shape[0]], dtype=torch.float32, device=device
         )  # count of input variables/features/dimensions
         self.rho: torch.Tensor = (
             self._calculate_rho(n_inputs=self.n_inputs, device=device)
@@ -57,9 +62,7 @@ class DimensionDependent(FuzzySet, abc.ABC):
         )
 
     @staticmethod
-    def _calculate_rho(
-            n_inputs: torch.Tensor,
-            device: torch.device) -> torch.Tensor:
+    def _calculate_rho(n_inputs: torch.Tensor, device: torch.device) -> torch.Tensor:
         with torch.no_grad():
             return (
                 torch.ones(1, device=device)
@@ -139,9 +142,6 @@ class GaussianNoExpDMF(DimensionDependent):
             rho=self.rho,
         )
 
-    def prepare_observations(self, observations: torch.Tensor) -> torch.Tensor:
-        return observations.float()
-
 
 class GaussianDMF(DimensionDependent):
     """
@@ -216,6 +216,3 @@ class GaussianDMF(DimensionDependent):
             n_inputs=self.n_inputs,
             rho=self.rho,
         )
-
-    def prepare_observations(self, observations: torch.Tensor) -> torch.Tensor:
-        return observations.float()

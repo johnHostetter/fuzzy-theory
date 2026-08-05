@@ -79,9 +79,7 @@ class TestOrderedWeightedAggregation(unittest.TestCase):
             None
         """
         weights = torch.tensor([2.0, -1.0])
-        self.assertEqual(
-            weights.sum().item(),
-            1.0)  # passes the OLD (raw) check
+        self.assertEqual(weights.sum().item(), 1.0)  # passes the OLD (raw) check
         self.assertNotEqual(
             torch.abs(weights).sum().item(), 1.0
         )  # but not the transformed value
@@ -248,3 +246,26 @@ class TestOrderedWeightedAggregation(unittest.TestCase):
         owa = OWA(in_features, weights)
         assert torch.isclose(owa.weights, weights).all()
         assert owa.dispersion() == torch.log(torch.tensor(number_of_elements))
+
+    def test_dispersion_with_some_but_not_all_zero_weights(self) -> None:
+        """
+        Regression guard: dispersion() used to compute weights * torch.log(weights)
+        directly, which is IEEE754 NaN (0 * -inf) at any zero entry outside the
+        single-1.0 degenerate case handled separately above - poisoning the whole sum.
+        A weight vector like [0.5, 0.5, 0.0, 0.0] is legal (sums to 1.0, no single
+        entry equal to 1.0) and must produce a finite, correct entropy value instead.
+
+        Returns:
+            None
+        """
+        weights = torch.tensor([0.5, 0.5, 0.0, 0.0])
+        assert weights.sum() == 1.0
+        in_features = len(weights)
+        owa = OWA(in_features, weights)
+        assert torch.isclose(owa.weights, weights).all()
+        dispersion = owa.dispersion()
+        self.assertFalse(bool(dispersion.isnan().any()))
+        # only the two nonzero entries (each 0.5) contribute: -(0.5*log(0.5)) *
+        # 2
+        expected = -2 * (0.5 * torch.log(torch.tensor(0.5)))
+        self.assertTrue(torch.isclose(dispersion, expected))

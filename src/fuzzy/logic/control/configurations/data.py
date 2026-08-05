@@ -3,7 +3,8 @@ This module contains the data structures used to define the shape of a Fuzzy Log
 and the granulation layers used in the FLC.
 """
 
-from typing import NamedTuple, TypedDict, Union
+from dataclasses import dataclass, field
+from typing import List, NamedTuple, Optional, TypedDict, Union
 
 from fuzzy.sets.group import FuzzySetGroup
 
@@ -48,3 +49,16 @@ class GranulationLayers(TypedDict):
 
     input: FuzzySetGroup
     output: Union[None, FuzzySetGroup]
+
+
+@dataclass
+class ExecutionOptions:
+    """
+    Runtime/training execution behavior for a Fuzzy Logic Controller (FLC) - as opposed to
+    'source', 'inference', and 'device', which describe what the FLC *is*, these describe how
+    it should *run* (e.g., for memory/compute trade-offs during training).
+    """
+
+    disabled_parameters: List[str] = field(default_factory=list)
+    max_batch_chunk: Optional[int] = None
+    gradient_checkpointing: bool = False

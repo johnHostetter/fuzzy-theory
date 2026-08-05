@@ -14,8 +14,7 @@ from fuzzy.logic.rule import Rule
 from fuzzy.relations.linkage import BinaryLinks, GroupedLinks
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.relations.t_norm import Minimum, Product, SoftmaxSum, TNorm
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from tests import AVAILABLE_DEVICE
 
 
 class TestRule(unittest.TestCase):

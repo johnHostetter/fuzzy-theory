@@ -12,8 +12,8 @@ import torch
 
 from ...utils import check_path_to_save_torch_module
 from ...utils.classes import Loggable
+from ...utils.functions import ParameterSignature, signature_of
 from ..abstract import DynamicParameterList, FuzzySet
-from ..cache import ParameterSignature, signature_of
 
 
 class NoOp(FuzzySet):
@@ -22,11 +22,8 @@ class NoOp(FuzzySet):
     """
 
     def __init__(
-            self,
-            n_elements: int,
-            membership: float,
-            device: torch.device,
-            **kwargs):
+        self, n_elements: int, membership: float, device: torch.device, **kwargs
+    ):
         centers = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         widths = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         self.membership = membership  # the flat membership degree of the NoOp fuzzy set
@@ -169,7 +166,20 @@ class Lorentzian(FuzzySet):
         Returns:
             The membership degrees of the observations for the Lorentzian fuzzy set.
         """
-        return 1 / (1 + torch.pow((centers - observations) / (0.5 * widths), 2))
+        # unlike (centers - observations) / (0.5 * widths), squaring numerator and
+        # denominator separately (mathematically equivalent when widths != 0) allows
+        # an epsilon to be added to the denominator - mirroring the same +1e-32 guard
+        # Gaussian's formula already uses. Without it, a zero-width "missing" term
+        # (see FuzzySet.make_mask/stack) evaluated exactly at its own center divides
+        # 0 by 0, producing NaN instead of the well-defined limiting value of 1.0 -
+        # this was previously masked only by Lorentzian defaulting _validate_degrees
+        # to True (an assertion, not a fix) while every other fuzzy set defaulted to
+        # False.
+        return 1 / (
+            1
+            + torch.pow(centers - observations, 2)
+            / (torch.pow(0.5 * widths, 2) + 1e-32)
+        )
 
     @classmethod
     @torch.jit.ignore
@@ -338,7 +348,8 @@ class Trapezoidal(FuzzySet):
         if not isinstance(plateaus, np.ndarray):
             raise ValueError(
                 f"The plateaus of a Trapezoidal fuzzy set must be a numpy array, "
-                f"but got {type(plateaus)}")
+                f"but got {type(plateaus)}"
+            )
         if plateaus.ndim == 1:
             plateaus = plateaus[None, :]
         self._plateaus = DynamicParameterList(
@@ -436,30 +447,17 @@ class Trapezoidal(FuzzySet):
         self.clear_membership_cache()
         return self
 
-    def save(self, path: Path) -> MutableMapping[str, Any]:
-        check_path_to_save_torch_module(path)
-        state_dict: MutableMapping = self.state_dict()
-        state_dict["class_name"] = self.__class__.__name__
-        state_dict["centers"] = self.get_centers()
-        state_dict["widths"] = self.get_widths()
-        state_dict["plateaus"] = self.get_plateaus()
-        state_dict["mask"] = self.get_mask()
-        torch.save(state_dict, path)
-        return state_dict
+    def _extra_save_state(self) -> MutableMapping[str, Any]:
+        # see FuzzySet._extra_save_state - plateaus is Trapezoidal's one learnable
+        # parameter beyond the centers/widths/mask the base save() already
+        # handles
+        return {"plateaus": self.get_plateaus()}
 
     @classmethod
-    def load(cls, path: Path, device: torch.device) -> "Trapezoidal":
-        state_dict: MutableMapping = torch.load(path, weights_only=False)
-        centers = state_dict.pop("centers")
-        widths = state_dict.pop("widths")
-        plateaus = state_dict.pop("plateaus")
-        state_dict.pop("class_name", None)
-        return cls(
-            centers=centers.cpu().detach().numpy(),
-            widths=widths.cpu().detach().numpy(),
-            plateaus=plateaus.cpu().detach().numpy(),
-            device=device,
-        )
+    def _extra_load_kwargs(
+        cls, state_dict: MutableMapping[str, Any]
+    ) -> MutableMapping[str, Any]:
+        return {"plateaus": state_dict.pop("plateaus").cpu().detach().numpy()}
 
     @torch.jit.ignore
     def __eq__(self, other: Any) -> bool:

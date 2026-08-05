@@ -13,3 +13,4 @@ rough-theory==0.0.3  # mine
 matplotlib==3.9.1  # for torchquad
 SciencePlots==2.1.1  # for scientific publication plots
 natsort==8.4.0  # for natural sorting
+triton==3.0.0  # optional: fused CUDA kernel for Product t-norm gather+prod reduction; CUDA-only, falls back gracefully if absent

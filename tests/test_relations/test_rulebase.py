@@ -14,12 +14,12 @@ from fuzzy.logic.rulebase import RuleBase
 from fuzzy.relations.n_ary import NAryMaskMethods
 from fuzzy.relations.t_norm import Minimum, Product
 from fuzzy.sets.membership import Membership
+from tests import AVAILABLE_DEVICE
 
 from .test_n_ary import TestNAryRelation
 
 N_RULES: int = 5
 N_VARIABLES: int = 4
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class TestRuleBase(unittest.TestCase):
@@ -57,15 +57,15 @@ class TestRuleBase(unittest.TestCase):
                     getattr(actual_rule, attribute).indices,
                 )
                 self.assertEqual(
-                    expected_rule.consequence.indices,
-                    actual_rule.consequence.indices)
+                    expected_rule.consequence.indices, actual_rule.consequence.indices
+                )
                 self.assertEqual(
                     getattr(expected_rule, attribute).device,
                     getattr(actual_rule, attribute).device,
                 )
                 self.assertEqual(
-                    expected_rule.consequence.device,
-                    actual_rule.consequence.device)
+                    expected_rule.consequence.device, actual_rule.consequence.device
+                )
         # the premises should be a Product T-Norm (it aggregates all across the
         # rules' premises)
         self.assertIsInstance(rule_base.premises, Product)
@@ -75,11 +75,7 @@ class TestRuleBase(unittest.TestCase):
 
         # we can also use the equality operator == to compare two RuleBase
         # objects (or !=)
-        self.assertEqual(
-            rule_base,
-            RuleBase(
-                self.rules,
-                device=AVAILABLE_DEVICE))
+        self.assertEqual(rule_base, RuleBase(self.rules, device=AVAILABLE_DEVICE))
         self.assertNotEqual(
             rule_base, RuleBase(self.rules[:-1], device=AVAILABLE_DEVICE)
         )
@@ -107,10 +103,7 @@ class TestRuleBase(unittest.TestCase):
         expected_output: torch.Tensor = torch.hstack(
             [rule.premise(membership).degrees for rule in self.rules]
         )
-        self.assertTrue(
-            torch.allclose(
-                expected_output,
-                rule_base_output.degrees))
+        self.assertTrue(torch.allclose(expected_output, rule_base_output.degrees))
 
     def test_save_rule_base(self) -> None:
         """
@@ -143,23 +136,22 @@ class TestRuleBase(unittest.TestCase):
                     getattr(actual_rule, attribute).indices,
                 )
                 self.assertEqual(
-                    expected_rule.consequence.indices,
-                    actual_rule.consequence.indices)
+                    expected_rule.consequence.indices, actual_rule.consequence.indices
+                )
                 self.assertEqual(
                     getattr(expected_rule, attribute).device,
                     getattr(actual_rule, attribute).device,
                 )
                 self.assertEqual(
-                    expected_rule.consequence.device,
-                    actual_rule.consequence.device)
+                    expected_rule.consequence.device, actual_rule.consequence.device
+                )
         # the premises should be a Product T-Norm (it aggregates all across the
         # rules' premises)
         self.assertIsInstance(loaded_rule_base.premises, Product)
         # remove the directory
         shutil.rmtree("test_rule_base")
 
-    def test_combine_t_norms_preserves_nan_replacement_and_method(
-            self) -> None:
+    def test_combine_t_norms_preserves_nan_replacement_and_method(self) -> None:
         """
         Regression test: _combine_t_norms used to reconstruct the combined TNorm from
         only the rules' indices, silently discarding each rule's nan_replacement and
@@ -184,12 +176,9 @@ class TestRuleBase(unittest.TestCase):
         ]
         rule_base = RuleBase(rules, device=AVAILABLE_DEVICE)
         self.assertEqual(rule_base.premises.nan_replacement, 1.0)
-        self.assertEqual(
-            rule_base.premises.method,
-            NAryMaskMethods.EXP_SUM_LOG)
+        self.assertEqual(rule_base.premises.method, NAryMaskMethods.EXP_SUM_LOG)
 
-    def test_combine_t_norms_raises_on_inconsistent_nan_replacement(
-            self) -> None:
+    def test_combine_t_norms_raises_on_inconsistent_nan_replacement(self) -> None:
         """
         Returns:
             None
@@ -247,8 +236,7 @@ class TestRuleBase(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             RuleBase(rules, device=AVAILABLE_DEVICE)
 
-    def test_combine_t_norms_device_mismatch_is_not_a_false_positive(
-            self) -> None:
+    def test_combine_t_norms_device_mismatch_is_not_a_false_positive(self) -> None:
         """
         Regression test: _combine_t_norms used to deduplicate each rule's device via a
         plain Python set of torch.device objects, but torch.device("cuda") and
@@ -261,8 +249,7 @@ class TestRuleBase(unittest.TestCase):
             None
         """
         if not torch.cuda.is_available():
-            self.skipTest(
-                "CUDA is not available to construct a genuine mismatch.")
+            self.skipTest("CUDA is not available to construct a genuine mismatch.")
 
         same_device_rules = [
             Rule(

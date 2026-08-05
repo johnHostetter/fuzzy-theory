@@ -30,68 +30,12 @@ An entry is only served when all the following hold:
 """
 
 import weakref
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional
 
 import torch
 
+from ..utils.functions import ParameterSignature, version_of
 from .membership import Membership
-
-# A signature identifying the tensors a calculation depended upon; see signature_of().
-# A plain List rather than a variadic Tuple[..., ...], since the latter's Ellipsis is not a
-# type TorchScript's annotation resolver supports, and this is only ever compared with '==' /
-# '!=' (never hashed or used as a dict key), so a List loses nothing here. The third element
-# of each tuple is the tensor's requires_grad flag at signature time - see
-# signature_of().
-ParameterSignature = List[Tuple[int, int, bool]]
-
-
-def version_of(tensor: torch.Tensor) -> int:
-    """
-    Read the version counter of a tensor, which PyTorch increments whenever the tensor is
-    mutated in place (as an optimizer does when it applies an update).
-
-    Inference tensors do not track a version counter at all, so -1 is reported for them; this
-    never compares equal to a real version, meaning entries involving inference tensors are
-    simply not re-used.
-
-    Args:
-        tensor: The tensor to read the version counter of.
-
-    Returns:
-        The version counter of the tensor, or -1 if it does not track one.
-    """
-    try:
-        return tensor._version  # pylint: disable=protected-access
-    except RuntimeError:
-        # "Inference tensors do not track version counter."
-        return -1
-
-
-def signature_of(tensors: List[torch.Tensor]) -> ParameterSignature:
-    """
-    Summarize the tensors that a calculation depended upon, such that the summary changes if any
-    of those tensors is replaced by another object, is mutated in place, or has its
-    requires_grad flag toggled.
-
-    The identity of a tensor is safe to use here (rather than a weak reference) because the
-    caller - a torch.nn.Module - holds a strong reference to its own parameters for as long as
-    the cache entry can be looked up, so an identifier cannot be recycled behind our back.
-
-    requires_grad is included because it changes the autograd graph a calculation produces
-    without changing the tensor's identity or bumping its version counter: freezing a
-    parameter (requires_grad_(False)), computing with it, then unfreezing it and reusing the
-    same observations would otherwise hand back a cached result whose graph was built with
-    that parameter detached - so its gradient would silently stay None forever afterward,
-    even though it is trainable again.
-
-    Args:
-        tensors: The tensors that a calculation depended upon (e.g., centers and widths).
-
-    Returns:
-        A hashable and comparable signature of those tensors.
-    """
-    return [(id(tensor), version_of(tensor), tensor.requires_grad)
-            for tensor in tensors]
 
 
 class MembershipCacheEntry:  # pylint: disable=too-few-public-methods
@@ -120,8 +64,7 @@ class MembershipCacheEntry:  # pylint: disable=too-few-public-methods
         parameter_signature: ParameterSignature,
         membership: Membership,
     ):
-        self.observations_ref: "weakref.ref[torch.Tensor]" = weakref.ref(
-            observations)
+        self.observations_ref: "weakref.ref[torch.Tensor]" = weakref.ref(observations)
         self.observations_version: int = version_of(observations)
         # see signature_of() for why requires_grad must be tracked alongside
         # identity/version
@@ -131,8 +74,9 @@ class MembershipCacheEntry:  # pylint: disable=too-few-public-methods
         self.membership: Membership = membership
         self.valid: bool = True
 
-    def matches(self, observations: torch.Tensor,
-                parameter_signature: ParameterSignature) -> bool:
+    def matches(
+        self, observations: torch.Tensor, parameter_signature: ParameterSignature
+    ) -> bool:
         """
         Determine whether this entry may be served for the given observations and parameters.
 
@@ -183,8 +127,7 @@ class MembershipCache:
 
     def __init__(self, maxsize: int = 2, enabled: bool = True):
         if maxsize < 1:
-            raise ValueError(
-                f"The cache size must be at least 1, but got {maxsize}.")
+            raise ValueError(f"The cache size must be at least 1, but got {maxsize}.")
         self.maxsize: int = maxsize
         self.enabled: bool = enabled
         self._entries: List[MembershipCacheEntry] = []
@@ -193,9 +136,8 @@ class MembershipCache:
         return len(self._entries)
 
     def lookup(
-            self,
-            observations: torch.Tensor,
-            parameter_signature: ParameterSignature) -> Optional[Membership]:
+        self, observations: torch.Tensor, parameter_signature: ParameterSignature
+    ) -> Optional[Membership]:
         """
         Retrieve a memoized membership for the given observations, if a valid one is held.
 
@@ -239,8 +181,7 @@ class MembershipCache:
             return
 
         self._discard_unusable()
-        entry = MembershipCacheEntry(
-            observations, parameter_signature, membership)
+        entry = MembershipCacheEntry(observations, parameter_signature, membership)
 
         degrees: torch.Tensor = membership.degrees
         if degrees.requires_grad and degrees.grad_fn is not None:

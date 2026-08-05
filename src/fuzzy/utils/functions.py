@@ -7,9 +7,67 @@ import logging
 import time
 from functools import wraps
 from pathlib import Path
-from typing import Any, Dict, Set, Type
+from typing import Any, Dict, List, Set, Tuple, Type
 
 import torch
+
+# A signature identifying the tensors a calculation depended upon; see signature_of().
+# A plain List rather than a variadic Tuple[..., ...], since the latter's Ellipsis is not a
+# type TorchScript's annotation resolver supports, and this is only ever compared with '==' /
+# '!=' (never hashed or used as a dict key), so a List loses nothing here. The third element
+# of each tuple is the tensor's requires_grad flag at signature time - see
+# signature_of().
+ParameterSignature = List[Tuple[int, int, bool]]
+
+
+def version_of(tensor: torch.Tensor) -> int:
+    """
+    Read the version counter of a tensor, which PyTorch increments whenever the tensor is
+    mutated in place (as an optimizer does when it applies an update).
+
+    Inference tensors do not track a version counter at all, so -1 is reported for them; this
+    never compares equal to a real version, meaning entries involving inference tensors are
+    simply not re-used.
+
+    Args:
+        tensor: The tensor to read the version counter of.
+
+    Returns:
+        The version counter of the tensor, or -1 if it does not track one.
+    """
+    try:
+        return tensor._version  # pylint: disable=protected-access
+    except RuntimeError:
+        # "Inference tensors do not track version counter."
+        return -1
+
+
+def signature_of(tensors: List[torch.Tensor]) -> ParameterSignature:
+    """
+    Summarize the tensors that a calculation depended upon, such that the summary changes if any
+    of those tensors is replaced by another object, is mutated in place, or has its
+    requires_grad flag toggled.
+
+    The identity of a tensor is safe to use here (rather than a weak reference) because the
+    caller - a torch.nn.Module - holds a strong reference to its own parameters for as long as
+    the cache entry can be looked up, so an identifier cannot be recycled behind our back.
+
+    requires_grad is included because it changes the autograd graph a calculation produces
+    without changing the tensor's identity or bumping its version counter: freezing a
+    parameter (requires_grad_(False)), computing with it, then unfreezing it and reusing the
+    same observations would otherwise hand back a cached result whose graph was built with
+    that parameter detached - so its gradient would silently stay None forever afterward,
+    even though it is trainable again.
+
+    Args:
+        tensors: The tensors that a calculation depended upon (e.g., centers and widths).
+
+    Returns:
+        A hashable and comparable signature of those tensors.
+    """
+    return [
+        (id(tensor), version_of(tensor), tensor.requires_grad) for tensor in tensors
+    ]
 
 
 def module_class(instance: object) -> str:
@@ -100,9 +158,7 @@ def log_method(method):
         start_time = time.perf_counter()
         result = method(self, *args, **kwargs)
         end_time = time.perf_counter()
-        self.logger.debug(
-            "<perf_counter>%s</perf_counter>",
-            end_time - start_time)
+        self.logger.debug("<perf_counter>%s</perf_counter>", end_time - start_time)
         self.logger.debug("</%s>", called_method)
         return result
 
@@ -173,13 +229,15 @@ def check_path_to_save_torch_module(path: Path) -> None:
     if path.suffix not in (".pt", ".pth"):
         raise ValueError(
             f"The path to save the fuzzy set must have a file extension of '.pt', "
-            f"but got {path.name}")
+            f"but got {path.name}"
+        )
     if path.suffix == ".pth":
         raise ValueError(
             f"The path to save the fuzzy set must have a file extension of '.pt', "
             f"but got {path.name}. Please change the file extension to '.pt' as it is not "
             f"recommended to use '.pth' for PyTorch models, since it conflicts with Python path"
-            f"configuration files.")
+            f"configuration files."
+        )
 
 
 def all_subclasses(cls) -> Set[Any]:
@@ -189,8 +247,28 @@ def all_subclasses(cls) -> Set[Any]:
     Returns:
         A set of all subclasses of the given class.
     """
-    return {cls}.union(s for c in cls.__subclasses__()
-                       for s in all_subclasses(c))
+    return {cls}.union(s for c in cls.__subclasses__() for s in all_subclasses(c))
+
+
+def _is_read_only_property(cls: type, name: str) -> bool:
+    """
+    Check whether name is a computed, read-only @property on cls (or any of its
+    bases) - i.e. one with no setter, such as FuzzySetGroup.centers/widths/mask.
+    Such a property can never be reconstructed via setattr(), so it must never be
+    treated as save/load-able state by get_object_attributes() below.
+
+    Args:
+        cls: The class to search (its own __dict__ and every base's, via MRO).
+        name: The attribute name to check.
+
+    Returns:
+        True if name resolves to a property with no setter.
+    """
+    for klass in cls.__mro__:
+        attr = klass.__dict__.get(name)
+        if isinstance(attr, property):
+            return attr.fset is None
+    return False
 
 
 def get_object_attributes(obj_instance) -> Dict[str, Any]:
@@ -200,9 +278,9 @@ def get_object_attributes(obj_instance) -> Dict[str, Any]:
     # get the attributes that are local to the class, but may be inherited
     # from the super class
     local_attributes = inspect.getmembers(
-        obj_instance, lambda attr: not (
-            inspect.ismethod(attr)) and not (
-            inspect.isfunction(attr)), )
+        obj_instance,
+        lambda attr: not (inspect.ismethod(attr)) and not (inspect.isfunction(attr)),
+    )
     # get the attributes that are inherited from (or found within) any of the
     # super classes; using only __bases__[0] would miss attributes purely
     # inherited from other bases in multiple-inheritance scenarios, so the
@@ -221,5 +299,7 @@ def get_object_attributes(obj_instance) -> Dict[str, Any]:
     return {
         attr: value
         for attr, value in local_attributes
-        if (attr, value) not in super_attributes and not attr.startswith("_")
+        if (attr, value) not in super_attributes
+        and not attr.startswith("_")
+        and not _is_read_only_property(obj_instance.__class__, attr)
     }

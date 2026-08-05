@@ -4,15 +4,12 @@ Test the various mechanisms in which a fuzzy logic rule can be created.
 
 import unittest
 
-import torch
-
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.relations.t_norm import Product
+from tests import AVAILABLE_DEVICE
 
 from .demo_flcs import toy_mamdani
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class TestFuzzyLogicRule(unittest.TestCase):

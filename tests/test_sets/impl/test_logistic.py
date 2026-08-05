@@ -7,8 +7,7 @@ import unittest
 import torch
 
 from fuzzy.sets.impl import LogisticCurve
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from tests import AVAILABLE_DEVICE
 
 
 class TestLogistic(unittest.TestCase):

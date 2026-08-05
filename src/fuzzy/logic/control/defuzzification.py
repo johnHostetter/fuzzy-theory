@@ -53,8 +53,7 @@ class Defuzzification(TorchJitModule, abc.ABC):
         except UnicodeDecodeError:
             # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xde in position 157881408:
             # invalid continuation byte
-            state_dict = torch.load(
-                path, weights_only=False, encoding="latin1")
+            state_dict = torch.load(path, weights_only=False, encoding="latin1")
 
         shape: Shape = Shape(*state_dict.pop("shape"))
         class_name: str = state_dict.pop("class_name")
@@ -186,11 +185,7 @@ class ZeroOrder(Defuzzification):
         state_dict: MutableMapping = torch.load(path, weights_only=False)
         shape: Shape = Shape(*state_dict.pop("shape"))
         source: np.ndarray = state_dict.pop("source")
-        return ZeroOrder(
-            shape=shape,
-            source=source,
-            device=device,
-            **state_dict)
+        return ZeroOrder(shape=shape, source=source, device=device, **state_dict)
 
     def to(self, device: torch.device, *args, **kwargs) -> "ZeroOrder":
         """
@@ -261,12 +256,9 @@ class ZeroOrder(Defuzzification):
         #     antecedents_memberships.elements.unsqueeze(dim=-1)
         #     * self.consequences_matrix
         # )
-        return (
-            rule_activations.degrees.unsqueeze(
-                dim=-
-                1) *
-            self.consequences).sum(
-            dim=1)
+        return (rule_activations.degrees.unsqueeze(dim=-1) * self.consequences).sum(
+            dim=1
+        )
 
 
 class NormalizedZeroOrder(ZeroOrder):
@@ -330,6 +322,7 @@ class TSK(Defuzzification):
             consequences = torch.randn(  # used to be torch.zero until April 30, 2026
                 [shape.n_outputs, shape.n_rules, shape.n_inputs + 1],
                 dtype=torch.float32,
+                device=self.device,
             )
         else:
             consequences = torch.as_tensor(source, device=self.device)
@@ -341,8 +334,10 @@ class TSK(Defuzzification):
         shape = consequences[:, :, 1:].shape
         # Flatten (r, o) into one big linear projection dimension
         self.r, self.o, self.f = shape[0], shape[1], shape[2]
-        self.weights = torch.nn.Parameter(consequences[:, :, 1:].reshape(
-            self.r * self.o, self.f).T.contiguous(), requires_grad=True, )
+        self.weights = torch.nn.Parameter(
+            consequences[:, :, 1:].reshape(self.r * self.o, self.f).T.contiguous(),
+            requires_grad=True,
+        )
         self.bias = torch.nn.Parameter(
             consequences[:, :, 0].contiguous().unsqueeze(0), requires_grad=True
         )
@@ -464,10 +459,16 @@ class TSK(Defuzzification):
 
         # assert torch.allclose(rule_output.float(), old_rule_output)
 
-        fir_str_bar = rule_activations.degrees / torch.sum(
-            rule_activations.degrees, 1
-        ).unsqueeze(
-            1
+        # a product t-norm's rule strengths commonly underflow to exactly 0.0 in
+        # float32 once enough sub-1 factors are multiplied together (e.g. ~64+ input
+        # variables is enough for every rule to underflow) - without this offset, a
+        # batch element where every rule underflows divides 0.0 by 0.0, producing NaN
+        # that poisons the entire output (and gradient) for that batch, not just the
+        # degenerate element. Mirrors the same offset already used by the sibling
+        # Defuzzification.forward() (the "standard"/Mamdani path) for exactly this
+        # reason.
+        fir_str_bar = rule_activations.degrees / (
+            torch.sum(rule_activations.degrees, 1).unsqueeze(1) + 1e-32
         )  # [num_sam,num_rule]
         model_output = torch.einsum(
             "NRC,NR->NC", rule_output, fir_str_bar  # * self.weights
@@ -533,7 +534,11 @@ class Mamdani(Defuzzification):
             The defuzzification process.
         """
         super().to(device, *args, **kwargs)
-        self.output_links.to(device)
+        # output_links is a plain tensor, not a Parameter or a registered buffer, so
+        # nn.Module.to() (called above) does not know to move it - Tensor.to() is not
+        # in-place, so its return value must be reassigned or the move silently never
+        # happens
+        self.output_links = self.output_links.to(device)
         self.consequences.to(device)
         return self
 
@@ -553,9 +558,8 @@ class Mamdani(Defuzzification):
             The defuzzified output of a Mamdani FLC.
         """
         numerator = (
-            self.output_links *
-            self.consequences.centers *
-            self.consequences.widths)
+            self.output_links * self.consequences.centers * self.consequences.widths
+        )
         denominator = self.output_links * self.consequences.widths
 
         # the below commented out is a Work in Progress

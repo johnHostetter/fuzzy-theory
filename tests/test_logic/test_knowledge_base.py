@@ -9,7 +9,6 @@ from typing import List
 
 import igraph
 import numpy as np
-import torch
 
 from fuzzy.logic.control.configurations.data import GranulationLayers, Shape
 from fuzzy.logic.knowledge_base import KnowledgeBase
@@ -19,8 +18,7 @@ from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.relations.t_norm import TNorm
 from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.impl import Lorentzian
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from tests import AVAILABLE_DEVICE
 
 
 class TestKnowledgeBase(unittest.TestCase):

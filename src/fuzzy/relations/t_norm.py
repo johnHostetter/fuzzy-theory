@@ -9,6 +9,7 @@ from abc import ABC
 import torch
 
 from fuzzy.relations.n_ary import NAryRelation
+from fuzzy.relations.triton_kernels import TRITON_AVAILABLE, gather_prod
 from fuzzy.sets.membership import Membership
 
 
@@ -49,12 +50,15 @@ class Minimum(TNorm):
         # first filter out the values that are not part of the relation
         # then take the minimum value of those that remain in the last
         # dimension
+        after_mask, applied_mask = (
+            self._apply_mask_with_mask(  # pylint: disable=protected-access
+                membership=membership
+            )
+        )
         return Membership(
             # elements=membership.elements,
-            degrees=self.apply_mask(membership=membership)
-            .min(dim=-2, keepdim=False)
-            .values,
-            mask=self.applied_mask,
+            degrees=after_mask.min(dim=-2, keepdim=False).values,
+            mask=applied_mask,
         )
 
 
@@ -75,12 +79,53 @@ class Product(TNorm):
             The algebraic product membership value, according to the n-ary relation
             (i.e., which truth values to actually consider).
         """
+        # keep grouped_links/gather state in sync with the incoming shape before
+        # either path below relies on it - apply_mask() does this same check
+        # itself, so the fallback path redoes a cheap, harmless no-op
+        # comparison
+        membership_shape = membership.degrees.shape
+        if self.grouped_links.shape[:-1] != membership_shape[1:]:
+            self.resize(*membership_shape[1:])
+
+        # pylint: disable=too-many-boolean-expressions
+        if (
+            # short-circuits before the data-dependent bool(...isnan().any()...)
+            # sync below, which torch.compile(fullgraph=True) cannot trace through
+            # (a graph break) - is_compiling() is a compile-time constant, so Dynamo
+            # prunes this whole branch rather than tracing into it, always taking the
+            # general apply_mask()+prod() path below instead when compiling
+            not torch.compiler.is_compiling()
+            and self._use_gather  # pylint: disable=protected-access
+            and self._all_active  # pylint: disable=protected-access
+            and TRITON_AVAILABLE
+            and membership.degrees.is_cuda
+            and not bool(membership.degrees.isnan().any())
+        ):
+            # pylint: enable=too-many-boolean-expressions
+            # fused Triton kernel: covers the common case (every variable
+            # structurally active for every rule, no NaN present) without
+            # materializing the (batch, vars, rules) intermediate that the
+            # general apply_mask()+prod() path below writes and immediately
+            # re-reads - see relations/triton_kernels.py for the full
+            # correctness argument and its limits (why the general path below
+            # is still needed for NaN-poisoning and partial variable coverage)
+            applied_mask = self._cached_mask  # pylint: disable=protected-access
+            return Membership(
+                degrees=gather_prod(
+                    membership.degrees,
+                    self._gather_indices,  # pylint: disable=protected-access
+                ),
+                mask=applied_mask,
+            )
+
+        after_mask, applied_mask = (
+            self._apply_mask_with_mask(  # pylint: disable=protected-access
+                membership=membership
+            )
+        )
         return Membership(
-            degrees=self.apply_mask(
-                membership=membership).prod(
-                dim=-2,
-                keepdim=False),
-            mask=self.applied_mask,
+            degrees=after_mask.prod(dim=-2, keepdim=False),
+            mask=applied_mask,
         )
 
 
@@ -103,8 +148,11 @@ class SoftmaxSum(TNorm):
         Returns:
             The applicability of the fuzzy compounds (e.g., fuzzy logic rules).
         """
-        intermediate_values: torch.Tensor = self.apply_mask(
-            membership=membership)
+        intermediate_values, applied_mask = (
+            self._apply_mask_with_mask(  # pylint: disable=protected-access
+                membership=membership
+            )
+        )
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be
         # fixed/tested
@@ -112,9 +160,8 @@ class SoftmaxSum(TNorm):
         max_values = firing_strengths.amax(dim=-1, keepdim=True)
         return Membership(
             # elements=membership.elements,
-            degrees=torch.nn.functional.softmax(
-                firing_strengths - max_values, dim=-1),
-            mask=self.applied_mask,
+            degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
+            mask=applied_mask,
         )
 
 
@@ -125,20 +172,25 @@ class GeneralizedLukasiewicz(TNorm):
     """
 
     def forward(self, membership: Membership) -> Membership:
-        intermediate_values: torch.Tensor = self.apply_mask(
-            membership=membership)
+        intermediate_values, applied_mask = (
+            self._apply_mask_with_mask(  # pylint: disable=protected-access
+                membership=membership
+            )
+        )
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be
         # fixed/tested
         firing_strengths = intermediate_values.sum(dim=1)
         return Membership(
-            # elements=membership.elements,
             degrees=torch.nn.functional.relu(
                 firing_strengths
-                # subtract # of inputs - 1
-                - (membership.elements.shape[-1] - 1)
+                # subtract # of inputs - 1; membership.elements was dropped from
+                # Membership (see membership.py) - degrees.shape[1] (the vars
+                # dimension) is the direct replacement, since elements previously
+                # held the raw per-variable observations
+                - (membership.degrees.shape[1] - 1)
             ),
-            mask=self.applied_mask,
+            mask=applied_mask,
         )
 
 
@@ -173,8 +225,11 @@ class SoftmaxMean(TNorm):
         Returns:
             The applicability of the fuzzy compounds (e.g., fuzzy logic rules).
         """
-        intermediate_values: torch.Tensor = self.apply_mask(
-            membership=membership)
+        intermediate_values, applied_mask = (
+            self._apply_mask_with_mask(  # pylint: disable=protected-access
+                membership=membership
+            )
+        )
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be
         # fixed/tested
@@ -186,7 +241,6 @@ class SoftmaxMean(TNorm):
         )  # add this to prevent overflow
         return Membership(
             # elements=membership.elements,
-            degrees=torch.nn.functional.softmax(
-                firing_strengths - max_values, dim=-1),
-            mask=self.applied_mask,
+            degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
+            mask=applied_mask,
         )

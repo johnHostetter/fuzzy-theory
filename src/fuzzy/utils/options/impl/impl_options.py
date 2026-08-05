@@ -10,7 +10,7 @@ they inherit from torch.nn.Module and can be used accordingly).
 from dataclasses import Field, field
 from dataclasses import fields as dataclasses_fields
 from pathlib import Path
-from typing import Callable, ClassVar, List, Union
+from typing import Callable, List, Union
 
 import scipy.stats
 import torch
@@ -36,7 +36,7 @@ from fuzzy.utils.options.impl.impl_enums import (
     SamplingEnum,
 )
 
-_64_BIT_INT: int = 2 ^ 63 - 1  # max magnitude of a 64-bit integer
+_64_BIT_INT: int = (2**63) - 1  # max magnitude of a 64-bit integer
 
 
 @dataclass(frozen=True)
@@ -59,7 +59,10 @@ class Range:
             A scipy.stats.range instance.
         """
         if self.step:
-            return scipy.stats.randint(self.low, self.high)
+            # scipy.stats.randint(low, high) samples from [low, high) - high excluded -
+            # whereas the rest of Range (contains(), to_optuna()) treats high as
+            # inclusive, so it must be offset by one to match
+            return scipy.stats.randint(int(self.low), int(self.high) + 1)
         if self.log:
             return scipy.stats.loguniform(self.low, self.high)
         return scipy.stats.uniform(self.low, self.high - self.low)
@@ -179,10 +182,10 @@ class BoundAlphaEntmax(torch.nn.Module):
     def __init__(
         self,
         bounding_strategy: BoundAlphaEntmaxEnum,
+        *args,
         device=None,
         dim: int = -1,
         alpha: Union[None, torch.Tensor] = None,
-        *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -194,8 +197,7 @@ class BoundAlphaEntmax(torch.nn.Module):
             torch.nn.init.normal_(alpha)
         self.alpha = torch.nn.Parameter(alpha, requires_grad=True)
 
-    def bound_alpha(self, alpha: Union[None,
-                    torch.Tensor] = None) -> torch.Tensor:
+    def bound_alpha(self, alpha: Union[None, torch.Tensor] = None) -> torch.Tensor:
         """
         Bound the alpha parameter to abide by the constraint that it must exist within (1, 2) so it
         does not devolve to softmax or sparsemax, respectively.
@@ -219,11 +221,23 @@ class BoundAlphaEntmax(torch.nn.Module):
         raise ValueError(
             "The only implemented bounding strategies are Sigmoid representation "
             "(sigmoid_reparameterization), Scaled tanh (scaled_tanh), and "
-            "Softplus + Shift (softplus_add_shift)")
+            "Softplus + Shift (softplus_add_shift)"
+        )
 
     def forward(
         self, tensor: torch.Tensor, dim: Union[None, int] = None
     ) -> torch.Tensor:
+        """
+        Apply entmax_bisect to the given tensor using the bounded alpha parameter.
+
+        Args:
+            tensor: The tensor to apply entmax_bisect to.
+            dim: The dimension to apply entmax_bisect along; defaults to the
+                dimension given at construction (self.dim) if not provided.
+
+        Returns:
+            The result of entmax_bisect applied to the tensor.
+        """
         if dim is None:
             dim = self.dim  # use internal referenced dim for the forward
         bounded_alpha = self.bound_alpha()
@@ -233,10 +247,8 @@ class BoundAlphaEntmax(torch.nn.Module):
 
 
 class PremiseActivation(
-        CategoricalOptions,
-        torch.nn.Module,
-        EnumPromoter,
-        enum_cls=PremiseActivationEnum):
+    CategoricalOptions, torch.nn.Module, EnumPromoter, enum_cls=PremiseActivationEnum
+):
     """
     Outlines the available premise activation strategies and their implementations.
     """
@@ -265,11 +277,9 @@ class PremiseActivation(
         # )
 
     @classmethod
-    def func(cls,
-             transform: PremiseActivationEnum,
-             bound: Union[None,
-                          BoundAlphaEntmaxEnum]) -> Callable[[torch.Tensor],
-                                                             torch.Tensor]:
+    def func(
+        cls, transform: PremiseActivationEnum, bound: Union[None, BoundAlphaEntmaxEnum]
+    ) -> Callable[[torch.Tensor], torch.Tensor]:
         """
         Obtain the appropriate premise activation function based on the selected transform.
 
@@ -407,19 +417,13 @@ class DefuzzificationConfig(YAMLConfig):
     instance, whether to use zero-order TSK, TSK, Mamdani, or other experimental methods.
     """
 
-    method: DefuzzificationMethodEnum = field(
-        default=DefuzzificationMethodEnum.TSK)
+    method: DefuzzificationMethodEnum = field(default=DefuzzificationMethodEnum.TSK)
     n_latent_space_dim: int = field(
         default=32,
         metadata={
             "help": "The dimensionality of the latent space to utilize, if applicable.",
-            "range": Range(
-                low=1,
-                high=float("inf")),
-            "search": Range(
-                low=32,
-                high=128,
-                step=32),
+            "range": Range(low=1, high=float("inf")),
+            "search": Range(low=32, high=128, step=32),
         },
     )
 
@@ -463,24 +467,16 @@ class GumbelConfig(YAMLConfig):
         default=1.0,
         metadata={
             "help": "How much temperature should be used for the Gumbel distribution.",
-            "range": Range(
-                low=1,
-                high=float("inf")),
-            "search": Range(
-                low=0.25,
-                high=1.25),
+            "range": Range(low=1, high=float("inf")),
+            "search": Range(low=0.25, high=1.25),
         },
     )
     epsilon_filter: float = field(
         default=0.0,
         metadata={
             "help": "Whether to constrain the Straight-Through Gumbel Softmax Estimator.",
-            "range": Range(
-                low=0,
-                high=1.0),
-            "choices": [
-                0.0,
-                0.1],
+            "range": Range(low=0, high=1.0),
+            "choices": [0.0, 0.1],
         },
     )
     noise_delay: int = field(
@@ -508,19 +504,15 @@ class NeurogenesisConfig(YAMLConfig):
     """
 
     neurogenesis: NeurogenesisEnum = field(
-        default=NeurogenesisEnum.MODIFIED_DELAYED_WELFORD,
+        default=NeurogenesisEnum.NONE,
     )
     epsilon: float = field(
         default=0.5,
         metadata={
             "help": "The desired membership degree that should be satisfied by all elements to "
             "achieve epsilon-completeness.",
-            "range": Range(
-                low=0,
-                high=1.0),
-            "search": Range(
-                low=0.1,
-                high=0.5),
+            "range": Range(low=0, high=1.0),
+            "search": Range(low=0.1, high=0.5),
         },
     )
     add_premise_delay: int = field(
@@ -601,8 +593,9 @@ class ParameterConfig(YAMLConfig):
         },
     )
     consequence: ConsequenceParameterConfig = field(
-        default_factory=ConsequenceParameterConfig, metadata={
-            "help": "How to initialize the consequence layer's parameters."}, )
+        default_factory=ConsequenceParameterConfig,
+        metadata={"help": "How to initialize the consequence layer's parameters."},
+    )
 
 
 @dataclass
@@ -629,14 +622,8 @@ class StructureConfig(YAMLConfig):
             default=128,
             metadata={
                 "help": "The number of non-unique rules available to the neuro-fuzzy network.",
-                "range": Range(
-                    low=0,
-                    high=10000,
-                    step=1),
-                "search": Range(
-                    low=64,
-                    high=256,
-                    step=64),
+                "range": Range(low=0, high=10000, step=1),
+                "search": Range(low=64, high=256, step=64),
             },
         )
 
@@ -658,8 +645,9 @@ class StructureConfig(YAMLConfig):
         },
     )
     consequence: ConsequenceStructureConfig = field(
-        default_factory=ConsequenceStructureConfig, metadata={
-            "help": "How to initialize the consequence layer's structure."}, )
+        default_factory=ConsequenceStructureConfig,
+        metadata={"help": "How to initialize the consequence layer's structure."},
+    )
 
 
 @dataclass
@@ -683,7 +671,6 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
     neuro-fuzzy networks.
     """
 
-    _initialized: ClassVar[bool] = False
     structure: StructureConfig = field(
         default_factory=StructureConfig,
         metadata={
@@ -713,9 +700,11 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
         self.display_name = "Concurrent Optimization of Fuzzy Inference Systems"
         self.abbrev_name = "CO-FIS"
 
-        if not NeuroFuzzyNetworkHyperparameters._initialized:
-            self.evolution.rule.epsilon_filter = 0.0  # disable the constraint
-            NeuroFuzzyNetworkHyperparameters._initialized = True
+        # disable the constraint for every instance, not just the first one built in
+        # the process - a ClassVar-gated "only the first time" guard used to make this
+        # silently stop applying after the first instantiation anywhere in the
+        # process
+        self.evolution.rule.epsilon_filter = 0.0
 
     # noinspection PyTypeChecker
     @property
@@ -729,6 +718,5 @@ class NeuroFuzzyNetworkHyperparameters(ApproximatorHyperparameters):
         return [
             hyperparameter
             for hyperparameter in dataclasses_fields(self)
-            if hyperparameter
-            not in dataclasses_fields(type(ApproximatorHyperparameters))
+            if hyperparameter not in dataclasses_fields(ApproximatorHyperparameters)
         ]

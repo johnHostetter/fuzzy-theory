@@ -26,15 +26,9 @@ class BinaryLinks(torch.nn.Module, Loggable):
     performing network morphism.
     """
 
-    def __init__(
-            self,
-            links: np.ndarray,
-            device: torch.device,
-            *args,
-            **kwargs):
+    def __init__(self, links: np.ndarray, device: torch.device, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.links: torch.Tensor = torch.tensor(
-            links, dtype=torch.int8, device=device)
+        self.links: torch.Tensor = torch.tensor(links, dtype=torch.int8, device=device)
         # indices: torch.Tensor = torch.tensor(links.nonzero(), device=device)
         # self.links = torch.sparse_coo_tensor(
         #     indices=indices, values=torch.ones(indices.shape[1], dtype=torch.bool, device=device),
@@ -163,7 +157,7 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, GroupedLinks):
             links = self.forward(membership=None)
-            other_links = self.forward(membership=None)
+            other_links = other.forward(membership=None)
             return (
                 links.shape == other_links.shape
                 and torch.allclose(links, other_links)
@@ -172,7 +166,15 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         return False
 
     def __hash__(self) -> int:
-        return hash((self.forward(membership=None), self.membership_dimension))
+        # __eq__ compares by value via torch.allclose (a tolerance-based, not exact,
+        # equality), so no hash of the links' contents can be made consistent with it -
+        # two "close enough" GroupedLinks would need the same hash, which a real
+        # content hash cannot guarantee. Falling back to identity keeps __hash__ at
+        # least internally consistent (stable across calls, unlike hashing the tensor
+        # freshly returned by self.forward() each time, which changes identity - and
+        # therefore hash - on every call since torch.cat allocates a new
+        # tensor).
+        return id(self)
 
     @property
     def shape(self) -> Size:
@@ -211,14 +213,24 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         self._compute_shape_cache()
 
     def _compute_shape_cache(self) -> Size:
+        if len(self.modules_list) == 0:
+            # nothing appended yet - constructing with modules_list=None/[] and
+            # building up via append()/extend() afterward is an explicitly supported
+            # workflow (see those methods), so this must not crash
+            self._cached_shape = torch.Size()
+            if self.callback:
+                self.callback()
+            return self._cached_shape
+
         base_shape = self.modules_list[0].shape
         # this is efficient and works if modules inside self.modules_list are only added when
         # neurogenesis is enabled and self.membership_dimension = 1, but if you need it to work with
         # splitting up logits/links for the purpose of intra-GPU parallelism, then you need to
         # change self.membership_dimension = 2
         # self.membership_dimension = 2
-        dim_sum = sum(module.shape[self.membership_dimension]
-                      for module in self.modules_list[1:])
+        dim_sum = sum(
+            module.shape[self.membership_dimension] for module in self.modules_list[1:]
+        )
         shape = tuple(
             s + dim_sum if i == self.membership_dimension else s
             for i, s in enumerate(base_shape)

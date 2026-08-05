@@ -50,8 +50,7 @@ class IntOptions(IterableOptions):
     def assign(self, trial, name) -> int:
         @self.assign_once
         def suggest():
-            return trial.suggest_int(
-                name, self.start, self.end, step=self.step)
+            return trial.suggest_int(name, self.start, self.end, step=self.step)
 
         return suggest()
 
@@ -76,10 +75,8 @@ class FloatOptions(Options):
         with open(path, "rb") as file:
             loaded_dict = pickle.load(file)
         kwargs = {
-            key: value for key,
-            value in loaded_dict.items() if key in [
-                "start",
-                "end"]}
+            key: value for key, value in loaded_dict.items() if key in ["start", "end"]
+        }
         float_options = FloatOptions(**kwargs)
         if loaded_dict["_value"] is not None:
             float_options.selection = loaded_dict["_value"]
@@ -140,26 +137,56 @@ class CategoricalEnumOptions(CategoricalOptions, EnumPromoter):
 
     enum_cls = None  # required
 
-    def __init__(self, *args, **kwargs):
-        EnumPromoter.__init_subclass__(enum_cls=self.enum_cls)
-        super().__init__(*self.options, *args, **kwargs)
+    def __init__(self, *_args, **kwargs):
+        # __init_subclass__ is implicitly a classmethod, so accessing it through the
+        # base class (EnumPromoter.__init_subclass__) binds cls=EnumPromoter itself,
+        # promoting the enum members onto the wrong class - every subclass would then
+        # clobber the same shared EnumPromoter attributes instead of getting its own.
+        # Accessing it through type(self) binds cls to the actual concrete
+        # subclass.
+        type(self).__init_subclass__(enum_cls=self.enum_cls)
+        # _args is intentionally accepted-but-unused: this class' options always come
+        # from enum_cls (just promoted onto self.options above), never from
+        # constructor args - forwarding it as well duplicated the options tuple
+        # whenever load() reconstructed an instance via cls(*loaded_dict["options"])
+        # (see CategoricalOptions.load), since that already IS self.options. It must
+        # still be *accepted* (not dropped from the signature) so that same
+        # reconstruction call doesn't raise a TypeError over the extra positional
+        # arguments.
+        super().__init__(*self.options, **kwargs)
 
-    @staticmethod
-    def load(path: Path, cls=None) -> "CategoricalEnumOptions":
+    @classmethod
+    # pylint: disable-next=arguments-differ
+    def load(cls, path: Path) -> "CategoricalEnumOptions":
         """
-        The function to load a CategoricalEnumOptions object. The 'cls' argument is ignored but
-        kept for consistency with the static load method from 'CategoricalOptions'.
+        Load a CategoricalEnumOptions object. Must be called on the concrete subclass
+        that was originally saved (e.g. MySubclass.load(path)), not on
+        CategoricalEnumOptions directly - the saved state has no record of which
+        subclass produced it (unlike enum_cls, which only exists as a class
+        attribute), so reconstructing the right type of object relies on the caller
+        already knowing it and invoking .load() on it.
+
+        Deliberately a classmethod (unlike CategoricalOptions.load, a staticmethod
+        with an explicit cls= parameter) so that cls is always the concrete subclass
+        .load() was actually invoked on - see the crash this fixed, explained below.
+
         Args:
             path: The path where the CategoricalEnumOptions object is located.
-            cls: An ignored argument; kept for interface consistency.
 
         Returns:
-            An instance of CategoricalEnumOptions.
+            An instance of the concrete CategoricalEnumOptions subclass this was
+            called on.
         """
-        loaded_object = super().load(path=path, cls=CategoricalEnumOptions)
-        if isinstance(loaded_object, CategoricalEnumOptions):
-            return loaded_object
-        raise ValueError(f"Failed to load from: {path}")
+        # previously a @staticmethod that ignored its 'cls' argument and always
+        # reconstructed the base CategoricalEnumOptions class itself - which has no
+        # enum_cls of its own, so __init__ crashed with AttributeError on
+        # self.options. A classmethod naturally receives the concrete subclass that
+        # .load() was actually called on, which is what CategoricalOptions.load's own
+        # cls= parameter needs to build the right kind of object. Since a classmethod
+        # can only ever be invoked as CategoricalEnumOptions.load(...) or
+        # SomeSubclass.load(...), cls(*args) is always an instance of
+        # CategoricalEnumOptions - no isinstance check is needed here.
+        return CategoricalOptions.load(path=path, cls=cls)
 
 
 class GroupedOptions(Options):
@@ -186,8 +213,8 @@ class GroupedOptions(Options):
             loaded_dict = pickle.load(file)
         covered_keys: Tuple[str, str] = ("options", "_value")
         kwargs = {
-            key: value for key,
-            value in loaded_dict.items() if key not in covered_keys}
+            key: value for key, value in loaded_dict.items() if key not in covered_keys
+        }
         grouped_options = GroupedOptions(**kwargs)
         if loaded_dict["_value"] is not None:
             grouped_options.selection = loaded_dict["_value"]

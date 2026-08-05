@@ -6,17 +6,22 @@ was already consumed by backward(), and without silently going stale once an opt
 changes the underlying parameters.
 """
 
+# white-box tests deliberately reach into private/internal attributes to verify
+# implementation details
+# pylint: disable=protected-access
+
 import gc
 import unittest
 import weakref
+from unittest import mock
 
 import numpy as np
 import torch
 
 from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.impl import Gaussian, Trapezoidal
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from fuzzy.sets.shape import MembershipConfig
+from tests import AVAILABLE_DEVICE
 
 
 def make_gaussian(cache_membership: bool = True) -> Gaussian:
@@ -27,7 +32,7 @@ def make_gaussian(cache_membership: bool = True) -> Gaussian:
         centers=np.array([0.0, 1.0]),
         widths=np.array([1.0, 1.0]),
         device=AVAILABLE_DEVICE,
-        cache_membership=cache_membership,
+        membership_config=MembershipConfig(cache_membership=cache_membership),
     )
 
 
@@ -42,13 +47,13 @@ def make_gaussian_pair() -> "tuple[Gaussian, Gaussian]":
         centers=centers.copy(),
         widths=widths.copy(),
         device=AVAILABLE_DEVICE,
-        cache_membership=True,
+        membership_config=MembershipConfig(cache_membership=True),
     )
     uncached_mf = Gaussian(
         centers=centers.copy(),
         widths=widths.copy(),
         device=AVAILABLE_DEVICE,
-        cache_membership=False,
+        membership_config=MembershipConfig(cache_membership=False),
     )
     return cached_mf, uncached_mf
 
@@ -303,6 +308,51 @@ class TestMembershipCache(unittest.TestCase):
         first = gaussian_mf(observations)
         second = gaussian_mf(observations)
         self.assertIsNot(first.degrees, second.degrees)
+
+    def test_cache_membership_false_skips_parameter_signature(self) -> None:
+        """
+        Regression/performance test: _lookup_membership/_store_membership used to call
+        self.parameter_signature() unconditionally as a function-call argument to
+        cache.lookup()/cache.store(), even when cache_membership=False - Python
+        evaluates arguments before the call, so the (wasted, since cache.enabled is
+        False) parameter_signature() computation - and the id(tensor) calls inside it -
+        ran on every single forward call regardless of whether the cache could ever
+        serve anything. It must now be skipped entirely when the cache is disabled.
+
+        Returns:
+            None
+        """
+        gaussian_mf = make_gaussian(cache_membership=False)
+        observations = torch.rand(3, 1, device=AVAILABLE_DEVICE)
+
+        with mock.patch.object(
+            type(gaussian_mf), "parameter_signature", autospec=True
+        ) as mocked_signature:
+            gaussian_mf(observations)
+        mocked_signature.assert_not_called()
+
+    def test_cache_membership_true_still_calls_parameter_signature(self) -> None:
+        """
+        The skip introduced above must not become an overzealous skip that also
+        applies when the cache is actually enabled - parameter_signature() must still
+        be computed (both to look up and to store) whenever there is a cache that
+        could use it.
+
+        Returns:
+            None
+        """
+        gaussian_mf = make_gaussian(cache_membership=True)
+        observations = torch.rand(3, 1, device=AVAILABLE_DEVICE)
+
+        with mock.patch.object(
+            type(gaussian_mf),
+            "parameter_signature",
+            autospec=True,
+            side_effect=type(gaussian_mf).parameter_signature,
+        ) as mocked_signature:
+            gaussian_mf(observations)
+        # once for the (miss) lookup, once for the store
+        self.assertEqual(mocked_signature.call_count, 2)
 
     def test_clear_membership_cache(self) -> None:
         """

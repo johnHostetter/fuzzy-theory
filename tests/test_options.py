@@ -5,11 +5,13 @@ Test and validate the primitive options and Enum implementations are behaving as
 import os
 import shutil
 import unittest
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Tuple, Type
 
-from fuzzy.utils.options.abstract.meta import Options
+from fuzzy.utils.options.abstract.meta import EnumPromoter, Options
 from fuzzy.utils.options.abstract.primitive import (
+    CategoricalEnumOptions,
     CategoricalOptions,
     FloatOptions,
     GroupedOptions,
@@ -26,11 +28,43 @@ from fuzzy.utils.options.impl.impl_enums import (
     SamplingEnum,
 )
 from fuzzy.utils.options.impl.impl_options import (
+    _64_BIT_INT,
+    EvolutionConfig,
+    GumbelConfig,
     NeuroFuzzyNetworkHyperparameters,
     PremiseActivation,
     PremiseConfig,
+    Range,
     RuleConfig,
 )
+
+
+class DemoEnum(Enum):
+    """
+    A small, module-level Enum used only to exercise CategoricalEnumOptions, which
+    promotes an enum_cls' members onto whichever concrete subclass sets it as a class
+    attribute (rather than via the enum_cls= class keyword argument).
+    """
+
+    A = "a"
+    B = "b"
+
+
+class DemoCategoricalEnumOptions(CategoricalEnumOptions):
+    """
+    A minimal concrete subclass of CategoricalEnumOptions, set up the way a real user
+    of the library would: enum_cls assigned in the class body rather than passed as
+    the enum_cls= class keyword argument (the latter is already exercised elsewhere,
+    e.g. PremiseAggregation in impl_options.py).
+    """
+
+    enum_cls = DemoEnum
+
+    # type hints for Pylint - not required for functionality but only static
+    # code analysis (see PremiseAggregation in impl_options.py); A/B are
+    # actually promoted at runtime by EnumPromoter.__init_subclass__
+    A: DemoEnum
+    B: DemoEnum
 
 
 class TestOptions(unittest.TestCase):
@@ -213,6 +247,122 @@ class TestOptions(unittest.TestCase):
         self.assertEqual(nfn.inference.rule.weights, RuleWeightsEnum.NONE)
         self.assertEqual(nfn.inference.rule.elimination, RuleEliminationEnum.NONE)
         self.assertEqual(nfn.inference.rule.elevation, RuleEliminationEnum.NONE)
+
+    def test_64_bit_int_is_correct_magnitude(self) -> None:
+        """
+        Regression guard: _64_BIT_INT used to be written as `2 ^ 63 - 1`, where `^` is
+        Python's XOR operator (not exponentiation) and binds looser than `-`, silently
+        evaluating to 60 instead of the intended max magnitude of a 64-bit integer.
+
+        Returns:
+            None
+        """
+        self.assertEqual(_64_BIT_INT, (2**63) - 1)
+
+    def test_range_to_scipy_high_is_inclusive_with_step(self) -> None:
+        """
+        Regression guard: Range.to_scipy() used to call scipy.stats.randint(low, high)
+        directly, but scipy.stats.randint excludes its upper bound while the rest of
+        Range (contains(), to_optuna()) treats high as inclusive - an off-by-one
+        between the two search-space representations of the same Range.
+
+        Returns:
+            None
+        """
+        value_range = Range(low=0, high=4, step=1)
+        distribution = value_range.to_scipy()
+        low_support, high_support = distribution.support()
+        self.assertEqual(0, low_support)
+        self.assertEqual(4, high_support)
+
+    def test_epsilon_filter_disabled_for_every_instance(self) -> None:
+        """
+        Regression guard: the "disable the epsilon_filter constraint" override used to
+        be gated behind a ClassVar that only let it run for the very first
+        NeuroFuzzyNetworkHyperparameters instantiated in the process - any later
+        instance, even one built with an explicit non-zero epsilon_filter, silently
+        kept it instead of being forced to 0.0.
+
+        Returns:
+            None
+        """
+        # an instance built first, to occupy the "first ever" slot the old ClassVar
+        # guard would have consumed
+        NeuroFuzzyNetworkHyperparameters()
+
+        custom_evolution = EvolutionConfig(rule=GumbelConfig(epsilon_filter=0.1))
+        self.assertEqual(0.1, custom_evolution.rule.epsilon_filter)
+
+        nfn = NeuroFuzzyNetworkHyperparameters(evolution=custom_evolution)
+        self.assertEqual(0.0, nfn.evolution.rule.epsilon_filter)
+
+    def test_fields_excludes_base_class_fields(self) -> None:
+        """
+        Regression guard: NeuroFuzzyNetworkHyperparameters.fields used to pass
+        type(ApproximatorHyperparameters) (the metaclass, i.e. `type`) to
+        dataclasses.fields() instead of the class itself, which always raised
+        TypeError - so `.fields` could never be accessed at all.
+
+        Returns:
+            None
+        """
+        nfn = NeuroFuzzyNetworkHyperparameters()
+        field_names = {hyperparameter.name for hyperparameter in nfn.fields}
+        # unique to the subclass
+        self.assertIn("structure", field_names)
+        self.assertIn("evolution", field_names)
+        # inherited from ApproximatorHyperparameters, so excluded
+        self.assertNotIn("display_name", field_names)
+        self.assertNotIn("abbrev_name", field_names)
+
+    def test_categorical_enum_options_promotes_onto_concrete_subclass(self) -> None:
+        """
+        Regression guard: CategoricalEnumOptions.__init__ used to call
+        EnumPromoter.__init_subclass__(enum_cls=self.enum_cls) directly.
+        __init_subclass__ is implicitly a classmethod, so accessing it through the
+        base class bound cls=EnumPromoter itself, not the actual concrete subclass -
+        every CategoricalEnumOptions subclass would clobber the same shared
+        EnumPromoter attributes instead of getting its own.
+
+        Returns:
+            None
+        """
+        options = DemoCategoricalEnumOptions()
+
+        # promoted onto the concrete subclass, as intended
+        self.assertIs(DemoCategoricalEnumOptions.A, DemoEnum.A)
+        self.assertIs(DemoCategoricalEnumOptions.B, DemoEnum.B)
+        self.assertEqual(("a", "b"), DemoCategoricalEnumOptions.options)
+        self.assertEqual(("a", "b"), options.options)
+
+        # NOT leaked onto the shared EnumPromoter base class
+        self.assertFalse(hasattr(EnumPromoter, "A"))
+        self.assertFalse(hasattr(EnumPromoter, "B"))
+
+    def test_categorical_enum_options_save_and_load(self) -> None:
+        """
+        Regression guard: CategoricalEnumOptions.load used to be a @staticmethod that
+        called zero-arg super() - which, having no enclosing self/cls to bind to
+        inside a staticmethod, fell back to treating its first positional argument
+        (path, a Path) as the instance, always raising TypeError. It has since become
+        a classmethod, called on the concrete subclass being loaded, so this checks
+        a real save/load round trip works and reproduces the original instance.
+
+        Returns:
+            None
+        """
+        path = self.dir / "categorical_enum_options.pickle"
+        options = DemoCategoricalEnumOptions()
+        options.selection = DemoEnum.A.value
+        options.save(path)
+
+        loaded = DemoCategoricalEnumOptions.load(path)
+
+        self.assertIsInstance(loaded, DemoCategoricalEnumOptions)
+        self.assertEqual(options.options, loaded.options)
+        self.assertEqual(options.selection, loaded.selection)
+        self.assertEqual(options, loaded)
+        os.remove(path)
 
     @staticmethod
     def create_grouped_options_from_kwargs(

@@ -6,245 +6,77 @@ which contains a helpful interface understanding membership degrees.
 
 import abc
 import inspect
+
 # import logging
 from abc import abstractmethod
-from dataclasses import dataclass
-from enum import Enum, auto
 from pathlib import Path
-from typing import (Any, List, MutableMapping, NoReturn, Optional, Tuple, Type,
-                    Union)
+from typing import Any, List, MutableMapping, NoReturn, Optional, Tuple, Type, Union
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import numpy as np
-# import scienceplots is used via plt.style.context(["science",
-# "no-latex", "high-contrast"])
-import scienceplots  # noqa # pylint: disable=unused-import
 import sympy
 import torch
 import torchquad
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 from numpy import ndarray
 from numpy._typing import _64Bit
 from torchquad.utils.set_up_backend import set_up_backend
 
 from ..utils import TorchJitModule, check_path_to_save_torch_module
-from ..utils.classes import Loggable
+
+# DynamicParameterList re-exported here for backward compatibility (it used to be
+# defined in this module)
+from ..utils.classes import DynamicParameterList, Loggable  # noqa: F401
+from ..utils.functions import ParameterSignature, signature_of
+
 # from ..utils.functions import log_classmethod, log_func, log_method
-from .cache import MembershipCache, ParameterSignature, signature_of
+from .cache import MembershipCache
 from .membership import Membership
 
+# FuzzySetShape/FuzzySetInitResult/FuzzySetInitMethod re-exported here for backward
+# compatibility (they used to be defined in this module)
+from .shape import FuzzySetInitResult  # noqa: F401
+from .shape import FuzzySetInitMethod, FuzzySetShape, MembershipConfig
 
-@dataclass(frozen=True)
-class FuzzySetShape:
+
+# pylint: disable-next=too-few-public-methods,abstract-method
+class _FuzzySetParameters(torch.nn.Module):
     """
-    A dataclass containing information about the shape of homogeneous fuzzy sets.
-    """
+    Bundles a FuzzySet's centers, widths, and mask DynamicParameterLists into a single
+    submodule, so FuzzySet itself holds one attribute for its raw parameter storage
+    instead of three. Private to this module - FuzzySet's public accessors
+    (get_centers()/get_widths()/get_mask()) are unaffected by this internal grouping,
+    and nothing outside FuzzySet should reference this class directly.
 
-    n_variables: int
-    n_terms: int
-
-
-@dataclass
-class FuzzySetInitResult:
-    """
-    A dataclass representing an initialization result concerning the centers and widths of fuzzy
-    set(s).
-    """
-
-    centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]]
-    widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]]
-
-
-class FuzzySetInitMethod(Enum):
-    """
-    An extended Enum that offers various built-in functionality for basic fuzzy set initialization
-    methods.
-    """
-
-    RANDOM = auto()
-    LINEAR = auto()
-
-    def initialize(
-        self,
-        shape: FuzzySetShape,
-        init_width: float = 1.0,
-    ) -> FuzzySetInitResult:
-        """
-        Perform a basic initialization of parameters for fuzzy sets.
-
-        Args:
-            shape: The shape of these fuzzy sets.
-            init_width: The initial width to use for each fuzzy set.
-
-        Returns:
-            An initialization result containing parameters, such as centers and widths.
-        """
-        if self is FuzzySetInitMethod.RANDOM:
-            centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = (
-                np.random.randn(shape.n_variables, shape.n_terms))
-            widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = np.abs(
-                np.random.randn(shape.n_variables, shape.n_terms)).clip(min=0.1)
-
-        elif self is FuzzySetInitMethod.LINEAR:
-            base = np.linspace(0.0, 1.0, num=shape.n_terms)
-            centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = (
-                np.repeat(base[None, :], repeats=shape.n_variables, axis=0))
-            widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = np.full(
-                (shape.n_variables, shape.n_terms), init_width, dtype=np.float32)
-
-        else:
-            raise ValueError(f"Unsupported method: {self}")
-
-        return FuzzySetInitResult(centers, widths)
-
-
-class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
-    """
-    Wraps a torch.nn.ParameterList and maintains a contiguous cached tensor for fast operations.
+    A torch.nn.Module (not a plain container) so centers/widths/mask remain properly
+    registered submodules of the surrounding FuzzySet - required for torch.jit.script,
+    which supports nested submodule attribute access natively but cannot represent an
+    arbitrary Python object (e.g. a dataclass) as an attribute type.
     """
 
     def __init__(
-            self,
-            init_params=None,
-            dtype=None,
-            device=None,
-            parameters: bool = True):
+        self,
+        centers: DynamicParameterList,
+        widths: DynamicParameterList,
+        mask: DynamicParameterList,
+    ):
         super().__init__()
-        self.params: Union[torch.nn.ParameterList, List[torch.Tensor]] = (
-            torch.nn.ParameterList() if parameters else []
-        )
-        self._cached_tensor = None
-        self._cached_signature = None
-        self._device = device
-        self._dtype = dtype
-
-        if init_params is not None:
-            for p in init_params:
-                self.add_parameter(p)
-
-    def __getitem__(self, item):
-        return self.params[item]
-
-    def __setitem__(self, idx, value):
-        # 1. Enforce that the incoming value is a valid PyTorch Parameter
-        if not isinstance(value, torch.nn.Parameter):
-            raise TypeError(
-                f"Expected a torch.nn.Parameter, but got {type(value)}")
-
-        # 2. Update the internal tracker
-        # If using nn.ParameterList, it handles module registration
-        # automatically.
-        self.params[idx] = value
-
-        # 3. Optional: Give it a unique string key name on the parent module
-        # if your custom class relies on named parameters attribute binding.
-        # setattr(self, f"param_{idx}", value)
-
-        # 4. Invalidate the cached tensor
-        self._invalidate_cache()
-
-    def add_parameter(self, tensor: Union[np.ndarray, torch.Tensor]):
-        """
-        Add a new Parameter and invalidate cached tensor.
-        tensor: torch.Tensor (will be converted to Parameter)
-        """
-        if not isinstance(tensor, torch.Tensor):
-            tensor = torch.as_tensor(
-                tensor, dtype=self._dtype, device=self._device)
-        if isinstance(self.params, torch.nn.ParameterList):
-            param = torch.nn.Parameter(tensor)
-        else:
-            param = tensor  # leave it unmodified
-        if self._device is not None:
-            param.data = param.data.to(self._device, dtype=self._dtype)
-        self.params.append(param)
-        self._invalidate_cache()
-
-    def _invalidate_cache(self) -> None:
-        """
-        Discard the cached concatenation, forcing the next access to rebuild it.
-
-        Returns:
-            None
-        """
-        self._cached_tensor = None
-        self._cached_signature = None
-
-    @torch.jit.ignore
-    def _concat_params(self, params_list: List[torch.Tensor]) -> torch.Tensor:
-        """
-        Return a cached concatenation of two or more parameters, rebuilding it if any
-        parameter was replaced or mutated in place since it was last built.
-
-        Pulled out of the 'tensor' property (and marked to be skipped by torch.jit.script)
-        because comparing two ParameterSignature values with '!=' is not something
-        TorchScript's type system supports; this keeps that comparison in ordinary Python
-        while leaving the property itself scriptable.
-
-        Args:
-            params_list: The parameters to concatenate, materialized as a plain list.
-
-        Returns:
-            The concatenation of the parameters along dim=-1.
-        """
-        signature = signature_of(params_list)
-        if self._cached_tensor is None or self._cached_signature != signature:
-            self._cached_tensor = torch.cat(params_list, dim=-1).contiguous()
-            self._cached_signature = signature
-        return self._cached_tensor
-
-    @property
-    def tensor(self):
-        """
-        Returns a contiguous tensor concatenating all parameters along dim=-1.
-
-        In the (overwhelmingly common) case of a single parameter, that parameter is returned
-        directly: concatenating one tensor only copies it, and the copy would both waste time
-        and - more importantly - go stale, since it does not observe subsequent in-place updates
-        to the parameter such as those an optimizer applies.
-
-        For several parameters the concatenation is cached, but the cache is keyed on the
-        identity and version counter of each parameter, so that replacing *or* updating any of
-        them rebuilds it. Without this, the concatenation would keep reporting the parameter
-        values as they were when it was first built.
-
-        Note: `self.params` (a torch.nn.ParameterList) is deliberately materialized into a
-        plain list before anything else; torch.jit.script cannot compile a bare `len(...)` or
-        indexing call directly against a ParameterList attribute in this position, but has no
-        trouble with a plain List[Tensor].
-        """
-        params_list: List[torch.Tensor] = list(self.params)
-        if len(params_list) == 0:
-            return torch.tensor([], device=self._device, dtype=self._dtype)
-
-        if len(params_list) == 1:
-            # avoid a copy that would immediately be at risk of going stale
-            return params_list[0]
-
-        return self._concat_params(params_list)
+        self.centers = centers
+        self.widths = widths
+        self.mask = mask
 
     def to(self, *args, **kwargs):
         """
-        Override to move both ParameterList and cached tensor.
+        Move centers, widths, and mask to a new device/dtype.
+
+        Returns:
+            self
         """
         super().to(*args, **kwargs)
-        # torch.nn.Module.to() accepts several call signatures - a device, a dtype, another
-        # tensor to match, or a combination - so args[0] is not reliably a device (e.g.
-        # .to(torch.float64) is a legitimate dtype-only call, and would otherwise corrupt
-        # _device with a dtype object). Replaying the same call against a throwaway tensor
-        # seeded with the current device/dtype and reading back what it resolved to avoids
-        # re-implementing that parsing here.
-        probe = torch.empty(0, dtype=self._dtype, device=self._device).to(
-            *args, **kwargs
-        )
-        self._device = probe.device
-        self._dtype = probe.dtype
-        # the parameters were moved, so any concatenation of them refers to the old device;
-        # rebuild it on next access rather than moving a copy that is about to
-        # go stale
-        self._invalidate_cache()
+        # each DynamicParameterList.to() does its own device/dtype bookkeeping and
+        # cache invalidation beyond what torch.nn.Module.to()'s default recursive
+        # _apply() performs - see DynamicParameterList.to()'s own docstring
+        self.centers = self.centers.to(*args, **kwargs)
+        self.widths = self.widths.to(*args, **kwargs)
+        self.mask = self.mask.to(*args, **kwargs)
         return self
 
 
@@ -270,30 +102,43 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     # default.
     _validate_degrees: bool = False
 
+    # See NAryRelation's GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL (module-level there,
+    # since NAryRelation is not currently torch.jit.script-compatible) for the
+    # underlying calibration this mirrors: on a CUDA tensor, a sync to ask "is there
+    # any NaN at all?" (~400-750us in practice, dominated by the reduction kernel and
+    # blocking scalar readback, not the sync primitive itself) costs more than just
+    # always doing the NaN-safe substitution below this many (estimated) elements in
+    # the resulting degrees tensor, and less above it. A class attribute (not a module
+    # global) because torch.jit.script rejects references to arbitrary Python module
+    # globals from a scripted method; it accepts instance attributes assigned in
+    # __init__ instead (see _validate_degrees just above). Threshold is an
+    # empirically-calibrated heuristic (measured on one GPU), not a theoretically
+    # derived constant.
+    _nan_safe_sync_threshold_numel: int = 5_000_000
+
     def __init__(
         self,
         centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
         widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
         device: torch.device,
-        use_sparse_tensor: bool = False,
-        cache_membership: bool = True,
-        membership_cache_size: int = 2,
+        membership_config: Optional[MembershipConfig] = None,
         # debug: bool = False,
     ):
         super().__init__()
+        self.__check_args(centers, widths)
         self.device = device
         # self.create_logger(self.__class__.__name__, debug=debug)
-        self.__check_args(centers, widths)
 
-        self._centers = None
-        self._widths = None
-        self._mask = None
-        self.__alloc_members(centers, use_sparse_tensor, widths)
+        if not membership_config:
+            membership_config = MembershipConfig()
+        self.membership_config = membership_config
 
+        self._params = self.__alloc_members(centers, widths)
         # memoizes membership calculations; see fuzzy.sets.cache for when a
         # result is re-used
         self._membership_cache = MembershipCache(
-            maxsize=membership_cache_size, enabled=cache_membership
+            maxsize=membership_config.membership_cache_size,
+            enabled=membership_config.cache_membership,
         )
 
         # torch.jit.script only picks up attributes assigned in __init__, so the class-level
@@ -301,10 +146,23 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # a subclass such as Lorentzian's class-level override take effect
         # under scripting
         self._validate_degrees: bool = self._validate_degrees
+        self._nan_safe_sync_threshold_numel: int = self._nan_safe_sync_threshold_numel
+
+        # forward() (a scripted method) cannot reference self.membership_config.enable_sparse
+        # directly: TorchScript's attribute-type checker cannot represent an arbitrary
+        # dataclass (MembershipConfig) as a scriptable type, even though the dataclass
+        # itself is harmless as an attribute that no scripted method touches. Pulling out
+        # just the one field forward() needs, as a plain bool, keeps membership_config
+        # itself available for everything else (save/load, __init__, etc.) without breaking
+        # torch.jit.script(fuzzy_set).
+        self.enable_sparse: bool = membership_config.enable_sparse
 
     # @log_method
     @staticmethod
-    def __check_args(centers: np.ndarray, widths: np.ndarray) -> None:
+    def __check_args(
+        centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
+        widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
+    ) -> None:
         """
         Check that the provided argument values are accepted variable types and that their
         dimensionality is correct. This function will raise a ValueError if the argument values
@@ -336,35 +194,40 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         if centers.ndim != widths.ndim:
             raise ValueError(
                 f"The number of dimensions for the centers ({centers.ndim}) and widths "
-                f"({widths.ndim}) must be the same.")
+                f"({widths.ndim}) must be the same."
+            )
 
         if centers.ndim == 0 or widths.ndim == 0:
             raise ValueError(
                 f"The centers and widths of a FuzzySet must have at least one dimension. "
-                f"Centers has {centers.ndim} dimensions and widths has {widths.ndim} dimensions.")
+                f"Centers has {centers.ndim} dimensions and widths has {widths.ndim} dimensions."
+            )
 
     # @log_method
     def __alloc_members(
-        self, centers: np.ndarray, use_sparse_tensor: bool, widths: np.ndarray
-    ) -> None:
+        self,
+        centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
+        widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]],
+    ) -> _FuzzySetParameters:
         if centers.ndim == 1 and widths.ndim == 1:
             # assuming that the array is a single linguistic variable
             centers, widths = centers[None, :], widths[None, :]
 
         # avoid allocating new memory for the centers and widths
         # use torch.float32 to save memory and speed up computations
-        self._centers = DynamicParameterList(
-            init_params=[centers], dtype=torch.float32, device=self.device
-        )
-        self._widths = DynamicParameterList(
-            init_params=[widths], dtype=torch.float32, device=self.device
-        )
-        self.use_sparse_tensor = use_sparse_tensor
-        self._mask = DynamicParameterList(
-            init_params=[self.make_mask(widths)],
-            dtype=torch.uint8,
-            device=self.device,
-            parameters=False,
+        return _FuzzySetParameters(
+            centers=DynamicParameterList(
+                init_params=[centers], dtype=torch.float32, device=self.device
+            ),
+            widths=DynamicParameterList(
+                init_params=[widths], dtype=torch.float32, device=self.device
+            ),
+            mask=DynamicParameterList(
+                init_params=[self.make_mask(widths)],
+                dtype=torch.uint8,
+                device=self.device,
+                parameters=False,
+            ),
         )
 
     # @log_method
@@ -379,14 +242,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # submodules
         super().to(*args, **kwargs)
 
-        # special handling for DynamicParameterList
-        self._centers = self._centers.to(*args, **kwargs)
-        self._widths = self._widths.to(*args, **kwargs)
-
-        # special handling for the non-parameter tensors, such as mask
-        # self._mask = [mask.to(*args, **kwargs) for mask in self._mask]
-        self._mask = self._mask.to(*args, **kwargs)
-        self.device = self._centers[0].device
+        # special handling for DynamicParameterList (see
+        # _FuzzySetParameters.to())
+        self._params = self._params.to(*args, **kwargs)
+        self.device = self._params.centers[0].device
         # memberships were calculated on the previous device, and moving parameters replaces
         # their data without bumping a version counter, so the memo cannot be
         # trusted
@@ -406,10 +265,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             A torch.nn.Parameter object.
         """
         return torch.nn.Parameter(
-            torch.as_tensor(
-                parameter,
-                dtype=torch.float32,
-                device=self.device),
+            torch.as_tensor(parameter, dtype=torch.float32, device=self.device),
             # requires_grad=True,  # explicitly set to True
         )
 
@@ -427,10 +283,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             A torch.Tensor object.
         """
-        return torch.as_tensor(
-            widths > 0.0,
-            dtype=torch.uint8,
-            device=self.device)
+        return torch.as_tensor(widths > 0.0, dtype=torch.uint8, device=self.device)
         # return torch.nn.Parameter(
         #     torch.as_tensor(widths > 0.0, dtype=torch.int8, device=self.device),
         #     requires_grad=False,  # explicitly set to False (mask is not trainable)
@@ -466,7 +319,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             # the method is not implemented (e.g., self.calculate_membership)
             raise NotImplementedError(
                 "The FuzzySet has no defined membership function. Please create a class "
-                "and inherit from FuzzySet, or use a predefined class, such as Gaussian.")
+                "and inherit from FuzzySet, or use a predefined class, such as Gaussian."
+            )
 
         init_result: FuzzySetInitResult = method.initialize(
             shape=shape,
@@ -530,7 +384,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             The concatenated centers of the fuzzy set.
         """
-        return self._centers.tensor
+        return self._params.centers.tensor
 
     # @log_method
     def get_widths(self) -> torch.Tensor:
@@ -540,7 +394,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             The concatenated widths of the fuzzy set.
         """
-        return self._widths.tensor
+        return self._params.widths.tensor
 
     # @log_method
     def get_mask(self) -> torch.Tensor:
@@ -550,34 +404,41 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             The concatenated mask of the fuzzy set.
         """
-        return self._mask.tensor
+        return self._params.mask.tensor
 
-    @classmethod
-    # @log_classmethod
-    def render_formula(cls) -> sympy.Expr:
+    def _extra_save_state(self) -> MutableMapping[str, Any]:
         """
-        Render of the fuzzy set's membership function.
-
-        Note: This is more beneficial for Python Console or Jupyter Notebook usage.
+        Hook for subclasses with additional learnable parameters beyond centers/widths
+        (e.g. Trapezoidal's plateaus) to contribute extra entries to the state_dict that
+        save() builds - avoiding the need to re-implement save() just to add one
+        more field.
 
         Returns:
-            Render of the fuzzy set's membership function.
+            Additional entries to merge into the state_dict save() builds. Empty by
+            default (no extra parameters).
         """
-        sympy.init_printing(use_unicode=True)
-        return cls.sympy_formula()
+        return {}
 
     @classmethod
-    # @log_classmethod
-    def latex_formula(cls) -> str:
+    def _extra_load_kwargs(
+        cls, _state_dict: MutableMapping[str, Any]
+    ) -> MutableMapping[str, Any]:
         """
-        String LaTeX representation of the fuzzy set's membership function.
+        Hook for subclasses to pop() their extra _extra_save_state() entries back out of
+        the loaded state_dict and turn them into constructor kwargs - the counterpart to
+        _extra_save_state(), avoiding the need to re-implement load() just to
+        restore one more field.
 
-        Note: This is more beneficial for animations or LaTeX documents.
+        Args:
+            state_dict: The loaded state_dict, after "centers"/"widths"/"class_name"
+                have already been popped by load(). Subclasses should pop() their own
+                extra keys from this (mutating it) rather than merely reading them.
 
         Returns:
-            The LaTeX representation of the fuzzy set's membership function.
+            Additional keyword arguments to pass to the subclass' constructor. Empty by
+            default (no extra parameters).
         """
-        return sympy.latex(cls.sympy_formula())
+        return {}
 
     # @log_method
     def save(self, path: Path) -> MutableMapping[str, Any]:
@@ -596,6 +457,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         state_dict["centers"] = self.get_centers()  # concatenate the centers
         state_dict["widths"] = self.get_widths()  # concatenate the widths
         state_dict["mask"] = self.get_mask()  # currently not used
+        state_dict.update(self._extra_save_state())
         torch.save(state_dict, path)
         return state_dict
 
@@ -612,10 +474,14 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         centers = state_dict.pop("centers")
         widths = state_dict.pop("widths")
         class_name = state_dict.pop("class_name")
-        return cls.get_subclass(class_name)(
+        subclass = cls.get_subclass(class_name)
+        return subclass(
             centers=centers.cpu().detach().numpy(),
             widths=widths.cpu().detach().numpy(),
             device=device,
+            **subclass._extra_load_kwargs(  # pylint: disable=protected-access
+                state_dict
+            ),
         )
 
     # @log_method
@@ -640,34 +506,36 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                 f"The mode must be either 'horizontal' or 'vertical', but got '{mode}'."
             )
         with torch.no_grad():
-            self._centers[0] = torch.nn.Parameter(
-                method_of_extension([self._centers[0], centers])
+            self._params.centers[0] = torch.nn.Parameter(
+                method_of_extension([self._params.centers[0], centers])
             )
-            self._widths[0] = torch.nn.Parameter(
-                method_of_extension([self._widths[0], widths])
+            self._params.widths[0] = torch.nn.Parameter(
+                method_of_extension([self._params.widths[0], widths])
             )
         # the fuzzy set now describes more terms, so previously calculated membership degrees
         # no longer have the right shape
         self.clear_membership_cache()
 
     # @log_method
-    def _area_helper(self, fuzzy_sets) -> List[List[float]]:
+    def area(self) -> torch.Tensor:
         """
+        Calculate the area beneath the fuzzy curve (i.e., membership function) using torchquad.
+
+        This is a slightly expensive operation, but it is used for approximating the Mamdani fuzzy
+        inference with arbitrary continuous fuzzy sets.
+
+        Typically, the results will be cached somewhere, so that the area value can be reused.
+
         Splits the fuzzy set (if representing a fuzzy variable) into individual fuzzy sets (the
         fuzzy variable's possible fuzzy terms), and does so recursively until the base case is
         reached. Once the base case is reached (i.e., a single fuzzy set), the area under its
-        curve within the integration_domain is calculated. The result is a
-
-        Args:
-            fuzzy_sets: The fuzzy set to split into smaller fuzzy sets.
+        curve within the integration_domain is calculated.
 
         Returns:
-            A list of floats.
+            torch.Tensor
         """
         all_areas: List[List[float]] = []
-        for variable_params in zip(
-                fuzzy_sets.get_centers(),
-                fuzzy_sets.get_widths()):
+        for variable_params in zip(self.get_centers(), self.get_widths()):
             variable_centers, variable_widths = variable_params[0], variable_params[1]
             variable_areas = []
             for term_params in zip(variable_centers, variable_widths):
@@ -707,24 +575,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
                     area = 0.0
                 variable_areas.append(area)
             all_areas.append(variable_areas)
-        return all_areas
-
-    # @log_method
-    def area(self) -> torch.Tensor:
-        """
-        Calculate the area beneath the fuzzy curve (i.e., membership function) using torchquad.
-
-        This is a slightly expensive operation, but it is used for approximating the Mamdani fuzzy
-        inference with arbitrary continuous fuzzy sets.
-
-        Typically, the results will be cached somewhere, so that the area value can be reused.
-
-        Returns:
-            torch.Tensor
-        """
-        return torch.tensor(
-            self._area_helper(self), device=self.device, dtype=torch.float32
-        )
+        return torch.tensor(all_areas, device=self.device, dtype=torch.float32)
 
     # @log_method
     def split_by_variables(self) -> Union[list, List[Type["FuzzySet"]]]:
@@ -768,9 +619,14 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     # @log_method
     def plot(
         self, output_dir: Path, selected_terms: List[Tuple[int, int]] = None
-    ) -> tuple[list[Any], Union[Axes, ndarray]]:
+    ) -> Tuple[List[Any], Any]:
         """
         Plot the fuzzy set.
+
+        A thin convenience wrapper: data preparation and matplotlib rendering live in
+        fuzzy.sets.visualization.FuzzySetPlot - imported lazily here so that importing
+        this module (and therefore FuzzySet itself) does not require
+        matplotlib/scienceplots unless plotting is actually used.
 
         Args:
             output_dir: The path to the directory where to save the plot(s).
@@ -780,152 +636,12 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             A 2-tuple containing the figures and axes of the plot for each variable (e.g., 0th
             index contains the figure and axes for the 0th variable).
         """
-        if selected_terms is None:
-            selected_terms = []
+        # pylint: disable-next=import-outside-toplevel
+        from .visualization import FuzzySetPlot
 
-        figures, axes = [], []
-        mpl.rcParams["figure.figsize"] = (6, 4)
-        mpl.rcParams["figure.dpi"] = 100
-        mpl.rcParams["savefig.dpi"] = 100
-        mpl.rcParams["font.size"] = 24
-        mpl.rcParams["legend.fontsize"] = "medium"
-        mpl.rcParams["figure.titlesize"] = "medium"
-        mpl.rcParams["lines.linewidth"] = 2
-        with plt.style.context(["science", "no-latex", "high-contrast"]):
-            fig, axes = plt.subplots(1, 4, figsize=(28, 4), dpi=100)
-            for variable_idx in range(self.get_centers().shape[0]):
-                # fig, ax = plt.subplots(1, figsize=(6, 4), dpi=100)
-                # mpl.rcParams["figure.figsize"] = (16, 4)
-                # mpl.rcParams["figure.dpi"] = 100
-                # mpl.rcParams["savefig.dpi"] = 100
-                # mpl.rcParams["font.size"] = 20
-                # mpl.rcParams["legend.fontsize"] = "medium"
-                # mpl.rcParams["figure.titlesize"] = "medium"
-                # mpl.rcParams["lines.linewidth"] = 2
-                axes[variable_idx].tick_params(width=2, length=6)
-                plt.xticks(fontsize=20)
-                plt.yticks(fontsize=20)
-                real_centers: List[float] = [
-                    self.get_centers()[variable_idx, term_idx].item()
-                    for term_idx, mask_value in enumerate(self.get_mask()[variable_idx])
-                    if mask_value == 1
-                ]
-                real_widths: List[float] = [
-                    self.get_widths()[variable_idx, term_idx].item()
-                    for term_idx, mask_value in enumerate(self.get_mask()[variable_idx])
-                    if mask_value == 1
-                ]
-                x_values = torch.linspace(
-                    min(real_centers) - 2 * max(real_widths),
-                    max(real_centers) + 2 * max(real_widths),
-                    steps=1000,
-                    device=self.device,
-                )
-
-                if self.get_centers(
-                ).ndim == 1 or self.get_centers().shape[0] == 1:
-                    x_values = x_values[:, None]
-                elif self.get_centers().ndim == 2 or self.get_centers().shape[0] > 1:
-                    x_values = x_values[:, None, None]
-
-                memberships: torch.Tensor = self.calculate_membership(x_values)
-
-                if memberships.ndim == 2:
-                    memberships = memberships.unsqueeze(
-                        dim=1
-                    )  # add a temporary dimension for the variable
-
-                memberships = memberships.cpu().detach().numpy()
-                x_values = x_values.squeeze().cpu().detach().numpy()
-
-                for term_idx in range(memberships.shape[-1]):
-                    if self.get_mask()[variable_idx, term_idx] == 0:
-                        continue  # not a real fuzzy set
-                    y_values = memberships[:, variable_idx, term_idx]
-                    label: str = (
-                        r"$\mu_{"
-                        + str(variable_idx + 1)
-                        + ","
-                        + str(term_idx + 1)
-                        + "}$"
-                    )
-                    if (variable_idx, term_idx) in selected_terms:
-                        # edgecolor="#0bafa9"  # beautiful with facecolor=None
-                        # (AAMAS 2023)
-                        # edgecolor="#0bafa9"  # beautiful with facecolor=None
-                        # (AAMAS 2023)
-                        axes[variable_idx].fill_between(
-                            x_values, y_values, alpha=0.5, hatch="///", label=label)
-                    else:
-                        axes[variable_idx].plot(
-                            x_values, y_values, alpha=0.5, label=label
-                        )
-                axes[variable_idx].legend(
-                    bbox_to_anchor=(0.5, -0.2),
-                    loc="upper center",
-                    ncol=len(real_centers),
-                    handletextpad=0.1,
-                    # reduce spacing b/w legend markers & label (default=0.8)
-                    columnspacing=0.5,  # reduce spacing b/w legend entries
-                    borderaxespad=-0.5,  # reduce the spacing b/w the legend and the plot
-                )
-                plt.subplots_adjust(bottom=0.3, wspace=0.33)
-                output_dir.mkdir(parents=True, exist_ok=True)
-                # plt.savefig(output_dir / f"mu_{variable_idx}.png")
-                # plt.clf()
-                #
-                # figures.append(fig)
-                # axes.append(ax)
-
-            plt.savefig(output_dir / "mu.png")
-
-        self.__individual_plot(axes, fig, output_dir)
-
-        return figures, axes
-
-    def __individual_plot(
-        self, axes: Union[Axes, ndarray], fig: Figure, output_dir: Path
-    ) -> None:
-        """
-        Save just the portion _inside_ the second axis's boundaries. Why do I do it this way?
-        Because the axis is not always the same size if each plot is different. So, I save the
-        area inside the axis's boundaries, and then I can pad it to make it look nice in papers.
-
-        Args:
-            axes: The axes to use for the plots.
-            fig: The figure to continue referencing when plotting.
-            output_dir: The directory to save the figure(s).
-
-        Returns:
-            None
-        """
-        for variable_idx in range(self.get_centers().shape[0]):
-            extent = (
-                axes[variable_idx]
-                .get_window_extent()
-                .transformed(fig.dpi_scale_trans.inverted())
-            )
-            fig.savefig(
-                output_dir /
-                f"mu_{variable_idx}.png",
-                bbox_inches=extent)
-
-            # Pad the saved area by 20% in the x-direction and 10% in the
-            # y-direction
-            fig.savefig(
-                output_dir / "ax2_figure_expanded.png",
-                bbox_inches=extent.expanded(1.2, 1.2),
-            )
-            expanded_bbox = mpl.transforms.Bbox(
-                [
-                    (extent.x0 - 0.15 * extent.width, extent.y0 - 0.35 * extent.height),
-                    (extent.x1 + 0.15 * extent.width, extent.y1 + 0.05 * extent.height),
-                ]
-            )
-            fig.savefig(
-                output_dir / f"mu_{variable_idx}_expanded.png",
-                bbox_inches=expanded_bbox,
-            )
+        plot = FuzzySetPlot(self)
+        variable_plots = plot.build(selected_terms)
+        return plot.render(variable_plots, output_dir)
 
     @staticmethod
     # @log_func
@@ -1059,8 +775,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             A signature of this fuzzy set's parameters.
         """
-        return signature_of(
-            [self.get_centers(), self.get_widths(), self.get_mask()])
+        return signature_of([self.get_centers(), self.get_widths(), self.get_mask()])
 
     @torch.jit.ignore
     def clear_membership_cache(self) -> None:
@@ -1070,15 +785,13 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             None
         """
-        cache: Union[None, MembershipCache] = getattr(
-            self, "_membership_cache", None)
+        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
         if cache is not None:
             cache.clear()
 
     @torch.jit.ignore
-    def _lookup_membership(
-            self,
-            observations: torch.Tensor) -> Optional[Membership]:
+    @torch.compiler.disable
+    def _lookup_membership(self, observations: torch.Tensor) -> Optional[Membership]:
         """
         Retrieve memoized membership degrees for the given observations, if they are still valid.
 
@@ -1086,24 +799,42 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         which does not carry the cache over - simply calculates the membership degrees instead
         of failing.
 
+        @torch.compiler.disable mirrors the @torch.jit.ignore above, for the same reason:
+        this method's parameter_signature() call (see below) reads id(tensor), which
+        torch.compile's Dynamo tracer cannot trace through (identity is not a
+        graph-representable concept) - telling Dynamo not to trace into this method at
+        all, running it eagerly instead, is both correct (the cache is a pure Python-side
+        optimization, redundant once the surrounding model is already compiled) and
+        necessary (without it, Dynamo hits the untraceable id() call and breaks the
+        graph anyway, just less predictably).
+
         Args:
             observations: The observations that membership degrees are wanted for.
 
         Returns:
             The memoized Membership, or None if it has to be calculated.
         """
-        cache: Union[None, MembershipCache] = getattr(
-            self, "_membership_cache", None)
-        if cache is None:
+        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
+        if cache is None or not cache.enabled:
+            # skip computing parameter_signature() (which reads id(tensor) per
+            # parameter) when there is no cache to serve the lookup anyway or it is
+            # disabled - cache.lookup() would discard the signature unused, but as a
+            # function-call argument it would already have been computed by the time
+            # cache.lookup() runs to discard it
             return None
         return cache.lookup(observations, self.parameter_signature())
 
     @torch.jit.ignore
+    @torch.compiler.disable
     def _store_membership(
         self, observations: torch.Tensor, membership: Membership
     ) -> None:
         """
         Memoize the membership degrees calculated for the given observations.
+
+        See _lookup_membership's docstring for why this is also marked
+        @torch.compiler.disable and skips parameter_signature() when there is nothing
+        to store it into.
 
         Args:
             observations: The observations the membership degrees were calculated for.
@@ -1112,25 +843,9 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             None
         """
-        cache: Union[None, MembershipCache] = getattr(
-            self, "_membership_cache", None)
-        if cache is not None:
+        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
+        if cache is not None and cache.enabled:
             cache.store(observations, self.parameter_signature(), membership)
-
-    def prepare_observations(self, observations: torch.Tensor) -> torch.Tensor:
-        """
-        Adjust the observations immediately before the membership degrees are calculated.
-
-        This exists for fuzzy sets whose formula requires something of its input; the default is
-        to pass the observations through untouched.
-
-        Args:
-            observations: The observations to prepare.
-
-        Returns:
-            The observations, as the membership function expects them.
-        """
-        return observations
 
     def _calculate_membership_nan_safe(
         self, observations: torch.Tensor
@@ -1160,7 +875,13 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             but safe to backpropagate through even when some observations are NaN.
         """
         nan_mask = torch.isnan(observations)
-        if not bool(nan_mask.any()):
+        # a free (no GPU sync), crude estimate of what the resulting degrees tensor's
+        # size will be, used only to decide whether syncing to ask "is there any NaN
+        # at all?" is worth its cost - see _nan_safe_sync_threshold_numel
+        estimated_degrees_numel = observations.numel() * self.get_centers().shape[-1]
+        if estimated_degrees_numel > self._nan_safe_sync_threshold_numel and not bool(
+            nan_mask.any()
+        ):
             return self.calculate_membership(observations)
 
         safe_observations = torch.where(
@@ -1168,11 +889,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         )
         degrees = self.calculate_membership(safe_observations)
         return torch.where(
-            nan_mask.expand_as(degrees),
-            torch.full_like(
-                degrees,
-                float("nan")),
-            degrees)
+            nan_mask.expand_as(degrees), torch.full_like(degrees, float("nan")), degrees
+        )
 
     # @log_method
     def forward(self, observations: torch.Tensor) -> Membership:
@@ -1193,17 +911,21 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             The membership degrees of the observations for this fuzzy set.
         """
-        cached: Optional[Membership] = self._lookup_membership(observations)
-        if cached is not None:
-            return cached
+        if not torch.compiler.is_compiling():
+            # guarded so torch.compile(fullgraph=True) never traces into the
+            # @torch.compiler.disable'd cache methods below - Dynamo specializes
+            # is_compiling() to a compile-time constant, so this branch is pruned
+            # entirely (not merely skipped) while tracing, avoiding the graph break
+            # that calling a disabled function would otherwise force
+            cached: Optional[Membership] = self._lookup_membership(observations)
+            if cached is not None:
+                return cached
 
         original_observations: torch.Tensor = observations
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
 
-        degrees: torch.Tensor = self._calculate_membership_nan_safe(
-            self.prepare_observations(observations)
-        )
+        degrees: torch.Tensor = self._calculate_membership_nan_safe(observations)
 
         if self._validate_degrees:
             assert (
@@ -1214,8 +936,9 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             ), "Infinite values detected in the membership degrees."
 
         membership = Membership(
-            degrees=degrees.to_sparse() if self.use_sparse_tensor else degrees,
+            degrees=degrees.to_sparse() if self.enable_sparse else degrees,
             mask=self.get_mask(),
         )
-        self._store_membership(original_observations, membership)
+        if not torch.compiler.is_compiling():
+            self._store_membership(original_observations, membership)
         return membership

@@ -2,6 +2,10 @@
 Test functionality relating to FuzzySetGroup.
 """
 
+# white-box tests deliberately reach into private/internal attributes to verify
+# implementation details
+# pylint: disable=protected-access
+
 import shutil
 import unittest
 from pathlib import Path
@@ -12,6 +16,7 @@ from fuzzy.sets import Membership
 from fuzzy.sets.abstract import FuzzySetInitMethod, FuzzySetShape
 from fuzzy.sets.group import FuzzySetGroup
 from fuzzy.sets.impl import Gaussian
+from fuzzy.sets.shape import MembershipConfig
 from fuzzy.utils.functions import get_object_attributes
 
 AVAILABLE_DEVICE: torch.device = torch.device(
@@ -82,6 +87,9 @@ class _ModuleMissingGetters(torch.nn.Module):
         Returns:
             A fixed Membership, independent of the given observations.
         """
+        assert isinstance(
+            observations, torch.Tensor
+        ), "The observations should be a torch.Tensor."
         return Membership(degrees=self._degrees, mask=self._mask)
 
 
@@ -249,13 +257,13 @@ class TestFuzzySetGroup(unittest.TestCase):
                     shape=FuzzySetShape(n_variables=2, n_terms=3),
                     device=AVAILABLE_DEVICE,
                     method=FuzzySetInitMethod.LINEAR,
-                    use_sparse_tensor=True,
+                    membership_config=MembershipConfig(enable_sparse=True),
                 ),
                 Gaussian.create(
                     shape=FuzzySetShape(n_variables=2, n_terms=3),
                     device=AVAILABLE_DEVICE,
                     method=FuzzySetInitMethod.LINEAR,
-                    use_sparse_tensor=False,
+                    membership_config=MembershipConfig(enable_sparse=False),
                 ),
             ]
         )
@@ -272,13 +280,13 @@ class TestFuzzySetGroup(unittest.TestCase):
                     shape=FuzzySetShape(n_variables=2, n_terms=3),
                     device=AVAILABLE_DEVICE,
                     method=FuzzySetInitMethod.LINEAR,
-                    use_sparse_tensor=True,
+                    membership_config=MembershipConfig(enable_sparse=True),
                 ),
                 Gaussian.create(
                     shape=FuzzySetShape(n_variables=2, n_terms=3),
                     device=AVAILABLE_DEVICE,
                     method=FuzzySetInitMethod.LINEAR,
-                    use_sparse_tensor=True,
+                    membership_config=MembershipConfig(enable_sparse=True),
                 ),
             ]
         )

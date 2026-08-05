@@ -4,11 +4,8 @@ Check that the equality operator works as expected for t-norms.
 
 import unittest
 
-import torch
-
 from fuzzy.relations.t_norm import Minimum, Product
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from tests import AVAILABLE_DEVICE
 
 
 class TestEqualityOfTNorms(unittest.TestCase):
@@ -35,8 +32,7 @@ class TestEqualityOfTNorms(unittest.TestCase):
             None
         """
         minimum_t_norm = Minimum((0, 0), (1, 1), device=AVAILABLE_DEVICE)
-        another_minimum_t_norm = Minimum(
-            (0, 0), (1, 1), device=AVAILABLE_DEVICE)
+        another_minimum_t_norm = Minimum((0, 0), (1, 1), device=AVAILABLE_DEVICE)
         self.assertEqual(minimum_t_norm, another_minimum_t_norm)
 
     def test_other_not_n_ary(self) -> None:

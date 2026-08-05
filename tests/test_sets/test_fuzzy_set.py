@@ -4,12 +4,17 @@ Gaussian fuzzy set (i.e., membership function), and the Triangular fuzzy set (i.
 function).
 """
 
+# white-box tests deliberately reach into private/internal attributes to verify
+# implementation details
+# pylint: disable=protected-access
+
 import inspect
 import os
 import shutil
 import unittest
 from pathlib import Path
 from typing import Any, MutableMapping
+from unittest import mock
 
 import numpy as np
 import torch
@@ -23,6 +28,7 @@ from fuzzy.sets.abstract import (
 )
 from fuzzy.sets.impl.basic import NoOp
 from fuzzy.sets.impl.gauss_variants.cmf import Gaussian
+from fuzzy.sets.visualization import FuzzySetPlot
 
 AVAILABLE_DEVICE: torch.device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
@@ -98,11 +104,11 @@ class TestFuzzySet(unittest.TestCase):
             # check that the parameters and members are the same
             assert membership_func == loaded_membership_func
             assert torch.allclose(
-                membership_func.get_centers(),
-                loaded_membership_func.get_centers())
+                membership_func.get_centers(), loaded_membership_func.get_centers()
+            )
             assert torch.allclose(
-                membership_func.get_widths(),
-                loaded_membership_func.get_widths())
+                membership_func.get_widths(), loaded_membership_func.get_widths()
+            )
             if isinstance(
                 subclass, Gaussian
             ):  # Gaussian has an additional parameter (alias for widths)
@@ -110,9 +116,7 @@ class TestFuzzySet(unittest.TestCase):
                     membership_func.sigmas, loaded_membership_func.sigmas
                 )
             # check some functionality that it is still working
-            assert torch.allclose(
-                membership_func.area(),
-                loaded_membership_func.area())
+            assert torch.allclose(membership_func.area(), loaded_membership_func.area())
             assert torch.allclose(
                 membership_func(
                     torch.tensor([[0.1, 0.2, 0.3, 0.4]], device=AVAILABLE_DEVICE)
@@ -161,12 +165,8 @@ class TestFuzzySet(unittest.TestCase):
         """
         self.assertEqual(no_op.get_centers().size()[0], 10)
         self.assertEqual(membership.degrees.size()[1], 4)
-        self.assertNotEqual(
-            no_op.get_centers().size()[0],
-            membership.degrees.size()[1])
-        self.assertAlmostEqual(
-            no_op.membership,
-            membership.degrees.mean().item())
+        self.assertNotEqual(no_op.get_centers().size()[0], membership.degrees.size()[1])
+        self.assertAlmostEqual(no_op.membership, membership.degrees.mean().item())
 
     def test_hash_eq_contract(self) -> None:
         """
@@ -235,20 +235,18 @@ class TestFuzzySet(unittest.TestCase):
 
         gaussian_mf.to(torch.float64)
 
-        self.assertEqual(gaussian_mf._centers._device, resolved_device)
-        self.assertEqual(gaussian_mf._centers._dtype, torch.float64)
+        self.assertEqual(gaussian_mf._params.centers._device, resolved_device)
+        self.assertEqual(gaussian_mf._params.centers._dtype, torch.float64)
         self.assertEqual(gaussian_mf.get_centers().dtype, torch.float64)
 
         # adding a parameter afterward must use the up-to-date dtype, not a
         # stale one
-        gaussian_mf._centers.add_parameter(np.array([[2.0, 3.0]]))
-        self.assertEqual(gaussian_mf._centers.params[-1].dtype, torch.float64)
+        gaussian_mf._params.centers.add_parameter(np.array([[2.0, 3.0]]))
+        self.assertEqual(gaussian_mf._params.centers.params[-1].dtype, torch.float64)
 
         # an empty DynamicParameterList must not raise when .to() is given a
         # dtype only
-        empty = DynamicParameterList(
-            device=AVAILABLE_DEVICE,
-            dtype=torch.float32)
+        empty = DynamicParameterList(device=AVAILABLE_DEVICE, dtype=torch.float32)
         empty.to(torch.float64)
         self.assertEqual(empty._dtype, torch.float64)
         self.assertEqual(empty.tensor.dtype, torch.float64)
@@ -354,7 +352,7 @@ class TestFuzzySet(unittest.TestCase):
 
     def test_render_and_latex_formula(self) -> None:
         """
-        render_formula()/latex_formula() were never exercised by any existing test.
+        Ensure that rendering of the fuzzy set formulas works as intended.
 
         Returns:
             None
@@ -364,8 +362,8 @@ class TestFuzzySet(unittest.TestCase):
                 continue
             # some subclasses' sympy_formula() is unimplemented (returns None); this is
             # pre-existing behavior, so just confirm neither call raises
-            subclass.render_formula()
-            latex = subclass.latex_formula()
+            FuzzySetPlot.render_formula(subclass, latex=False)
+            latex = FuzzySetPlot.render_formula(subclass, latex=True)
             self.assertIsInstance(latex, str)
 
     def test_extend(self) -> None:
@@ -432,8 +430,7 @@ class TestFuzzySet(unittest.TestCase):
         area = gaussian_mf.area()
         self.assertEqual(area[0, 1].item(), 0.0)
 
-    def test_plot_single_variable_with_missing_term_and_highlight(
-            self) -> None:
+    def test_plot_single_variable_with_missing_term_and_highlight(self) -> None:
         """
         Covers plot() branches that the general cross-subclass plot test
         (test_impl.py::test_plot) does not reach: a single-variable fuzzy set (the
@@ -451,7 +448,7 @@ class TestFuzzySet(unittest.TestCase):
         )
         output_dir = Path(__file__).parent / "plots_single_var"
         try:
-            figures, axes = gaussian_mf.plot(
+            _figures, axes = gaussian_mf.plot(
                 output_dir=output_dir, selected_terms=[(0, 0)]
             )
             self.assertIsNotNone(axes)
@@ -511,8 +508,7 @@ class TestFuzzySet(unittest.TestCase):
         self.assertTrue(torch.allclose(degrees[0], direct[0]))
         self.assertTrue(torch.allclose(degrees[2], direct[2]))
 
-    def test_nan_observation_does_not_corrupt_shared_parameter_gradient(
-            self) -> None:
+    def test_nan_observation_does_not_corrupt_shared_parameter_gradient(self) -> None:
         """
         Regression test: a membership formula such as Gaussian's
         exp(-((x-c)^2)/(2w^2)) has a local derivative with respect to its parameters that
@@ -548,8 +544,65 @@ class TestFuzzySet(unittest.TestCase):
 
     def test_no_nan_fast_path_matches_calculate_membership(self) -> None:
         """
-        When no observation is NaN, _calculate_membership_nan_safe() should skip its
-        safety machinery entirely and return exactly what calculate_membership() would.
+        When no observation is NaN, _calculate_membership_nan_safe() must return
+        exactly what calculate_membership() would, regardless of which of its two
+        size-dependent strategies is used internally (see
+        test_no_nan_large_tensor_skips_safety_machinery and
+        test_no_nan_small_tensor_always_uses_safe_path for those specifically) - a
+        NaN-free torch.where is a value no-op either way.
+
+        Returns:
+            None
+        """
+        gaussian_mf = Gaussian(
+            centers=np.array([0.0, 1.0]),
+            widths=np.array([1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
+        )
+        observations = torch.tensor([[0.3], [0.6], [0.9]], device=AVAILABLE_DEVICE)
+        via_forward = gaussian_mf(observations).degrees.to_dense()
+        direct = gaussian_mf.calculate_membership(observations.unsqueeze(-1))
+        self.assertTrue(torch.equal(via_forward, direct))
+
+    def test_no_nan_large_tensor_skips_safety_machinery(self) -> None:
+        """
+        Regression/performance test: _calculate_membership_nan_safe used to always
+        sync (bool(nan_mask.any())) to decide whether the NaN-safe substitution was
+        needed. Calibration showed that sync costs ~400-750us in practice (dominated by
+        the reduction kernel and blocking scalar readback, not the sync primitive
+        itself), while the substitution it decides whether to skip only costs that much
+        once the resulting degrees tensor is large - see
+        FuzzySet._nan_safe_sync_threshold_numel. Above that threshold, with no NaN
+        present, the substitution (implemented via torch.where) must still be skipped
+        entirely.
+
+        Returns:
+            None
+        """
+        gaussian_mf = Gaussian(
+            centers=np.array([0.0, 1.0, 0.5, 0.25, 0.75]),
+            widths=np.array([1.0, 1.0, 1.0, 1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
+        )
+        # degrees numel == batch_size * n_terms(5); comfortably exceeds the
+        # threshold
+        batch_size = (
+            gaussian_mf._nan_safe_sync_threshold_numel // 5 + 10
+        )  # pylint: disable=protected-access
+        observations = torch.rand(batch_size, 1, device=AVAILABLE_DEVICE)
+
+        with mock.patch("torch.where", autospec=True) as mocked_where:
+            gaussian_mf(observations)
+        mocked_where.assert_not_called()
+
+    def test_no_nan_small_tensor_always_uses_safe_path(self) -> None:
+        """
+        Below FuzzySet._nan_safe_sync_threshold_numel, the sync needed to decide
+        whether the NaN-safe substitution is necessary costs more than just always
+        performing it -
+        so below the threshold, the substitution (torch.where, called twice: once to
+        build the NaN-free input, once to re-inject NaN into the output) must always
+        run, even when there is no NaN present (a harmless no-op at this size).
 
         Returns:
             None
@@ -560,7 +613,36 @@ class TestFuzzySet(unittest.TestCase):
             device=AVAILABLE_DEVICE,
         )
         observations = torch.tensor(
-            [[0.3], [0.6], [0.9]], device=AVAILABLE_DEVICE)
-        via_forward = gaussian_mf(observations).degrees.to_dense()
-        direct = gaussian_mf.calculate_membership(observations.unsqueeze(-1))
-        self.assertTrue(torch.equal(via_forward, direct))
+            [[0.3], [0.6], [0.9]], device=AVAILABLE_DEVICE
+        )  # tiny; no NaN anywhere
+
+        with mock.patch(
+            "torch.where", autospec=True, side_effect=torch.where
+        ) as mocked_where:
+            gaussian_mf(observations)
+        self.assertEqual(mocked_where.call_count, 2)
+
+    def test_nan_observation_still_produces_nan_degree_large_tensor(self) -> None:
+        """
+        The large-tensor, sync-gated branch must still produce the documented
+        "NaN observation -> NaN degree" contract when a NaN is actually present, not
+        just in the small-tensor always-safe branch (see
+        test_nan_observation_still_produces_nan_degree for that one).
+
+        Returns:
+            None
+        """
+        gaussian_mf = Gaussian(
+            centers=np.array([0.0, 1.0, 0.5, 0.25, 0.75]),
+            widths=np.array([1.0, 1.0, 1.0, 1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
+        )
+        batch_size = (
+            gaussian_mf._nan_safe_sync_threshold_numel // 5 + 10
+        )  # pylint: disable=protected-access
+        observations = torch.rand(batch_size, 1, device=AVAILABLE_DEVICE)
+        observations[0, 0] = float("nan")
+
+        degrees = gaussian_mf(observations).degrees.to_dense()
+        self.assertTrue(bool(degrees[0].isnan().all()))
+        self.assertFalse(bool(degrees[1:].isnan().any()))
