@@ -5,8 +5,13 @@ on: [push, pull_request]
 jobs:
   lint:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: psf/black@stable
         with:
           version: "25.11.0"
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: format with black"
