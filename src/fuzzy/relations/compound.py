@@ -53,7 +53,8 @@ class Compound(torch.nn.Module, Loggable):
         # create a new mask that accounts for the different masks for each relation;
         # each sub-relation's forward() already returns its own applied mask as
         # Membership.mask, so it is read from there rather than a self.applied_mask
-        # side channel (removed - see NAryRelation._apply_mask_with_mask's docstring)
+        # side channel (removed - see NAryRelation._apply_mask_with_mask's
+        # docstring)
         mask = torch.stack(
             [sub_membership.mask for sub_membership in memberships])
         return Membership(degrees=degrees, mask=mask)

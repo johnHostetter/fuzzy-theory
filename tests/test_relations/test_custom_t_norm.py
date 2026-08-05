@@ -52,9 +52,12 @@ class TestTNormPipeline(unittest.TestCase):
         configuration.save(path.parent / "configuration.yaml")
 
         try:
-            loaded_pipeline = TNormPipeline.load(path, device=torch.device("cpu"))
-            self.assertEqual("cpu", loaded_pipeline.layer_norm.weight.device.type)
-            self.assertEqual("cpu", loaded_pipeline.layer_norm.bias.device.type)
+            loaded_pipeline = TNormPipeline.load(
+                path, device=torch.device("cpu"))
+            self.assertEqual(
+                "cpu", loaded_pipeline.layer_norm.weight.device.type)
+            self.assertEqual(
+                "cpu", loaded_pipeline.layer_norm.bias.device.type)
             self.assertTrue(
                 torch.allclose(
                     pipeline.layer_norm.weight.cpu(),

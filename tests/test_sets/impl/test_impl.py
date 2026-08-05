@@ -43,9 +43,16 @@ class TestFuzzySetImpl(unittest.TestCase):
             # widths must be a numpy array
             self.assertRaises(ValueError, impl, np.ones(1), None, **kwargs)
             # centers and widths must have the same shape (i.e., ndim)
-            self.assertRaises(ValueError, impl, np.ones(1), np.ones((2, 1)), **kwargs)
+            self.assertRaises(
+                ValueError, impl, np.ones(1), np.ones(
+                    (2, 1)), **kwargs)
             # centers and widths must not be empty
-            self.assertRaises(ValueError, impl, np.array(1), np.array(1), **kwargs)
+            self.assertRaises(
+                ValueError,
+                impl,
+                np.array(1),
+                np.array(1),
+                **kwargs)
 
     def test_grad_fn_is_not_none(self) -> None:
         """
@@ -107,8 +114,12 @@ class TestFuzzySetImpl(unittest.TestCase):
             fuzzy_set.to(device=AVAILABLE_DEVICE)
             self.assertEqual(AVAILABLE_DEVICE.type, fuzzy_set.device.type)
             # check parameters are on the same device
-            self.assertEqual(AVAILABLE_DEVICE.type, fuzzy_set.get_centers().device.type)
-            self.assertEqual(AVAILABLE_DEVICE.type, fuzzy_set.get_widths().device.type)
+            self.assertEqual(
+                AVAILABLE_DEVICE.type,
+                fuzzy_set.get_centers().device.type)
+            self.assertEqual(
+                AVAILABLE_DEVICE.type,
+                fuzzy_set.get_widths().device.type)
 
     def test_plot(self) -> None:
         """
@@ -131,14 +142,15 @@ class TestFuzzySetImpl(unittest.TestCase):
                 output_dir=Path(__file__).parent / "plots" / impl.__name__
             )
             # check the directory exists
-            self.assertTrue((Path(__file__).parent / "plots" / impl.__name__).is_dir())
+            self.assertTrue(
+                (Path(__file__).parent / "plots" / impl.__name__).is_dir())
             # check a plot exists for each variable dimension
             for i in range(fuzzy_set.get_centers().shape[0]):
                 self.assertTrue(
-                    (
-                        Path(__file__).parent / "plots" / impl.__name__ / f"mu_{i}.png"
-                    ).is_file()
-                )
+                    (Path(__file__).parent /
+                     "plots" /
+                     impl.__name__ /
+                     f"mu_{i}.png").is_file())
 
         # delete the plots directory
         shutil.rmtree(Path(__file__).parent / "plots")

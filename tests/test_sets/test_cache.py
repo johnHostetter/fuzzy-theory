@@ -82,7 +82,9 @@ class TestSignatureOf(unittest.TestCase):
         signature_before = signature_of([first])
         with torch.no_grad():
             first.add_(1.0)
-        self.assertNotEqual(signature_before, signature_of([first]))  # version changed
+        self.assertNotEqual(
+            signature_before, signature_of(
+                [first]))  # version changed
 
         signature_before = signature_of([first])
         first.requires_grad_(True)
@@ -107,10 +109,10 @@ class TestMembershipCacheEntry(unittest.TestCase):
         observations = torch.zeros(2, device=AVAILABLE_DEVICE)
         degrees = torch.ones(2, device=AVAILABLE_DEVICE)
         entry = MembershipCacheEntry(
-            observations,
-            signature_of([]),
-            Membership(degrees=degrees, mask=torch.ones(2, device=AVAILABLE_DEVICE)),
-        )
+            observations, signature_of(
+                []), Membership(
+                degrees=degrees, mask=torch.ones(
+                    2, device=AVAILABLE_DEVICE)), )
         self.assertTrue(entry.valid)
         # as if it were a hook
         entry.invalidate(torch.zeros(2, device=AVAILABLE_DEVICE))
@@ -146,12 +148,24 @@ class TestMembershipCache(unittest.TestCase):
 
         cache.store(first_observations, signature_of([]), membership)
         self.assertEqual(len(cache), 1)
-        self.assertIsNotNone(cache.lookup(first_observations, signature_of([])))
+        self.assertIsNotNone(
+            cache.lookup(
+                first_observations,
+                signature_of(
+                    [])))
 
         cache.store(second_observations, signature_of([]), membership)
         self.assertEqual(len(cache), 1)  # still bounded to maxsize
-        self.assertIsNone(cache.lookup(first_observations, signature_of([])))  # evicted
-        self.assertIsNotNone(cache.lookup(second_observations, signature_of([])))
+        self.assertIsNone(
+            cache.lookup(
+                first_observations,
+                signature_of(
+                    [])))  # evicted
+        self.assertIsNotNone(
+            cache.lookup(
+                second_observations,
+                signature_of(
+                    [])))
 
 
 if __name__ == "__main__":

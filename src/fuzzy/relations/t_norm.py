@@ -50,8 +50,10 @@ class Minimum(TNorm):
         # first filter out the values that are not part of the relation
         # then take the minimum value of those that remain in the last
         # dimension
-        after_mask, applied_mask = self._apply_mask_with_mask(  # pylint: disable=protected-access
-            membership=membership
+        after_mask, applied_mask = (
+            self._apply_mask_with_mask(  # pylint: disable=protected-access
+                membership=membership
+            )
         )
         return Membership(
             # elements=membership.elements,
@@ -116,8 +118,10 @@ class Product(TNorm):
                 mask=applied_mask,
             )
 
-        after_mask, applied_mask = self._apply_mask_with_mask(  # pylint: disable=protected-access
-            membership=membership
+        after_mask, applied_mask = (
+            self._apply_mask_with_mask(  # pylint: disable=protected-access
+                membership=membership
+            )
         )
         return Membership(
             degrees=after_mask.prod(dim=-2, keepdim=False),
@@ -144,8 +148,10 @@ class SoftmaxSum(TNorm):
         Returns:
             The applicability of the fuzzy compounds (e.g., fuzzy logic rules).
         """
-        intermediate_values, applied_mask = self._apply_mask_with_mask(  # pylint: disable=protected-access
-            membership=membership
+        intermediate_values, applied_mask = (
+            self._apply_mask_with_mask(  # pylint: disable=protected-access
+                membership=membership
+            )
         )
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be
@@ -166,8 +172,10 @@ class GeneralizedLukasiewicz(TNorm):
     """
 
     def forward(self, membership: Membership) -> Membership:
-        intermediate_values, applied_mask = self._apply_mask_with_mask(  # pylint: disable=protected-access
-            membership=membership
+        intermediate_values, applied_mask = (
+            self._apply_mask_with_mask(  # pylint: disable=protected-access
+                membership=membership
+            )
         )
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be
@@ -217,8 +225,10 @@ class SoftmaxMean(TNorm):
         Returns:
             The applicability of the fuzzy compounds (e.g., fuzzy logic rules).
         """
-        intermediate_values, applied_mask = self._apply_mask_with_mask(  # pylint: disable=protected-access
-            membership=membership
+        intermediate_values, applied_mask = (
+            self._apply_mask_with_mask(  # pylint: disable=protected-access
+                membership=membership
+            )
         )
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be

@@ -47,12 +47,11 @@ class MembershipConfig:
         },
     )
     cache_membership: bool = field(
-        default=False,
-        metadata={"help": "Whether to cache the membership of the fuzzy sets."},
-    )
+        default=False, metadata={
+            "help": "Whether to cache the membership of the fuzzy sets."}, )
     membership_cache_size: int = field(
-        default=2, metadata={"help": "The size of membership cache for fuzzy sets."}
-    )
+        default=2, metadata={
+            "help": "The size of membership cache for fuzzy sets."})
 
 
 class FuzzySetInitMethod(Enum):
@@ -81,20 +80,16 @@ class FuzzySetInitMethod(Enum):
         """
         if self is FuzzySetInitMethod.RANDOM:
             centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = (
-                np.random.randn(shape.n_variables, shape.n_terms)
-            )
+                np.random.randn(shape.n_variables, shape.n_terms))
             widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = np.abs(
-                np.random.randn(shape.n_variables, shape.n_terms)
-            ).clip(min=0.1)
+                np.random.randn(shape.n_variables, shape.n_terms)).clip(min=0.1)
 
         elif self is FuzzySetInitMethod.LINEAR:
             base = np.linspace(0.0, 1.0, num=shape.n_terms)
             centers: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = (
-                np.repeat(base[None, :], repeats=shape.n_variables, axis=0)
-            )
+                np.repeat(base[None, :], repeats=shape.n_variables, axis=0))
             widths: Union[float, ndarray[Any, np.dtype[np.floating[_64Bit]]]] = np.full(
-                (shape.n_variables, shape.n_terms), init_width, dtype=np.float32
-            )
+                (shape.n_variables, shape.n_terms), init_width, dtype=np.float32)
 
         else:
             raise ValueError(f"Unsupported method: {self}")

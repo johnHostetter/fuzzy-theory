@@ -390,8 +390,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         with mock.patch.object(
             torch.Tensor, "nan_to_num", autospec=True
         ) as mocked_nan_to_num:
-            relation._gather_apply_mask(  # pylint: disable=protected-access
-                membership)
+            relation._gather_apply_mask(
+                membership)  # pylint: disable=protected-access
         mocked_nan_to_num.assert_not_called()
 
     def test_gather_apply_mask_small_tensor_always_calls_nan_to_num(
@@ -584,8 +584,10 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         membership = Membership(
             degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
         )
-        result, mask_component = relation._linear_sum_apply_mask(  # pylint: disable=protected-access
-            membership
+        result, mask_component = (
+            relation._linear_sum_apply_mask(  # pylint: disable=protected-access
+                membership
+            )
         )
         self.assertIsNone(mask_component)
         mask = relation.grouped_links(membership=membership)
