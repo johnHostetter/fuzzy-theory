@@ -17,6 +17,7 @@ from fuzzy.sets.membership import Membership
 from fuzzy.utils import TorchJitModule
 
 from ..utils.classes import Loggable
+
 # , log_classmethod, log_func, log_method
 from ..utils.functions import exp_sum_log, module_class
 from .linkage import BinaryLinks, GroupedLinks
@@ -100,9 +101,7 @@ class NAryRelation(TorchJitModule, Loggable):
         # branching
         self._apply_mask_func: Callable[
             [Membership], Tuple[torch.Tensor, Union[None, torch.Tensor]]
-        ] = (
-            self._cache_apply_mask_func()
-        )
+        ] = self._cache_apply_mask_func()
         self.matrix = None  # created later (via self._rebuild)
         self.grouped_links: Union[None, GroupedLinks] = (
             None  # created later (via self._rebuild)
@@ -519,8 +518,7 @@ class NAryRelation(TorchJitModule, Loggable):
         self._cached_links_complement = 1 - links
 
     def _apply_mask(
-        self, membership: Membership
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+            self, membership: Membership) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Get the after-mask tensor and the raw applied mask from the GroupedLinks using
         the given Membership object.
@@ -662,11 +660,17 @@ class NAryRelation(TorchJitModule, Loggable):
         # a NaN anywhere among a variable's terms must poison every rule that variable
         # participates in (structurally active or not) - see docstring above
         any_nan_per_variable = degrees.isnan().any(dim=2, keepdim=True)
-        if selected.numel() > GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL:
+        if (
+            not torch.compiler.is_compiling()
+            and selected.numel() > GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL
+        ):
             # large tensor: sync once to find out whether there is anything to do,
             # and skip the (comparatively expensive at this size) NaN-handling
             # entirely when there isn't - see
-            # GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL
+            # GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL. Guarded off entirely while
+            # compiling: is_compiling() is a compile-time constant, so Dynamo prunes
+            # this branch rather than tracing into the graph-breaking bool(...any())
+            # sync below, always taking the small-tensor (unconditional) path instead.
             has_nan = bool(any_nan_per_variable.any())
             if has_nan:
                 selected = torch.where(
