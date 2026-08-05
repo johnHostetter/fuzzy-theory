@@ -98,11 +98,7 @@ def assert_compile_fullgraph_matches_eager(
     """
     eager_output = flc(input_data)
     compiled_output = torch.compile(flc, fullgraph=True)(input_data)
-    assert torch.allclose(
-        eager_output,
-        compiled_output,
-        atol=atol,
-        equal_nan=True)
+    assert torch.allclose(eager_output, compiled_output, atol=atol, equal_nan=True)
 
 
 def _assert_rule_activations_match(

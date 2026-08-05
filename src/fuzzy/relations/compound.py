@@ -55,8 +55,7 @@ class Compound(torch.nn.Module, Loggable):
         # Membership.mask, so it is read from there rather than a self.applied_mask
         # side channel (removed - see NAryRelation._apply_mask_with_mask's
         # docstring)
-        mask = torch.stack(
-            [sub_membership.mask for sub_membership in memberships])
+        mask = torch.stack([sub_membership.mask for sub_membership in memberships])
         return Membership(degrees=degrees, mask=mask)
         # return Membership(elements=membership.elements, degrees=degrees)#,
         # mask=mask)
