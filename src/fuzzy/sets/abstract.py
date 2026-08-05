@@ -12,18 +12,10 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import Any, List, MutableMapping, NoReturn, Optional, Tuple, Type, Union
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import numpy as np
-
-# import scienceplots is used via plt.style.context(["science",
-# "no-latex", "high-contrast"])
-import scienceplots  # noqa # pylint: disable=unused-import
 import sympy
 import torch
 import torchquad
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 from numpy import ndarray
 from numpy._typing import _64Bit
 from torchquad.utils.set_up_backend import set_up_backend
@@ -363,25 +355,6 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         """
         return self._mask.tensor
 
-    @classmethod
-    # @log_classmethod
-    def render_formula(cls, latex: bool) -> Union[str, sympy.Expr]:
-        """
-        Render of the fuzzy set's membership function.
-
-        Args:
-            latex: Use False for Python Console or Jupyter Notebook. Otherwise, True will return
-            a LaTeX representation of the fuzzy set's membership function.
-
-        Returns:
-            Render of the fuzzy set's membership function.
-        """
-        if latex:
-            return sympy.latex(cls.sympy_formula())
-
-        sympy.init_printing(use_unicode=True)
-        return cls.sympy_formula()
-
     def _extra_save_state(self) -> MutableMapping[str, Any]:
         """
         Hook for subclasses with additional learnable parameters beyond centers/widths
@@ -595,9 +568,14 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     # @log_method
     def plot(
         self, output_dir: Path, selected_terms: List[Tuple[int, int]] = None
-    ) -> tuple[list[Any], Union[Axes, ndarray]]:
+    ) -> Tuple[List[Any], Any]:
         """
         Plot the fuzzy set.
+
+        A thin convenience wrapper: data preparation and matplotlib rendering live in
+        fuzzy.sets.visualization.FuzzySetPlot - imported lazily here so that importing
+        this module (and therefore FuzzySet itself) does not require
+        matplotlib/scienceplots unless plotting is actually used.
 
         Args:
             output_dir: The path to the directory where to save the plot(s).
@@ -607,152 +585,12 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             A 2-tuple containing the figures and axes of the plot for each variable (e.g., 0th
             index contains the figure and axes for the 0th variable).
         """
-        if selected_terms is None:
-            selected_terms = []
+        # pylint: disable-next=import-outside-toplevel
+        from .visualization import FuzzySetPlot
 
-        figures, axes = [], []
-        mpl.rcParams["figure.figsize"] = (6, 4)
-        mpl.rcParams["figure.dpi"] = 100
-        mpl.rcParams["savefig.dpi"] = 100
-        mpl.rcParams["font.size"] = 24
-        mpl.rcParams["legend.fontsize"] = "medium"
-        mpl.rcParams["figure.titlesize"] = "medium"
-        mpl.rcParams["lines.linewidth"] = 2
-        with plt.style.context(["science", "no-latex", "high-contrast"]):
-            fig, axes = plt.subplots(1, 4, figsize=(28, 4), dpi=100)
-            for variable_idx in range(self.get_centers().shape[0]):
-                # fig, ax = plt.subplots(1, figsize=(6, 4), dpi=100)
-                # mpl.rcParams["figure.figsize"] = (16, 4)
-                # mpl.rcParams["figure.dpi"] = 100
-                # mpl.rcParams["savefig.dpi"] = 100
-                # mpl.rcParams["font.size"] = 20
-                # mpl.rcParams["legend.fontsize"] = "medium"
-                # mpl.rcParams["figure.titlesize"] = "medium"
-                # mpl.rcParams["lines.linewidth"] = 2
-                axes[variable_idx].tick_params(width=2, length=6)
-                plt.xticks(fontsize=20)
-                plt.yticks(fontsize=20)
-                real_centers: List[float] = [
-                    self.get_centers()[variable_idx, term_idx].item()
-                    for term_idx, mask_value in enumerate(self.get_mask()[variable_idx])
-                    if mask_value == 1
-                ]
-                real_widths: List[float] = [
-                    self.get_widths()[variable_idx, term_idx].item()
-                    for term_idx, mask_value in enumerate(self.get_mask()[variable_idx])
-                    if mask_value == 1
-                ]
-                x_values = torch.linspace(
-                    min(real_centers) - 2 * max(real_widths),
-                    max(real_centers) + 2 * max(real_widths),
-                    steps=1000,
-                    device=self.device,
-                )
-
-                if self.get_centers(
-                ).ndim == 1 or self.get_centers().shape[0] == 1:
-                    x_values = x_values[:, None]
-                elif self.get_centers().ndim == 2 or self.get_centers().shape[0] > 1:
-                    x_values = x_values[:, None, None]
-
-                memberships: torch.Tensor = self.calculate_membership(x_values)
-
-                if memberships.ndim == 2:
-                    memberships = memberships.unsqueeze(
-                        dim=1
-                    )  # add a temporary dimension for the variable
-
-                memberships = memberships.cpu().detach().numpy()
-                x_values = x_values.squeeze().cpu().detach().numpy()
-
-                for term_idx in range(memberships.shape[-1]):
-                    if self.get_mask()[variable_idx, term_idx] == 0:
-                        continue  # not a real fuzzy set
-                    y_values = memberships[:, variable_idx, term_idx]
-                    label: str = (
-                        r"$\mu_{"
-                        + str(variable_idx + 1)
-                        + ","
-                        + str(term_idx + 1)
-                        + "}$"
-                    )
-                    if (variable_idx, term_idx) in selected_terms:
-                        # edgecolor="#0bafa9"  # beautiful with facecolor=None
-                        # (AAMAS 2023)
-                        # edgecolor="#0bafa9"  # beautiful with facecolor=None
-                        # (AAMAS 2023)
-                        axes[variable_idx].fill_between(
-                            x_values, y_values, alpha=0.5, hatch="///", label=label)
-                    else:
-                        axes[variable_idx].plot(
-                            x_values, y_values, alpha=0.5, label=label
-                        )
-                axes[variable_idx].legend(
-                    bbox_to_anchor=(0.5, -0.2),
-                    loc="upper center",
-                    ncol=len(real_centers),
-                    handletextpad=0.1,
-                    # reduce spacing b/w legend markers & label (default=0.8)
-                    columnspacing=0.5,  # reduce spacing b/w legend entries
-                    borderaxespad=-0.5,  # reduce the spacing b/w the legend and the plot
-                )
-                plt.subplots_adjust(bottom=0.3, wspace=0.33)
-                output_dir.mkdir(parents=True, exist_ok=True)
-                # plt.savefig(output_dir / f"mu_{variable_idx}.png")
-                # plt.clf()
-                #
-                # figures.append(fig)
-                # axes.append(ax)
-
-            plt.savefig(output_dir / "mu.png")
-
-        self.__individual_plot(axes, fig, output_dir)
-
-        return figures, axes
-
-    def __individual_plot(
-        self, axes: Union[Axes, ndarray], fig: Figure, output_dir: Path
-    ) -> None:
-        """
-        Save just the portion _inside_ the second axis's boundaries. Why do I do it this way?
-        Because the axis is not always the same size if each plot is different. So, I save the
-        area inside the axis's boundaries, and then I can pad it to make it look nice in papers.
-
-        Args:
-            axes: The axes to use for the plots.
-            fig: The figure to continue referencing when plotting.
-            output_dir: The directory to save the figure(s).
-
-        Returns:
-            None
-        """
-        for variable_idx in range(self.get_centers().shape[0]):
-            extent = (
-                axes[variable_idx]
-                .get_window_extent()
-                .transformed(fig.dpi_scale_trans.inverted())
-            )
-            fig.savefig(
-                output_dir /
-                f"mu_{variable_idx}.png",
-                bbox_inches=extent)
-
-            # Pad the saved area by 20% in the x-direction and 10% in the
-            # y-direction
-            fig.savefig(
-                output_dir / "ax2_figure_expanded.png",
-                bbox_inches=extent.expanded(1.2, 1.2),
-            )
-            expanded_bbox = mpl.transforms.Bbox(
-                [
-                    (extent.x0 - 0.15 * extent.width, extent.y0 - 0.35 * extent.height),
-                    (extent.x1 + 0.15 * extent.width, extent.y1 + 0.05 * extent.height),
-                ]
-            )
-            fig.savefig(
-                output_dir / f"mu_{variable_idx}_expanded.png",
-                bbox_inches=expanded_bbox,
-            )
+        plot = FuzzySetPlot(self)
+        variable_plots = plot.build(selected_terms)
+        return plot.render(variable_plots, output_dir)
 
     @staticmethod
     # @log_func
@@ -1039,7 +877,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
 
-        degrees: torch.Tensor = self._calculate_membership_nan_safe(observations)
+        degrees: torch.Tensor = self._calculate_membership_nan_safe(
+            observations)
 
         if self._validate_degrees:
             assert (

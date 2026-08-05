@@ -16,10 +16,15 @@ import numpy as np
 import torch
 
 from fuzzy.sets import Membership
-from fuzzy.sets.abstract import (DynamicParameterList, FuzzySet,
-                                 FuzzySetInitMethod, FuzzySetShape)
+from fuzzy.sets.abstract import (
+    DynamicParameterList,
+    FuzzySet,
+    FuzzySetInitMethod,
+    FuzzySetShape,
+)
 from fuzzy.sets.impl.basic import NoOp
 from fuzzy.sets.impl.gauss_variants.cmf import Gaussian
+from fuzzy.sets.visualization import FuzzySetPlot
 
 AVAILABLE_DEVICE: torch.device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
@@ -351,7 +356,7 @@ class TestFuzzySet(unittest.TestCase):
 
     def test_render_and_latex_formula(self) -> None:
         """
-        render_formula()/latex_formula() were never exercised by any existing test.
+        Ensure that rendering of the fuzzy set formulas works as intended.
 
         Returns:
             None
@@ -361,8 +366,8 @@ class TestFuzzySet(unittest.TestCase):
                 continue
             # some subclasses' sympy_formula() is unimplemented (returns None); this is
             # pre-existing behavior, so just confirm neither call raises
-            subclass.render_formula()
-            latex = subclass.latex_formula()
+            FuzzySetPlot.render_formula(subclass, latex=False)
+            latex = FuzzySetPlot.render_formula(subclass, latex=True)
             self.assertIsInstance(latex, str)
 
     def test_extend(self) -> None:
