@@ -7,8 +7,7 @@ import unittest
 import torch
 
 from fuzzy.utils import TimeDistributed
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from tests import AVAILABLE_DEVICE
 
 
 class TestTimeDistributed(unittest.TestCase):

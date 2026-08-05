@@ -154,8 +154,7 @@ class FuzzyLogicController(torch.nn.Sequential):
             klass, TNorm
         ), "The loaded class type must be an instance of TNorm."
         engine: NAryRelation = klass.load(module_class_path, device=device)
-        defuzzification = Defuzzification.load(
-            path / "defuzzification", device=device)
+        defuzzification = Defuzzification.load(path / "defuzzification", device=device)
 
         # load the FLC state dictionary for the remaining components
         state_dict: MutableMapping[str, Any] = torch.load(

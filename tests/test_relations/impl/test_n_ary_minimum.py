@@ -1,0 +1,140 @@
+"""
+Test the n-ary relation implementing the minimum t-norm calculates as expected.
+"""
+
+import numpy as np
+import torch
+
+from fuzzy.relations.t_norm import Minimum
+from fuzzy.sets import FuzzySet, FuzzySetGroup, Gaussian, Membership
+from tests.test_relations.impl.common import (
+    assert_apply_mask_matches_expected,
+    assert_matches_expected,
+)
+from tests.test_relations.test_n_ary import AVAILABLE_DEVICE, TestNAryRelation
+
+
+class TestMinimum(TestNAryRelation):
+    """
+    Test the Minimum n-ary relation.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.hypercube = FuzzySetGroup(
+            modules_list=[
+                FuzzySet.stack(
+                    [
+                        Gaussian(
+                            centers=np.array([-1, 0.0, 1.0]),
+                            widths=np.array([1.0, 1.0, 1.0]),
+                            device=AVAILABLE_DEVICE,
+                        ),
+                        Gaussian(
+                            centers=np.array([-1.0, 0.0, 1.0]),
+                            widths=np.array([1.0, 1.0, 1.0]),
+                            device=AVAILABLE_DEVICE,
+                        ),
+                    ]
+                )
+            ]
+        )
+
+    def test_minimum(self) -> None:
+        """
+        Test the n-ary minimum operation given a single relation.
+
+        Returns:
+            None
+        """
+        n_ary = Minimum((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        membership = self.test_gaussian_membership()
+
+        # test the mask application
+        assert_apply_mask_matches_expected(n_ary, membership, AVAILABLE_DEVICE)
+
+        # test the forward pass
+        min_membership: Membership = n_ary.forward(membership)
+        assert_matches_expected(
+            min_membership.degrees,
+            [[2.5514542e-04], [8.4526926e-01], [5.7408627e-04]],
+            AVAILABLE_DEVICE,
+        )
+
+        # check that it is torch.jit scriptable (currently not working)
+        # n_ary_script = torch.jit.script(n_ary)
+        #
+        # after_mask_script = n_ary_script.apply_mask(membership=membership)
+        # self.assertTrue(torch.allclose(after_mask_script, expected_after_mask))
+        #
+        # min_values_script = n_ary_script.forward(membership)
+        # self.assertTrue(torch.allclose(min_values_script, expected_min_values))
+
+    def test_multiple_indices_passed_as_list(self) -> None:
+        """
+        Test the Minimum operation given multiple relations, where some variables are never used
+        by those relations. This is a test to ensure that the Minimum operation can handle
+        relations that do not use all variables (i.e., does not wrongly output zeros).
+
+        Returns:
+            None
+        """
+        input_data: torch.Tensor = torch.tensor(
+            [
+                [0.27, -0.75],
+                [3.0, -0.1],
+                [-0.567, -1.87],
+                [0.334, 0.996],
+            ],
+            device=AVAILABLE_DEVICE,
+        )
+
+        minimum = Minimum(
+            [(0, 0), (1, 0)],
+            [(0, 0), (1, 1)],
+            [(0, 1), (1, 0)],
+            [(0, 1), (1, 1)],
+            [(0, 1), (1, 2)],
+            device=AVAILABLE_DEVICE,
+        )
+
+        membership: Membership = self.hypercube(input_data)
+        min_membership: Membership = minimum(membership)
+        expected_degrees = torch.tensor(
+            [
+                [
+                    1.99308798e-01,
+                    1.99308798e-01,
+                    9.29693758e-01,
+                    5.69782794e-01,
+                    4.67706248e-02,
+                ],
+                [
+                    1.12535176e-07,
+                    1.12535176e-07,
+                    1.23409802e-04,
+                    1.23409802e-04,
+                    1.23409802e-04,
+                ],
+                [
+                    4.69118446e-01,
+                    3.02911401e-02,
+                    4.69118446e-01,
+                    3.02911401e-02,
+                    2.64703733e-04,
+                ],
+                [
+                    1.86107438e-02,
+                    1.68713033e-01,
+                    1.86107438e-02,
+                    3.70828360e-01,
+                    8.94441307e-01,
+                ],
+            ],
+            dtype=torch.float32,
+            device=AVAILABLE_DEVICE,
+        )
+
+        self.assertTrue(
+            torch.allclose(min_membership.degrees.to_dense(), expected_degrees)
+        )

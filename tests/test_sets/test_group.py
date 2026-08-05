@@ -2,6 +2,10 @@
 Test functionality relating to FuzzySetGroup.
 """
 
+# white-box tests deliberately reach into private/internal attributes to verify
+# implementation details
+# pylint: disable=protected-access
+
 import shutil
 import unittest
 from pathlib import Path
@@ -87,6 +91,9 @@ class _ModuleMissingGetters(torch.nn.Module):
         Returns:
             A fixed Membership, independent of the given observations.
         """
+        assert isinstance(
+            observations, torch.Tensor
+        ), "The observations should be a torch.Tensor."
         return Membership(degrees=self._degrees, mask=self._mask)
 
 

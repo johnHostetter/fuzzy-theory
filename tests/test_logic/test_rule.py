@@ -14,8 +14,7 @@ from fuzzy.logic.rule import Rule
 from fuzzy.relations.linkage import BinaryLinks, GroupedLinks
 from fuzzy.relations.n_ary import NAryRelation
 from fuzzy.relations.t_norm import Minimum, Product, SoftmaxSum, TNorm
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from tests import AVAILABLE_DEVICE
 
 
 class TestRule(unittest.TestCase):
@@ -84,8 +83,7 @@ class TestRule(unittest.TestCase):
             "IF NAryRelation([((0, 1), (1, 0), (2, 0))]) THEN NAryRelation([((0, 0),)])",
         ] + ["IF (0, 1) AND (1, 0) AND (2, 0) THEN (0, 0)"] * len(n_ary_types[1:])
         for n_ary_type, expected_str in zip(n_ary_types, expected_str_rules):
-            premise = n_ary_type(
-                (0, 1), (1, 0), (2, 0), device=AVAILABLE_DEVICE)
+            premise = n_ary_type((0, 1), (1, 0), (2, 0), device=AVAILABLE_DEVICE)
             consequence = n_ary_type((0, 0), device=AVAILABLE_DEVICE)
             rule = Rule(premise, consequence)
             self.assertEqual(premise, rule.premise)
@@ -124,15 +122,11 @@ class TestRule(unittest.TestCase):
         self.assertIsInstance(loaded_rule, Rule)
         # compare devices
         self.assertEqual(rule.premise.device, loaded_rule.premise.device)
-        self.assertEqual(
-            rule.consequence.device,
-            loaded_rule.consequence.device)
+        self.assertEqual(rule.consequence.device, loaded_rule.consequence.device)
         # compare the premise indices
         self.assertEqual(rule.premise.indices, loaded_rule.premise.indices)
         # compare the consequence indices
-        self.assertEqual(
-            rule.consequence.indices,
-            loaded_rule.consequence.indices)
+        self.assertEqual(rule.consequence.indices, loaded_rule.consequence.indices)
         # compare the created GroupedLinks objects
         with torch.no_grad():  # disable grad checking
             self.assertTrue(

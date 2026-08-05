@@ -54,11 +54,8 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
     """
 
     def __init__(
-            self,
-            init_params=None,
-            dtype=None,
-            device=None,
-            parameters: bool = True):
+        self, init_params=None, dtype=None, device=None, parameters: bool = True
+    ):
         super().__init__()
         self.params: Union[torch.nn.ParameterList, List[torch.Tensor]] = (
             torch.nn.ParameterList() if parameters else []
@@ -78,8 +75,7 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
     def __setitem__(self, idx, value):
         # 1. Enforce that the incoming value is a valid PyTorch Parameter
         if not isinstance(value, torch.nn.Parameter):
-            raise TypeError(
-                f"Expected a torch.nn.Parameter, but got {type(value)}")
+            raise TypeError(f"Expected a torch.nn.Parameter, but got {type(value)}")
 
         # 2. Update the internal tracker
         # If using nn.ParameterList, it handles module registration
@@ -99,8 +95,7 @@ class DynamicParameterList(torch.nn.Module):  # pylint: disable=abstract-method
         tensor: torch.Tensor (will be converted to Parameter)
         """
         if not isinstance(tensor, torch.Tensor):
-            tensor = torch.as_tensor(
-                tensor, dtype=self._dtype, device=self._device)
+            tensor = torch.as_tensor(tensor, dtype=self._dtype, device=self._device)
         if isinstance(self.params, torch.nn.ParameterList):
             param = torch.nn.Parameter(tensor)
         else:
@@ -298,7 +293,8 @@ class TorchJitModule(torch.nn.Module, ABC):
         if fuzzy_set_class is None:
             raise ValueError(
                 f"The class {class_name} was not found in the subclasses of "
-                f"{cls}. Please ensure that {class_name} is a subclass of {cls}.")
+                f"{cls}. Please ensure that {class_name} is a subclass of {cls}."
+            )
         return fuzzy_set_class
 
 
@@ -349,30 +345,24 @@ class NestedTorchJitModule(torch.nn.Module):
                         # save the fuzzy set using the fuzzy set's special
                         # protocol
                         module.save(
-                            path / attr / str(idx) / f"{module.__class__.__name__}.pt")
+                            path / attr / str(idx) / f"{module.__class__.__name__}.pt"
+                        )
                     else:
                         # unknown and unrecognized module, but attempt to save
                         # the module
                         torch.save(
                             module,
-                            path /
-                            attr /
-                            str(idx) /
-                            f"{module.__class__.__name__}.pt",
+                            path / attr / str(idx) / f"{module.__class__.__name__}.pt",
                         )
                 # remove the torch.nn.ModuleList from the local attributes
                 del local_attributes_only[attr]
 
         # save the remaining attributes
         with open(path / f"{self.__class__.__name__}.pickle", "wb") as handle:
-            pickle.dump(
-                local_attributes_only,
-                handle,
-                protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(local_attributes_only, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     @classmethod
-    def load(cls, path: Path, device: torch.device,
-             **kwargs) -> "NestedTorchJitModule":
+    def load(cls, path: Path, device: torch.device, **kwargs) -> "NestedTorchJitModule":
         """
         Load the torch.nn.Module from the given path.
 
@@ -466,10 +456,7 @@ class NestedTorchJitModule(torch.nn.Module):
                 except ValueError:
                     # unknown and unrecognized module, but attempt to
                     # load the module
-                    modules_list.append(
-                        torch.load(
-                            module_path,
-                            weights_only=False))
+                    modules_list.append(torch.load(module_path, weights_only=False))
             else:
                 pass  # Unexpected file found (might be a *.yaml)
         return modules_list

@@ -62,9 +62,7 @@ class DimensionDependent(FuzzySet, abc.ABC):
         )
 
     @staticmethod
-    def _calculate_rho(
-            n_inputs: torch.Tensor,
-            device: torch.device) -> torch.Tensor:
+    def _calculate_rho(n_inputs: torch.Tensor, device: torch.device) -> torch.Tensor:
         with torch.no_grad():
             return (
                 torch.ones(1, device=device)

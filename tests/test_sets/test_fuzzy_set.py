@@ -4,6 +4,10 @@ Gaussian fuzzy set (i.e., membership function), and the Triangular fuzzy set (i.
 function).
 """
 
+# white-box tests deliberately reach into private/internal attributes to verify
+# implementation details
+# pylint: disable=protected-access
+
 import inspect
 import os
 import shutil
@@ -100,11 +104,11 @@ class TestFuzzySet(unittest.TestCase):
             # check that the parameters and members are the same
             assert membership_func == loaded_membership_func
             assert torch.allclose(
-                membership_func.get_centers(),
-                loaded_membership_func.get_centers())
+                membership_func.get_centers(), loaded_membership_func.get_centers()
+            )
             assert torch.allclose(
-                membership_func.get_widths(),
-                loaded_membership_func.get_widths())
+                membership_func.get_widths(), loaded_membership_func.get_widths()
+            )
             if isinstance(
                 subclass, Gaussian
             ):  # Gaussian has an additional parameter (alias for widths)
@@ -112,9 +116,7 @@ class TestFuzzySet(unittest.TestCase):
                     membership_func.sigmas, loaded_membership_func.sigmas
                 )
             # check some functionality that it is still working
-            assert torch.allclose(
-                membership_func.area(),
-                loaded_membership_func.area())
+            assert torch.allclose(membership_func.area(), loaded_membership_func.area())
             assert torch.allclose(
                 membership_func(
                     torch.tensor([[0.1, 0.2, 0.3, 0.4]], device=AVAILABLE_DEVICE)
@@ -163,12 +165,8 @@ class TestFuzzySet(unittest.TestCase):
         """
         self.assertEqual(no_op.get_centers().size()[0], 10)
         self.assertEqual(membership.degrees.size()[1], 4)
-        self.assertNotEqual(
-            no_op.get_centers().size()[0],
-            membership.degrees.size()[1])
-        self.assertAlmostEqual(
-            no_op.membership,
-            membership.degrees.mean().item())
+        self.assertNotEqual(no_op.get_centers().size()[0], membership.degrees.size()[1])
+        self.assertAlmostEqual(no_op.membership, membership.degrees.mean().item())
 
     def test_hash_eq_contract(self) -> None:
         """
@@ -244,14 +242,11 @@ class TestFuzzySet(unittest.TestCase):
         # adding a parameter afterward must use the up-to-date dtype, not a
         # stale one
         gaussian_mf._params.centers.add_parameter(np.array([[2.0, 3.0]]))
-        self.assertEqual(
-            gaussian_mf._params.centers.params[-1].dtype, torch.float64)
+        self.assertEqual(gaussian_mf._params.centers.params[-1].dtype, torch.float64)
 
         # an empty DynamicParameterList must not raise when .to() is given a
         # dtype only
-        empty = DynamicParameterList(
-            device=AVAILABLE_DEVICE,
-            dtype=torch.float32)
+        empty = DynamicParameterList(device=AVAILABLE_DEVICE, dtype=torch.float32)
         empty.to(torch.float64)
         self.assertEqual(empty._dtype, torch.float64)
         self.assertEqual(empty.tensor.dtype, torch.float64)
@@ -435,8 +430,7 @@ class TestFuzzySet(unittest.TestCase):
         area = gaussian_mf.area()
         self.assertEqual(area[0, 1].item(), 0.0)
 
-    def test_plot_single_variable_with_missing_term_and_highlight(
-            self) -> None:
+    def test_plot_single_variable_with_missing_term_and_highlight(self) -> None:
         """
         Covers plot() branches that the general cross-subclass plot test
         (test_impl.py::test_plot) does not reach: a single-variable fuzzy set (the
@@ -454,7 +448,7 @@ class TestFuzzySet(unittest.TestCase):
         )
         output_dir = Path(__file__).parent / "plots_single_var"
         try:
-            figures, axes = gaussian_mf.plot(
+            _figures, axes = gaussian_mf.plot(
                 output_dir=output_dir, selected_terms=[(0, 0)]
             )
             self.assertIsNotNone(axes)
@@ -514,8 +508,7 @@ class TestFuzzySet(unittest.TestCase):
         self.assertTrue(torch.allclose(degrees[0], direct[0]))
         self.assertTrue(torch.allclose(degrees[2], direct[2]))
 
-    def test_nan_observation_does_not_corrupt_shared_parameter_gradient(
-            self) -> None:
+    def test_nan_observation_does_not_corrupt_shared_parameter_gradient(self) -> None:
         """
         Regression test: a membership formula such as Gaussian's
         exp(-((x-c)^2)/(2w^2)) has a local derivative with respect to its parameters that
@@ -566,8 +559,7 @@ class TestFuzzySet(unittest.TestCase):
             widths=np.array([1.0, 1.0]),
             device=AVAILABLE_DEVICE,
         )
-        observations = torch.tensor(
-            [[0.3], [0.6], [0.9]], device=AVAILABLE_DEVICE)
+        observations = torch.tensor([[0.3], [0.6], [0.9]], device=AVAILABLE_DEVICE)
         via_forward = gaussian_mf(observations).degrees.to_dense()
         direct = gaussian_mf.calculate_membership(observations.unsqueeze(-1))
         self.assertTrue(torch.equal(via_forward, direct))
@@ -630,8 +622,7 @@ class TestFuzzySet(unittest.TestCase):
             gaussian_mf(observations)
         self.assertEqual(mocked_where.call_count, 2)
 
-    def test_nan_observation_still_produces_nan_degree_large_tensor(
-            self) -> None:
+    def test_nan_observation_still_produces_nan_degree_large_tensor(self) -> None:
         """
         The large-tensor, sync-gated branch must still produce the documented
         "NaN observation -> NaN degree" contract when a NaN is actually present, not

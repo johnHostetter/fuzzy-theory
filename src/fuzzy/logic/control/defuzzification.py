@@ -53,8 +53,7 @@ class Defuzzification(TorchJitModule, abc.ABC):
         except UnicodeDecodeError:
             # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xde in position 157881408:
             # invalid continuation byte
-            state_dict = torch.load(
-                path, weights_only=False, encoding="latin1")
+            state_dict = torch.load(path, weights_only=False, encoding="latin1")
 
         shape: Shape = Shape(*state_dict.pop("shape"))
         class_name: str = state_dict.pop("class_name")
@@ -186,11 +185,7 @@ class ZeroOrder(Defuzzification):
         state_dict: MutableMapping = torch.load(path, weights_only=False)
         shape: Shape = Shape(*state_dict.pop("shape"))
         source: np.ndarray = state_dict.pop("source")
-        return ZeroOrder(
-            shape=shape,
-            source=source,
-            device=device,
-            **state_dict)
+        return ZeroOrder(shape=shape, source=source, device=device, **state_dict)
 
     def to(self, device: torch.device, *args, **kwargs) -> "ZeroOrder":
         """
@@ -261,12 +256,9 @@ class ZeroOrder(Defuzzification):
         #     antecedents_memberships.elements.unsqueeze(dim=-1)
         #     * self.consequences_matrix
         # )
-        return (
-            rule_activations.degrees.unsqueeze(
-                dim=-
-                1) *
-            self.consequences).sum(
-            dim=1)
+        return (rule_activations.degrees.unsqueeze(dim=-1) * self.consequences).sum(
+            dim=1
+        )
 
 
 class NormalizedZeroOrder(ZeroOrder):
@@ -342,8 +334,10 @@ class TSK(Defuzzification):
         shape = consequences[:, :, 1:].shape
         # Flatten (r, o) into one big linear projection dimension
         self.r, self.o, self.f = shape[0], shape[1], shape[2]
-        self.weights = torch.nn.Parameter(consequences[:, :, 1:].reshape(
-            self.r * self.o, self.f).T.contiguous(), requires_grad=True, )
+        self.weights = torch.nn.Parameter(
+            consequences[:, :, 1:].reshape(self.r * self.o, self.f).T.contiguous(),
+            requires_grad=True,
+        )
         self.bias = torch.nn.Parameter(
             consequences[:, :, 0].contiguous().unsqueeze(0), requires_grad=True
         )
@@ -564,9 +558,8 @@ class Mamdani(Defuzzification):
             The defuzzified output of a Mamdani FLC.
         """
         numerator = (
-            self.output_links *
-            self.consequences.centers *
-            self.consequences.widths)
+            self.output_links * self.consequences.centers * self.consequences.widths
+        )
         denominator = self.output_links * self.consequences.widths
 
         # the below commented out is a Work in Progress

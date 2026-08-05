@@ -20,3 +20,20 @@ is differentiable and can be used in neural networks and other machine learning 
 3. *Minimal dependencies*: The library uses minimal dependencies to implement these features.
 4. *Easy to use*: The library is designed to be easy to use and understand, with a simple API that is similar to PyTorch's tensor operations.
 5. *Visualization*: Formulas are written with `sympy` for LaTeX rendering and plots are stylized with `scienceplots` for publication-ready figures.  
+
+## Linting :mag:
+The `src/` and `tests/` trees are linted separately, since test code is intentionally held
+to different standards than library code (e.g. white-box tests reaching into
+private/internal attributes is expected, not a defect).
+
+```bash
+# lint the library itself (this is what CI runs)
+pylint src/fuzzy
+
+# lint the test suite, using its own scoped config (tests/.pylintrc)
+pylint --rcfile=tests/.pylintrc tests
+```
+
+The `--rcfile=tests/.pylintrc` flag is required - pylint's config discovery only searches
+upward from the current working directory, so a `.pylintrc` placed inside `tests/` is not
+picked up automatically by a bare `pylint tests` invocation from the repository root.

@@ -3,6 +3,10 @@ Direct unit tests for the fuzzy.sets.membership module's namedtuples: Membership
 NamedTensor.
 """
 
+# white-box tests deliberately reach into private/internal attributes to verify
+# implementation details
+# pylint: disable=protected-access
+
 import unittest
 
 import torch
@@ -10,8 +14,7 @@ import torch._dynamo
 
 from fuzzy.sets.membership import Membership, NamedTensor
 from fuzzy.utils.options.impl.impl_enums import DimensionEnum
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from tests import AVAILABLE_DEVICE
 
 
 class TestMembership(unittest.TestCase):

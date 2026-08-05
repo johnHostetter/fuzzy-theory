@@ -15,10 +15,9 @@ from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.relations.t_norm import Minimum, Product, TNorm
 from fuzzy.sets.impl import Gaussian
 from fuzzy.sets.membership import Membership
+from tests import AVAILABLE_DEVICE
 
 from .demo_flcs import toy_tsk
-
-AVAILABLE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def make_test_scenario(t_norm: Type[TNorm]) -> Tuple[
