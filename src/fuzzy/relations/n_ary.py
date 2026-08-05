@@ -142,18 +142,6 @@ class NAryRelation(TorchJitModule, Loggable):
             self.indices.extend(indices)
             self._rebuild(*(max_var, max_term))
 
-        # # test if the relation is well-defined & build it
-        # # the last index, -1, is the relation index; first 2 are (variable, term) indices
-        # membership_shape: torch.Size = self.grouped_links.shape[:-1]
-        # # but we also need to include a dummy batch dimension (32) for the grouped_links
-        # membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
-        # self.applied_mask = self.grouped_links(
-        #     Membership(
-        #         # elements=torch.empty(membership_shape, device=self.device),
-        #         degrees=torch.zeros(membership_shape, device=self.device),
-        #         # mask=torch.empty(membership_shape, device=self.device),
-        #     )
-        # )
         self._cached_links: Union[None, torch.Tensor] = None
         self._cached_links_complement: Union[None, torch.Tensor] = None
         self._cached_links_bool: Union[None, torch.Tensor] = None
@@ -176,7 +164,11 @@ class NAryRelation(TorchJitModule, Loggable):
 
     # @log_method
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, NAryRelation) or not isinstance(self, type(other)):
+        if not isinstance(
+                other,
+                NAryRelation) or not isinstance(
+                self,
+                type(other)):
             return False
         applied_mask, other_applied_mask = self.get_mask(), other.get_mask()
         return (
@@ -225,11 +217,14 @@ class NAryRelation(TorchJitModule, Loggable):
         membership_shape: torch.Size = self.grouped_links.shape[:-1]
         # but we also need to include a dummy batch dimension (32) for the
         # grouped_links
-        batched_membership_shape: torch.Size = torch.Size([32] + list(membership_shape))
+        batched_membership_shape: torch.Size = torch.Size(
+            [32] + list(membership_shape))
         with torch.no_grad():  # disable grad checking
             dummy_membership: Membership = Membership(
                 # elements=torch.empty(membership_shape, device=self.device),
-                degrees=torch.ones(batched_membership_shape, device=self.device),
+                degrees=torch.ones(
+                    batched_membership_shape,
+                    device=self.device),
                 mask=torch.ones(membership_shape, device=self.device),
             )
             mask = self.grouped_links(dummy_membership)
@@ -354,7 +349,8 @@ class NAryRelation(TorchJitModule, Loggable):
             return fuzzy_cls(*indices, **kwargs)
 
         grouped_links: Path = state_dict.pop("grouped_links")
-        kwargs["grouped_links"] = GroupedLinks.load(grouped_links, device=device)
+        kwargs["grouped_links"] = GroupedLinks.load(
+            grouped_links, device=device)
 
         obj = fuzzy_cls(**kwargs)
         # add other attributes that may be specific to the subclass
@@ -380,7 +376,8 @@ class NAryRelation(TorchJitModule, Loggable):
             matrices.append(coo_matrix.toarray())
         if len(matrices) > 0:  # need at least one array to stack
             # make a new axis and stack along that axis
-            self.matrix: np.ndarray = np.stack(matrices).swapaxes(0, 1).swapaxes(1, 2)
+            self.matrix: np.ndarray = np.stack(
+                matrices).swapaxes(0, 1).swapaxes(1, 2)
 
     # @log_method
     def create_igraph(self) -> None:
@@ -394,7 +391,11 @@ class NAryRelation(TorchJitModule, Loggable):
         for relation in self.indices:
             # create a directed (mode="in") star graph with the relation as the
             # center (vertex 0)
-            graphs.append(igraph.Graph.Star(n=len(relation) + 1, mode="in", center=0))
+            graphs.append(
+                igraph.Graph.Star(
+                    n=len(relation) + 1,
+                    mode="in",
+                    center=0))
             # relation vertices are the first vertices in the graph
             # located at index 0
             relation_vertex: igraph.Vertex = graphs[-1].vs.find(0)
@@ -407,15 +408,13 @@ class NAryRelation(TorchJitModule, Loggable):
             ) = (hash(self) + hash(tuple(relation)), self, {"relation"})
             # anchor vertices are the var-term pairs that are involved in the
             # relation vertex
-            anchor_vertices: List[igraph.Vertex] = relation_vertex.predecessors()
+            anchor_vertices: List[igraph.Vertex] = relation_vertex.predecessors(
+            )
             # set anchor vertices' item and tags for easy retrieval; name is
             # for graph union
             for anchor_vertex, index_pair in zip(anchor_vertices, relation):
                 anchor_vertex["name"], anchor_vertex["item"], anchor_vertex["tags"] = (
-                    index_pair,
-                    index_pair,
-                    {"anchor"},
-                )
+                    index_pair, index_pair, {"anchor"}, )
         if len(graphs) > 0:  # need at least one graph to union
             self.graph = igraph.union(graphs, byname=True)
 
@@ -506,7 +505,8 @@ class NAryRelation(TorchJitModule, Loggable):
         self._cached_links_bool = links.bool()
         self._cached_links_complement = 1 - links
 
-    def _apply_mask(self, membership: Membership) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _apply_mask(
+            self, membership: Membership) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Get the after-mask tensor and the raw applied mask from the GroupedLinks using
         the given Membership object.
@@ -560,16 +560,6 @@ class NAryRelation(TorchJitModule, Loggable):
         if self.grouped_links.shape[:-1] != membership_shape[1:]:
             self.resize(*membership_shape[1:])
 
-        # the below is VALID but NOT compatible w/ autograd
-        # indices = self.applied_mask.to(torch.int64)
-        # indices = indices.unsqueeze(0).expand(membership.degrees.size(0), -1, -1)
-        # after_mask = torch.gather(membership.degrees, -1, indices)
-        # return after_mask.nan_to_num(self.nan_replacement)
-
-        # select memberships that are not zeroed out (i.e., involved in the relation)
-        # with torch.autograd.graph.save_on_cpu():  # save the graph on the CPU
-        # (for memory)
-        # applied_mask = self.grouped_links.grouped_links.modules_list[0].logits
         return self._apply_mask_func(membership)
 
     def _cache_apply_mask_func(
@@ -583,8 +573,7 @@ class NAryRelation(TorchJitModule, Loggable):
             return self._exp_sum_log_apply_mask
         raise NotImplementedError(
             f"The given method '{self.method}' does not have an implemented behavior within "
-            f"{type(self)}."
-        )
+            f"{type(self)}.")
 
     def _precompute_gather_indices(self) -> None:
         """
@@ -598,7 +587,9 @@ class NAryRelation(TorchJitModule, Loggable):
             self.grouped_links, "modules_list"
         ):
             return
-        if self.method not in (NAryMaskMethods.PROD, NAryMaskMethods.EXP_SUM_LOG):
+        if self.method not in (
+                NAryMaskMethods.PROD,
+                NAryMaskMethods.EXP_SUM_LOG):
             return
 
         all_binary = all(
@@ -796,5 +787,4 @@ class NAryRelation(TorchJitModule, Loggable):
         """
         raise NotImplementedError(
             f"The {self.__class__.__name__} has no defined forward function. Please create a class "
-            f"and inherit from {self.__class__.__name__}, or use a predefined class."
-        )
+            f"and inherit from {self.__class__.__name__}, or use a predefined class.")
