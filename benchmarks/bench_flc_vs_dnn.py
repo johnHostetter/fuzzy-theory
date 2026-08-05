@@ -89,9 +89,7 @@ def _run_one_config(
     n_warmup: int,
 ) -> Dict[str, float]:
     flc = build_flc(config, device=device)
-    dnn = build_dnn(
-        n_inputs=config.n_inputs, n_outputs=config.n_outputs, device=device
-    )
+    dnn = build_dnn(n_inputs=config.n_inputs, n_outputs=config.n_outputs, device=device)
 
     def make_input() -> torch.Tensor:
         return make_batch(config.batch_size, config.n_inputs, device=device)
@@ -191,9 +189,7 @@ def run_cache_ablation(
     """
     rows: List[Dict[str, float]] = []
     for cache_membership in (True, False):
-        config = _with_override(
-            baseline, "cache_membership", cache_membership
-        )
+        config = _with_override(baseline, "cache_membership", cache_membership)
         flc = build_flc(config, device=device)
 
         def make_input(config=config) -> torch.Tensor:
@@ -212,9 +208,7 @@ def run_cache_ablation(
     return pd.DataFrame(rows)
 
 
-def _print_and_maybe_save(
-    name: str, df: pd.DataFrame, csv_path: "Path | None"
-) -> None:
+def _print_and_maybe_save(name: str, df: pd.DataFrame, csv_path: "Path | None") -> None:
     print(f"\n=== {name} ===")
     print(df.to_string(index=False))
     if csv_path is not None:

@@ -91,12 +91,10 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         Returns:
             None
         """
-        cache: Union[None, MembershipCache] = getattr(
-            self, "_membership_cache", None)
+        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
         if cache is not None:
             cache.clear()
-        attribute_cache: Union[None, Dict] = getattr(
-            self, "_attribute_cache", None)
+        attribute_cache: Union[None, Dict] = getattr(self, "_attribute_cache", None)
         if attribute_cache is not None:
             attribute_cache.clear()
 
@@ -129,8 +127,7 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
             get_mask = getattr(module, "get_mask", None)
             if get_centers is None or get_widths is None or get_mask is None:
                 return None
-            signature.extend(signature_of(
-                [get_centers(), get_widths(), get_mask()]))
+            signature.extend(signature_of([get_centers(), get_widths(), get_mask()]))
         return signature
 
     @torch.jit.ignore
@@ -149,12 +146,10 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         Returns:
             The memoized Membership, or None if it has to be (re)calculated.
         """
-        cache: Union[None, MembershipCache] = getattr(
-            self, "_membership_cache", None)
+        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
         if cache is None:
             return None
-        signature: Optional[ParameterSignature] = self._group_parameter_signature(
-        )
+        signature: Optional[ParameterSignature] = self._group_parameter_signature()
         if signature is None:
             return None
         return cache.lookup(observations, signature)
@@ -173,12 +168,10 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         Returns:
             None
         """
-        cache: Union[None, MembershipCache] = getattr(
-            self, "_membership_cache", None)
+        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
         if cache is None:
             return
-        signature: Optional[ParameterSignature] = self._group_parameter_signature(
-        )
+        signature: Optional[ParameterSignature] = self._group_parameter_signature()
         if signature is None:
             return
         cache.store(observations, signature, membership)
@@ -202,8 +195,7 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         """
         modules_list = self.__dict__["_modules"]["modules_list"]
         if len(modules_list) == 0:
-            raise ValueError(
-                "The torch.nn.ModuleList of FuzzySetGroup is empty.")
+            raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
         module_attributes: List[torch.Tensor] = [
             getattr(module, f"get_{item}")() for module in modules_list
         ]
@@ -264,8 +256,7 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
             return False
         if len(self.modules_list) != len(other.modules_list):
             return False
-        for self_module, other_module in zip(
-                self.modules_list, other.modules_list):
+        for self_module, other_module in zip(self.modules_list, other.modules_list):
             if not self_module == other_module:
                 return False
         return True
@@ -307,8 +298,7 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         Expand the FuzzySetGroup if necessary.
         """
         if len(self.modules_list) == 0:
-            raise ValueError(
-                "The torch.nn.ModuleList of FuzzySetGroup is empty.")
+            raise ValueError("The torch.nn.ModuleList of FuzzySetGroup is empty.")
 
         # modules' responses are membership degrees when modules are FuzzySet
 
@@ -321,8 +311,7 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         # membership is: a hit requires the same observations object and every module's
         # parameters to be unchanged, so it is safe across an optimizer step (see
         # fuzzy.sets.cache). A miss still lets each module serve its own cache.
-        cached: Optional[Membership] = self._lookup_group_membership(
-            observations)
+        cached: Optional[Membership] = self._lookup_group_membership(observations)
         if cached is not None:
             return cached
 
@@ -344,7 +333,8 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
             module_masks.append(membership.mask)
 
         if any(degrees.is_sparse for degrees in module_memberships) and not all(
-                degrees.is_sparse for degrees in module_memberships):
+            degrees.is_sparse for degrees in module_memberships
+        ):
             # torch.cat cannot mix sparse and dense layouts; this happens whenever the
             # group holds fuzzy sets with different use_sparse_tensor settings (a legitimate
             # per-variable memory choice, e.g. a high-cardinality variable set sparse next to

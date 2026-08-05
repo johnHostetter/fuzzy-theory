@@ -213,9 +213,7 @@ def run_gradient_checkpointing_ablation(
     )
 
 
-def _print_and_maybe_save(
-    name: str, df: pd.DataFrame, csv_path: "Path | None"
-) -> None:
+def _print_and_maybe_save(name: str, df: pd.DataFrame, csv_path: "Path | None") -> None:
     print(f"\n=== {name} ===")
     print(df.to_string(index=False))
     if csv_path is not None:

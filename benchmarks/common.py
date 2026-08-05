@@ -328,9 +328,7 @@ def benchmark_forward_backward(
         for param in model.parameters():
             param.grad = None
         observations = make_input()
-        target = torch.rand(
-            observations.shape[0], n_outputs, device=device
-        )
+        target = torch.rand(observations.shape[0], n_outputs, device=device)
         output = model(observations)
         loss = torch.nn.functional.mse_loss(output, target)
         loss.backward()
@@ -389,7 +387,9 @@ def profile_flc_stages(
         with torch.no_grad():
             flc.engine(granulated)
 
-    def _defuzzify(observations_and_rule_strengths: Tuple[torch.Tensor, Membership]) -> None:
+    def _defuzzify(
+        observations_and_rule_strengths: Tuple[torch.Tensor, Membership],
+    ) -> None:
         observations, rule_strengths = observations_and_rule_strengths
         with torch.no_grad():
             flc._defuzzify(  # pylint: disable=protected-access
@@ -401,7 +401,11 @@ def profile_flc_stages(
             flc(observations)
 
     fuzzification = time_calls_with_setup(
-        _make_observations, _fuzzify, n_repeats=n_repeats, n_warmup=n_warmup, device=device
+        _make_observations,
+        _fuzzify,
+        n_repeats=n_repeats,
+        n_warmup=n_warmup,
+        device=device,
     ).mean
     engine_only = time_calls_with_setup(
         _make_granulated, _engine, n_repeats=n_repeats, n_warmup=n_warmup, device=device
@@ -414,7 +418,11 @@ def profile_flc_stages(
         device=device,
     ).mean
     end_to_end = time_calls_with_setup(
-        _make_observations, _end_to_end, n_repeats=n_repeats, n_warmup=n_warmup, device=device
+        _make_observations,
+        _end_to_end,
+        n_repeats=n_repeats,
+        n_warmup=n_warmup,
+        device=device,
     ).mean
 
     return StageTimings(
