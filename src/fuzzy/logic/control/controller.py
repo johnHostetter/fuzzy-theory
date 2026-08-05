@@ -154,7 +154,8 @@ class FuzzyLogicController(torch.nn.Sequential):
             klass, TNorm
         ), "The loaded class type must be an instance of TNorm."
         engine: NAryRelation = klass.load(module_class_path, device=device)
-        defuzzification = Defuzzification.load(path / "defuzzification", device=device)
+        defuzzification = Defuzzification.load(
+            path / "defuzzification", device=device)
 
         # load the FLC state dictionary for the remaining components
         state_dict: MutableMapping[str, Any] = torch.load(
@@ -295,6 +296,15 @@ class FuzzyLogicController(torch.nn.Sequential):
         """
         Core forward pass implementing the fuzzy inference pipeline:
         fuzzification, rule evaluation, and defuzzification.
+
+        Known gap: gradient_checkpointing=True is not yet compatible with
+        torch.compile(fullgraph=True) - NAryRelation.apply_mask() stashes its result
+        on self.applied_mask as a side effect (read back by TNorm.forward() right
+        after), and Dynamo forbids in-place module-attribute mutation inside
+        torch.utils.checkpoint's traced subgraph. Works fine with checkpointing off,
+        or with a non-fullgraph torch.compile. Fixing it requires returning the
+        applied mask directly instead of stashing it, across n_ary.py/t_norm.py/
+        compound.py.
         """
         granulated_input = self.input_granulation(observations)
 

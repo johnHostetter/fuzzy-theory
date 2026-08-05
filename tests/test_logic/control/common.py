@@ -82,6 +82,29 @@ def assert_input_granulation_handles_missing_data(
     )
 
 
+def assert_compile_fullgraph_matches_eager(
+    flc: FLC, input_data: torch.Tensor, atol: float = 1e-6
+) -> None:
+    """
+    Assert that wrapping flc with torch.compile(fullgraph=True) does not change its
+    output relative to plain eager execution. fullgraph=True requires Dynamo to trace
+    the entire forward pass with zero graph breaks - a stricter guarantee than the
+    default torch.compile (which silently falls back to eager for any untraceable
+    piece) - so this also proves nothing in the traced call path secretly depends on
+    Python-only behavior torch.compile cannot represent.
+
+    Returns:
+        None
+    """
+    eager_output = flc(input_data)
+    compiled_output = torch.compile(flc, fullgraph=True)(input_data)
+    assert torch.allclose(
+        eager_output,
+        compiled_output,
+        atol=atol,
+        equal_nan=True)
+
+
 def _assert_rule_activations_match(
     actual_degrees: torch.Tensor, expected_values, device: torch.device
 ) -> None:

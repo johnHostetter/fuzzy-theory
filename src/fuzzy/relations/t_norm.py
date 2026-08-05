@@ -84,13 +84,21 @@ class Product(TNorm):
         if self.grouped_links.shape[:-1] != membership_shape[1:]:
             self.resize(*membership_shape[1:])
 
+        # pylint: disable=too-many-boolean-expressions
         if (
-            self._use_gather  # pylint: disable=protected-access
+            # short-circuits before the data-dependent bool(...isnan().any()...)
+            # sync below, which torch.compile(fullgraph=True) cannot trace through
+            # (a graph break) - is_compiling() is a compile-time constant, so Dynamo
+            # prunes this whole branch rather than tracing into it, always taking the
+            # general apply_mask()+prod() path below instead when compiling
+            not torch.compiler.is_compiling()
+            and self._use_gather  # pylint: disable=protected-access
             and self._all_active  # pylint: disable=protected-access
             and TRITON_AVAILABLE
             and membership.degrees.is_cuda
             and not bool(membership.degrees.isnan().any())
         ):
+            # pylint: enable=too-many-boolean-expressions
             # fused Triton kernel: covers the common case (every variable
             # structurally active for every rule, no NaN present) without
             # materializing the (batch, vars, rules) intermediate that the
@@ -108,7 +116,10 @@ class Product(TNorm):
             )
 
         return Membership(
-            degrees=self.apply_mask(membership=membership).prod(dim=-2, keepdim=False),
+            degrees=self.apply_mask(
+                membership=membership).prod(
+                dim=-2,
+                keepdim=False),
             mask=self.applied_mask,
         )
 
@@ -132,7 +143,8 @@ class SoftmaxSum(TNorm):
         Returns:
             The applicability of the fuzzy compounds (e.g., fuzzy logic rules).
         """
-        intermediate_values: torch.Tensor = self.apply_mask(membership=membership)
+        intermediate_values: torch.Tensor = self.apply_mask(
+            membership=membership)
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be
         # fixed/tested
@@ -140,7 +152,8 @@ class SoftmaxSum(TNorm):
         max_values = firing_strengths.amax(dim=-1, keepdim=True)
         return Membership(
             # elements=membership.elements,
-            degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
+            degrees=torch.nn.functional.softmax(
+                firing_strengths - max_values, dim=-1),
             mask=self.applied_mask,
         )
 
@@ -152,7 +165,8 @@ class GeneralizedLukasiewicz(TNorm):
     """
 
     def forward(self, membership: Membership) -> Membership:
-        intermediate_values: torch.Tensor = self.apply_mask(membership=membership)
+        intermediate_values: torch.Tensor = self.apply_mask(
+            membership=membership)
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be
         # fixed/tested
@@ -201,7 +215,8 @@ class SoftmaxMean(TNorm):
         Returns:
             The applicability of the fuzzy compounds (e.g., fuzzy logic rules).
         """
-        intermediate_values: torch.Tensor = self.apply_mask(membership=membership)
+        intermediate_values: torch.Tensor = self.apply_mask(
+            membership=membership)
         # pylint: disable=fixme
         # TODO: these dimensions are possibly not correct, need to be
         # fixed/tested
@@ -213,6 +228,7 @@ class SoftmaxMean(TNorm):
         )  # add this to prevent overflow
         return Membership(
             # elements=membership.elements,
-            degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
+            degrees=torch.nn.functional.softmax(
+                firing_strengths - max_values, dim=-1),
             mask=self.applied_mask,
         )
