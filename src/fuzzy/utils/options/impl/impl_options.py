@@ -504,7 +504,7 @@ class NeurogenesisConfig(YAMLConfig):
     """
 
     neurogenesis: NeurogenesisEnum = field(
-        default=NeurogenesisEnum.MODIFIED_DELAYED_WELFORD,
+        default=NeurogenesisEnum.NONE,
     )
     epsilon: float = field(
         default=0.5,
