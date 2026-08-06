@@ -271,10 +271,123 @@ class TestTSK(unittest.TestCase):
         self.assertEqual("cuda", tsk_cpu.bias.device.type)
 
 
+class _FakeConsequenceMask:  # pylint: disable=too-few-public-methods
+    """
+    A minimal stand-in for RuleBase.consequences, exposing only the get_mask()
+    method Mamdani.__init__ actually reads - avoids building a full KnowledgeBase
+    just to get a rule/term link mask with a specific, hand-chosen shape.
+    """
+
+    def __init__(self, mask: torch.Tensor):
+        self._mask = mask
+
+    def get_mask(self) -> torch.Tensor:
+        """
+        Returns:
+            The (vars, terms, rules) link mask this instance was built with.
+        """
+        return self._mask
+
+
+class _FakeRuleBase:  # pylint: disable=too-few-public-methods
+    """
+    A minimal stand-in for RuleBase, exposing only the .consequences attribute
+    Mamdani.__init__ actually reads.
+    """
+
+    def __init__(self, mask: torch.Tensor):
+        self.consequences = _FakeConsequenceMask(mask)
+
+
 class TestMamdani(unittest.TestCase):
     """
-    Test Mamdani's documented not-yet-implemented save() guard.
+    Test Mamdani's documented not-yet-implemented save() guard, and its forward()
+    "height method" center-of-gravity approximation.
     """
+
+    def test_forward_matches_height_method_formula(self) -> None:
+        """
+        Golden-value/drift-detection test, and regression guard for a real bug:
+        Mamdani.forward() used to compute each rule's own
+        (link * center * width) / (link * width) ratio before multiplying by
+        firing strength and summing (unnormalized) over rules. Since output_links
+        is one-hot for the standard one-term-per-rule case, width canceled out of
+        that ratio identically every time - consequent widths could never receive
+        a gradient, and the final sum over rules was never normalized by the total
+        weight either (so the output scaled with the number of active rules
+        instead of being a valid weighted average).
+
+        Fixed to the standard "height method" approximation of center-of-gravity
+        defuzzification: each rule's clipped-consequent area is approximated as
+        proportional to its width, and the output is a single, properly
+        normalized, firing-strength-and-width-weighted average of centers -
+        computed here independently (not by calling any of Mamdani's own code)
+        for two rules mapping into the same single output variable via two
+        different terms.
+
+        Returns:
+            None
+        """
+        shape = Shape(
+            n_inputs=1, n_input_terms=2, n_rules=2, n_outputs=1, n_output_terms=2
+        )
+        consequent = Gaussian(
+            centers=np.array([-2.0, 4.0]),
+            widths=np.array([1.0, 3.0]),
+            device=AVAILABLE_DEVICE,
+        )
+        # (vars=1, terms=2, rules=2): rule 0 selects term 0, rule 1 selects term 1
+        mask = torch.tensor([[[1, 0], [0, 1]]], device=AVAILABLE_DEVICE)
+        mamdani = Mamdani(
+            shape=shape,
+            source=FuzzySetGroup(modules_list=[consequent]),
+            device=AVAILABLE_DEVICE,
+            rule_base=_FakeRuleBase(mask),
+        )
+
+        degrees = torch.tensor([[0.6, 0.9]], device=AVAILABLE_DEVICE)
+        rule_activations = Membership(
+            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
+        )
+        result = mamdani(rule_activations)
+
+        firing_strengths, centers, widths = [0.6, 0.9], [-2.0, 4.0], [1.0, 3.0]
+        numerator = sum(
+            f * w * c for f, w, c in zip(firing_strengths, widths, centers)
+        )
+        denominator = sum(f * w for f, w in zip(firing_strengths, widths))
+        expected = torch.tensor(
+            [[numerator / denominator]], device=AVAILABLE_DEVICE
+        )
+        self.assertTrue(torch.allclose(result, expected, atol=1e-5))
+
+    def test_widths_receive_nonzero_gradient(self) -> None:
+        """
+        Regression guard for the same bug test_forward_matches_height_method_formula
+        documents: consequent widths are real, trainable Parameters
+        (requires_grad=True) - confirms backward() actually reaches them with a
+        non-zero, NaN-free gradient through a full FuzzyLogicController, not just
+        the isolated Mamdani.forward() call above.
+
+        Returns:
+            None
+        """
+        knowledge_base, _ = build_mamdani_knowledge_base(AVAILABLE_DEVICE)
+        flc = FLC(
+            source=knowledge_base,
+            inference=Mamdani,
+            device=AVAILABLE_DEVICE)
+        input_data = torch.tensor(
+            [[1.2, 0.2], [1.1, 0.3], [2.1, 0.1]], device=AVAILABLE_DEVICE
+        )
+
+        predicted_y = flc(input_data)
+        predicted_y.sum().backward()
+
+        widths = flc.defuzzification.consequences.widths
+        self.assertIsNotNone(widths.grad)
+        self.assertFalse(bool(widths.grad.isnan().any()))
+        self.assertFalse(bool((widths.grad == 0).all()))
 
     def test_save_raises_not_implemented(self) -> None:
         """

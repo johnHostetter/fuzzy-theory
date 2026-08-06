@@ -507,39 +507,38 @@ class Mamdani(Defuzzification):
         Returns:
             The defuzzified output of a Mamdani FLC.
         """
-        numerator = (
-            self.output_links *
-            self.consequences.centers *
-            self.consequences.widths)
-        denominator = self.output_links * self.consequences.widths
+        # "Height method" approximation of center-of-gravity (COG) defuzzification:
+        # each rule's clipped-consequent area is approximated as proportional to its
+        # membership function's width (exact for same-shape membership functions,
+        # e.g. Gaussians, where area scales linearly with width), giving
+        #     y* = sum(firing_strength * width * center) / sum(firing_strength * width)
+        # over every (rule, term) contributing to each output variable.
+        #
+        # Regression fix: this used to compute each rule's own numerator/denominator
+        # ratio separately - self.output_links * centers * widths, divided by
+        # self.output_links * widths, summed over terms - before multiplying by
+        # firing strength and summing over rules. For the standard case (one
+        # consequent term per rule), output_links is one-hot, so that per-rule ratio
+        # collapsed to (1 * center * width) / (1 * width) = center: width canceled
+        # out identically, every time, giving it exactly zero gradient regardless of
+        # its actual value - consequent widths could never be learned. The final sum
+        # over rules was also unnormalized (not divided by the total weight), so the
+        # output scaled with the number of active rules rather than staying a valid
+        # weighted average. Combining firing strength and width into one shared
+        # weight, summed jointly with the terms dimension before a single final
+        # division, fixes both: width now genuinely affects the weighted average
+        # (only cancels in the degenerate case where a single rule/term has 100% of
+        # the weight), and the result is a properly normalized average.
+        weighted_links = rule_activations.degrees.unsqueeze(dim=-1).unsqueeze(
+            dim=-1
+        ) * self.output_links.unsqueeze(dim=0)
+        numerator = weighted_links * self.consequences.centers * self.consequences.widths
+        denominator = weighted_links * self.consequences.widths
 
-        # the below commented out is a Work in Progress
-
-        # gumbel_dist = torch.distributions.Gumbel(0, 1)
-        # gumbel_noise = gumbel_dist.sample(self.output_logits.shape)
-        # gumbel_softmax = torch.nn.functional.gumbel_softmax(
-        #     (self.output_logits + gumbel_noise), dim=-1, hard=True
-        # )
-        # try:
-        #     numerator = (
-        #         self.output_links
-        #         * self.consequences.centers
-        #         * torch.exp(self.consequences.log_widths())
-        #     )
-        #     denominator = self.output_links * torch.exp(
-        #         self.consequences.log_widths()
-        #     )
-        # except TypeError:
-        #     numerator = (
-        #         gumbel_softmax
-        #         * self.consequences.centers
-        #         * torch.exp(self.consequences.widths)
-        #     )
-        #     denominator = gumbel_softmax * torch.exp(self.consequences.widths)
-        return (
-            rule_activations.degrees.unsqueeze(dim=-1)
-            * (
-                torch.nan_to_num(numerator).sum(-1)
-                / torch.nan_to_num(denominator).sum(-1)
-            )
-        ).sum(dim=1)
+        # sum over both rules (dim=1) and terms (dim=-1) jointly, then divide once -
+        # the 1e-32 offset mirrors NormalizedZeroOrder.forward()'s denominator
+        # epsilon, guarding against a batch element where no rule contributes to a
+        # given output variable at all (0 / 0 -> NaN otherwise)
+        return torch.nan_to_num(numerator).sum(dim=(1, -1)) / (
+            torch.nan_to_num(denominator).sum(dim=(1, -1)) + 1e-32
+        )
