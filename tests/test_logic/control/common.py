@@ -33,8 +33,7 @@ def build_mamdani_knowledge_base(
         callers can still compare the two), shared by every test that just needs a
         valid Mamdani source.
     """
-    antecedents, consequents, rules = toy_mamdani(
-        t_norm=Product, device=device)
+    antecedents, consequents, rules = toy_mamdani(t_norm=Product, device=device)
     knowledge_base = KnowledgeBase.create(
         linguistic_variables=LinguisticVariables(
             inputs=antecedents, targets=consequents
@@ -128,11 +127,7 @@ def assert_compile_fullgraph_matches_eager(
     """
     eager_output = flc(input_data)
     compiled_output = torch.compile(flc, fullgraph=True)(input_data)
-    assert torch.allclose(
-        eager_output,
-        compiled_output,
-        atol=atol,
-        equal_nan=True)
+    assert torch.allclose(eager_output, compiled_output, atol=atol, equal_nan=True)
 
 
 def _assert_rule_activations_match(

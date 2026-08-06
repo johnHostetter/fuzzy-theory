@@ -83,8 +83,7 @@ class TestMinimum(TestNAryRelation):
         single = Minimum((0, 1), (1, 0), device=AVAILABLE_DEVICE)
         self.assertEqual("(0, 1) AND (1, 0)", str(single))
 
-        compound = Minimum([(0, 0), (1, 0)], [
-                           (0, 1), (1, 1)], device=AVAILABLE_DEVICE)
+        compound = Minimum([(0, 0), (1, 0)], [(0, 1), (1, 1)], device=AVAILABLE_DEVICE)
         self.assertEqual(f"Minimum({compound.indices})", str(compound))
 
     def test_multiple_indices_passed_as_list(self) -> None:

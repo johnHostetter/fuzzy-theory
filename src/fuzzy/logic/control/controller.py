@@ -152,13 +152,11 @@ class FuzzyLogicController(torch.nn.Sequential):
         # NAryRelation.save()/._state_dict()), so the caller does not need to know
         # the engine's concrete type ahead of time.
         input_granules = FuzzySetGroup.load(path / "input", device=device)
-        engine: NAryRelation = NAryRelation.load(
-            path / "engine", device=device)
+        engine: NAryRelation = NAryRelation.load(path / "engine", device=device)
         assert isinstance(
             engine, TNorm
         ), "The loaded engine must be an instance of TNorm."
-        defuzzification = Defuzzification.load(
-            path / "defuzzification", device=device)
+        defuzzification = Defuzzification.load(path / "defuzzification", device=device)
 
         # load the FLC state dictionary for the remaining components
         state_dict: MutableMapping[str, Any] = torch.load(

@@ -173,8 +173,7 @@ def train_model(model, input_x, target_y):
 
     losses = []
     num_of_epochs = 0
-    while (len(losses) > 1 and losses[-2] >
-           losses[-1]) or num_of_epochs < epochs:
+    while (len(losses) > 1 and losses[-2] > losses[-1]) or num_of_epochs < epochs:
         # print(num_of_epochs)
         params_before = deepcopy(list(model.parameters()))
         prediction = model(input_x)
@@ -183,14 +182,9 @@ def train_model(model, input_x, target_y):
         loss.backward(retain_graph=True)
         params_after = deepcopy(list(model.parameters()))
         try:
-            if not all(
-                (b == a).all() for b,
-                a in zip(
-                    params_before,
-                    params_after)):
+            if not all((b == a).all() for b, a in zip(params_before, params_after)):
                 print("updating optimizer")
-                optimizer = torch.optim.Adam(
-                    model.parameters(), lr=learning_rate)
+                optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
         except RuntimeError:
             print("updating optimizer")
             optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)

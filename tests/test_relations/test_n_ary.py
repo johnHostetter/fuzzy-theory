@@ -94,8 +94,9 @@ class TestNAryRelation(unittest.TestCase):
         Returns:
             The membership values for the Gaussian membership function.
         """
-        membership: Membership = self.gaussian_mf(torch.tensor(
-            self.data, dtype=torch.float32, device=AVAILABLE_DEVICE))
+        membership: Membership = self.gaussian_mf(
+            torch.tensor(self.data, dtype=torch.float32, device=AVAILABLE_DEVICE)
+        )
 
         self.assertEqual(membership.degrees.shape[0], N_OBSERVATIONS)
         self.assertEqual(membership.degrees.shape[1], N_VARIABLES)
@@ -126,9 +127,8 @@ class TestNAryRelation(unittest.TestCase):
             device=AVAILABLE_DEVICE,
         )
         self.assertTrue(
-            torch.allclose(
-                membership.degrees.to_dense(),
-                expected_membership_degrees))
+            torch.allclose(membership.degrees.to_dense(), expected_membership_degrees)
+        )
         return membership
 
     def test_invalid_use_of_n_ary_relation(self) -> None:
@@ -142,10 +142,8 @@ class TestNAryRelation(unittest.TestCase):
         self.assertRaises(ValueError, NAryRelation, device=AVAILABLE_DEVICE)
         # invalid selection for nan_replacement
         self.assertRaises(
-            ValueError,
-            NAryRelation,
-            device=AVAILABLE_DEVICE,
-            nan_replacement=3.0)
+            ValueError, NAryRelation, device=AVAILABLE_DEVICE, nan_replacement=3.0
+        )
 
     def test_n_ary_relation(self) -> None:
         """
@@ -159,25 +157,21 @@ class TestNAryRelation(unittest.TestCase):
         self.assertRaises(NotImplementedError, n_ary.forward, None)
         # check that the matrix shape is correct
         self.assertEqual(
-            n_ary._coo_matrix[0].shape, (2,
-                                         2)  # pylint: disable=protected-access
+            n_ary._coo_matrix[0].shape, (2, 2)  # pylint: disable=protected-access
         )
         # check that the original shape is stored
         self.assertEqual(
-            n_ary._original_shape[0], (2,
-                                       2)  # pylint: disable=protected-access
+            n_ary._original_shape[0], (2, 2)  # pylint: disable=protected-access
         )
         # matrix size can increase (in-place) for more potential rows (vars)
         # and columns (terms)
         n_ary._coo_matrix[0].resize(3, 3)  # pylint: disable=protected-access
         self.assertEqual(
-            n_ary._coo_matrix[0].shape, (3,
-                                         3)  # pylint: disable=protected-access
+            n_ary._coo_matrix[0].shape, (3, 3)  # pylint: disable=protected-access
         )
         # check that the original shape is still kept after resizing
         self.assertEqual(
-            n_ary._original_shape[0], (2,
-                                       2)  # pylint: disable=protected-access
+            n_ary._original_shape[0], (2, 2)  # pylint: disable=protected-access
         )
 
     def test_duplicates(self) -> None:
@@ -253,25 +247,21 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(single_n_ary_graph.vs[0]["tags"], {"relation"})
         for index in (1, 2):
             self.assertEqual(single_n_ary_graph.vs[index]["tags"], {"anchor"})
-            self.assertEqual(
-                single_n_ary_graph.vs[index]["item"], indices[index - 1])
+            self.assertEqual(single_n_ary_graph.vs[index]["item"], indices[index - 1])
 
         # check edges are as we expect
         for index in (0, 1):
             self.assertEqual(single_n_ary_graph.es[index].source, index + 1)
             self.assertEqual(single_n_ary_graph.es[index].target, 0)
 
-        indices: List[List[Tuple[int, int]]] = [
-            [(0, 1), (1, 0)], [(1, 1), (2, 1)]]
+        indices: List[List[Tuple[int, int]]] = [[(0, 1), (1, 0)], [(1, 1), (2, 1)]]
         multiple_n_ary = NAryRelation(*indices, device=AVAILABLE_DEVICE)
         multiple_n_ary_graph: igraph.Graph = multiple_n_ary.graph
         self.assertTrue(multiple_n_ary_graph is not None)
         self.assertEqual(
             multiple_n_ary_graph.vcount(), 6
         )  # 4 index pairs + 2 for relations
-        self.assertEqual(
-            multiple_n_ary_graph.ecount(),
-            4)  # 4 edges (relations)
+        self.assertEqual(multiple_n_ary_graph.ecount(), 4)  # 4 edges (relations)
 
         # check vertex attributes are as we expect
         relation_vertices: igraph.VertexSeq = multiple_n_ary_graph.vs.select(
@@ -331,8 +321,7 @@ class TestNAryRelation(unittest.TestCase):
         self.assertEqual(indices, state_dict["indices"])
         self.assertEqual("NAryRelation", state_dict["class_name"])
         self.assertEqual(n_ary.nan_replacement, state_dict["nan_replacement"])
-        loaded_n_ary = NAryRelation.load(
-            path=dir_path, device=AVAILABLE_DEVICE)
+        loaded_n_ary = NAryRelation.load(path=dir_path, device=AVAILABLE_DEVICE)
         self.assertEqual(n_ary.indices, loaded_n_ary.indices)
         self.assertEqual(n_ary.nan_replacement, loaded_n_ary.nan_replacement)
         # the applied_mask is the resulting output from grouped_links()
@@ -370,24 +359,22 @@ class TestNAryRelation(unittest.TestCase):
                 BinaryLinks(np.eye(N_TERMS, N_TERMS), device=AVAILABLE_DEVICE),
             ]
         )
-        n_ary = NAryRelation(
-            grouped_links=grouped_links,
-            device=AVAILABLE_DEVICE)
+        n_ary = NAryRelation(grouped_links=grouped_links, device=AVAILABLE_DEVICE)
         intended_destination: Path = Path(__file__).parent / "n_ary_relation"
         n_ary.save(path=intended_destination)
         # note a .pt file is NOT created, but a directory is created instead
         # (to save the grouped links)
         self.assertTrue(intended_destination.exists())
         self.assertTrue(intended_destination.is_dir())
-        loaded_n_ary = NAryRelation.load(
-            intended_destination, device=AVAILABLE_DEVICE)
+        loaded_n_ary = NAryRelation.load(intended_destination, device=AVAILABLE_DEVICE)
         self.assertTrue(
             torch.allclose(
                 n_ary.get_mask().to_dense(), loaded_n_ary.get_mask().to_dense()
             )
         )  # the applied_mask is the resulting output from grouped_links()
         for actual_module, loaded_module in zip(
-                n_ary.grouped_links.modules_list, loaded_n_ary.grouped_links.modules_list):
+            n_ary.grouped_links.modules_list, loaded_n_ary.grouped_links.modules_list
+        ):
             # modules are expected to have the shape property
             self.assertEqual(actual_module.shape, loaded_module.shape)
             # the loaded module should be the same as the original per __eq__
