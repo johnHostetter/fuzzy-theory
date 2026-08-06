@@ -6,11 +6,11 @@ which contains a helpful interface understanding membership degrees.
 
 import abc
 import inspect
-
 # import logging
 from abc import abstractmethod
 from pathlib import Path
-from typing import Any, List, MutableMapping, NoReturn, Optional, Tuple, Type, Union
+from typing import (Any, List, MutableMapping, NoReturn, Optional, Tuple, Type,
+                    Union)
 
 import numpy as np
 import sympy
@@ -21,16 +21,13 @@ from numpy._typing import _64Bit
 from torchquad.utils.set_up_backend import set_up_backend
 
 from ..utils import TorchJitModule, check_path_to_save_torch_module
-
 # DynamicParameterList re-exported here for backward compatibility (it used to be
 # defined in this module)
 from ..utils.classes import DynamicParameterList, Loggable  # noqa: F401
 from ..utils.functions import ParameterSignature, signature_of
-
 # from ..utils.functions import log_classmethod, log_func, log_method
 from .cache import MembershipCache
 from .membership import Membership
-
 # FuzzySetShape/FuzzySetInitResult/FuzzySetInitMethod re-exported here for backward
 # compatibility (they used to be defined in this module)
 from .shape import FuzzySetInitResult  # noqa: F401

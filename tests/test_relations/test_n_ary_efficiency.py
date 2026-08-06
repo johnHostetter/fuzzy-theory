@@ -597,7 +597,11 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         )
         var_count, term_count, n_rules = mask.shape
         self.assertTrue(
-            torch.equal(mask_component, mask.view(var_count * term_count, n_rules))
-        )
+            torch.equal(
+                mask_component,
+                mask.view(
+                    var_count *
+                    term_count,
+                    n_rules)))
         expected = (degrees.unsqueeze(-1) * mask).sum(dim=(1, 2))
         self.assertTrue(torch.allclose(result, expected, atol=1e-5))
