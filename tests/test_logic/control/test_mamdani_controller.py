@@ -151,7 +151,8 @@ class TestMamdani(MissingDataHandlingMixin, unittest.TestCase):
         # output is a firing-strength-and-width-weighted average of consequent
         # centers - properly normalized, unlike the previous (buggy) formula, whose
         # per-rule ratio had width cancel out identically for the standard one-term-
-        # per-rule case, and whose final sum over rules was never normalized at all.
+        # per-rule case, and whose final sum over rules was never normalized at
+        # all.
         expected_y = torch.tensor(
             [
                 [5.0000000e-01, -7.0000000e-01],

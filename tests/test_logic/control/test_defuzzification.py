@@ -329,8 +329,11 @@ class TestMamdani(unittest.TestCase):
             None
         """
         shape = Shape(
-            n_inputs=1, n_input_terms=2, n_rules=2, n_outputs=1, n_output_terms=2
-        )
+            n_inputs=1,
+            n_input_terms=2,
+            n_rules=2,
+            n_outputs=1,
+            n_output_terms=2)
         consequent = Gaussian(
             centers=np.array([-2.0, 4.0]),
             widths=np.array([1.0, 3.0]),
@@ -353,12 +356,15 @@ class TestMamdani(unittest.TestCase):
 
         firing_strengths, centers, widths = [0.6, 0.9], [-2.0, 4.0], [1.0, 3.0]
         numerator = sum(
-            f * w * c for f, w, c in zip(firing_strengths, widths, centers)
-        )
+            f * w * c for f,
+            w,
+            c in zip(
+                firing_strengths,
+                widths,
+                centers))
         denominator = sum(f * w for f, w in zip(firing_strengths, widths))
         expected = torch.tensor(
-            [[numerator / denominator]], device=AVAILABLE_DEVICE
-        )
+            [[numerator / denominator]], device=AVAILABLE_DEVICE)
         self.assertTrue(torch.allclose(result, expected, atol=1e-5))
 
     def test_widths_receive_nonzero_gradient(self) -> None:

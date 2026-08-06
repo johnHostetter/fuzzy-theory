@@ -81,6 +81,30 @@ class TestLorentzian(unittest.TestCase):
         assert_jit_script_matches_eager(
             lorentzian_mf, self.elements, mu_pytorch)
 
+    def test_gradient_flows_to_centers_and_widths(self) -> None:
+        """
+        Golden-value/drift-detection test: only grad_fn-is-not-None was ever
+        checked for Lorentzian (generically, across every FuzzySet subclass in
+        test_impl.py) - never an actual backward() call inspecting real gradient
+        values. Confirms centers/widths receive a real, non-zero, NaN-free
+        gradient.
+
+        Returns:
+            None
+        """
+        lorentzian_mf = Lorentzian(
+            centers=np.array([1.5409961]),
+            widths=np.array([0.30742282]),
+            device=AVAILABLE_DEVICE,
+        )
+        lorentzian_mf(self.elements).degrees.sum().backward()
+        centers_grad = lorentzian_mf.get_centers().grad
+        widths_grad = lorentzian_mf.get_widths().grad
+        self.assertFalse(bool(centers_grad.isnan().any()))
+        self.assertFalse(bool(widths_grad.isnan().any()))
+        self.assertFalse(bool((centers_grad == 0).all()))
+        self.assertFalse(bool((widths_grad == 0).all()))
+
     def test_sigmas_is_an_alias_for_widths(self) -> None:
         """
         Coverage/regression test: sigmas' getter and setter (an alias for

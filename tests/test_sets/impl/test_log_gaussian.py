@@ -130,3 +130,43 @@ class TestLogGaussian(unittest.TestCase):
         # (degree 0, i.e. log(1)), so none should have needed clamping to see this
         # test actually exercise the intended (unclamped) formula
         self.assertFalse(bool((degrees == -10).any()))
+
+    def test_gradient_flows_when_unclamped_and_vanishes_when_clamped(self) -> None:
+        """
+        Golden-value/drift-detection test: only grad_fn-is-not-None was ever
+        checked for LogGaussian (generically, across every FuzzySet subclass in
+        test_impl.py) - never an actual backward() call inspecting real gradient
+        values. internal_calculate_membership()'s .clamp(min=-10, max=0) is
+        exactly the kind of op that could silently break autograd or zero out the
+        wrong region - confirms centers/widths receive a real, non-zero gradient
+        when unclamped (near the center), and exactly (not NaN) zero once an
+        observation is far enough away to be clamped to -10.
+
+        Returns:
+            None
+        """
+        log_gaussian = LogGaussian(
+            centers=np.array([0.0]),
+            widths=np.array([0.5]),
+            device=AVAILABLE_DEVICE,
+            gaussian_kernel=GaussianKernel(width_multiplier=2.0),
+        )
+        near = torch.tensor([[0.1]], device=AVAILABLE_DEVICE)
+        far = torch.tensor([[100.0]], device=AVAILABLE_DEVICE)
+
+        log_gaussian.calculate_membership(near).sum().backward()
+        centers_grad = log_gaussian.get_centers().grad.clone()
+        widths_grad = log_gaussian.get_widths().grad.clone()
+        self.assertFalse(bool(centers_grad.isnan().any()))
+        self.assertFalse(bool(widths_grad.isnan().any()))
+        self.assertFalse(bool((centers_grad == 0).all()))
+        self.assertFalse(bool((widths_grad == 0).all()))
+
+        log_gaussian.get_centers().grad = None
+        log_gaussian.get_widths().grad = None
+        far_degrees = log_gaussian.calculate_membership(far)
+        self.assertTrue(bool((far_degrees == -10).all()))
+        far_degrees.sum().backward()
+        self.assertFalse(bool(log_gaussian.get_centers().grad.isnan().any()))
+        self.assertTrue(bool((log_gaussian.get_centers().grad == 0).all()))
+        self.assertTrue(bool((log_gaussian.get_widths().grad == 0).all()))

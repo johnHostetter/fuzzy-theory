@@ -267,3 +267,43 @@ class TestTriangular(unittest.TestCase):
             torch.tensor(element[0], device=AVAILABLE_DEVICE),
             mu_pytorch,
         )
+
+    def test_gradient_flows_inside_support_and_vanishes_outside(self) -> None:
+        """
+        Golden-value/drift-detection test: only grad_fn-is-not-None was ever
+        checked for Triangular (generically, across every FuzzySet subclass in
+        test_impl.py) - never an actual backward() call inspecting real gradient
+        values. triangular_numpy's clamp (values[(values < 0)] = 0, implementing
+        the membership function's flat-zero region outside its support) is exactly
+        the kind of boolean-indexed assignment that could silently break autograd
+        or zero out the wrong region if it were ever changed - this confirms both
+        that centers/widths receive a real, non-zero gradient for an observation
+        inside the triangle's support, and that the gradient is correctly exactly
+        zero (not NaN, not accidentally non-zero) for an observation clamped to 0
+        outside it.
+
+        Returns:
+            None
+        """
+        triangular_mf = Triangular(
+            centers=np.array([1.0]), widths=np.array([2.0]), device=AVAILABLE_DEVICE
+        )
+        # center=1.0, width=2.0 -> support is (0.0, 2.0); 1.5 is inside, 5.0 is
+        # far outside (clamped to exactly 0)
+        inside = torch.tensor([[1.5]], device=AVAILABLE_DEVICE)
+        outside = torch.tensor([[5.0]], device=AVAILABLE_DEVICE)
+
+        triangular_mf(inside).degrees.sum().backward()
+        centers_grad_inside = triangular_mf.get_centers().grad.clone()
+        widths_grad_inside = triangular_mf.get_widths().grad.clone()
+        self.assertFalse(bool(centers_grad_inside.isnan().any()))
+        self.assertFalse(bool(widths_grad_inside.isnan().any()))
+        self.assertFalse(bool((centers_grad_inside == 0).all()))
+        self.assertFalse(bool((widths_grad_inside == 0).all()))
+
+        triangular_mf.get_centers().grad = None
+        triangular_mf.get_widths().grad = None
+        triangular_mf(outside).degrees.sum().backward()
+        self.assertFalse(bool(triangular_mf.get_centers().grad.isnan().any()))
+        self.assertTrue(bool((triangular_mf.get_centers().grad == 0).all()))
+        self.assertTrue(bool((triangular_mf.get_widths().grad == 0).all()))

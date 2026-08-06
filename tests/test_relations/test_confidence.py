@@ -75,3 +75,20 @@ class TestCertaintyFactors(unittest.TestCase):
             CertaintyFactors.load(
                 Path("does_not_exist_certainty_factors_dir"),
                 device=AVAILABLE_DEVICE)
+
+    def test_gradient_flows_to_weights(self) -> None:
+        """
+        Golden-value/drift-detection test: no gradient test existed for
+        CertaintyFactors at all. Confirms weights receive a real, non-zero,
+        NaN-free gradient.
+
+        Returns:
+            None
+        """
+        certainty_factors = CertaintyFactors.create_default(
+            n_features=3, device=AVAILABLE_DEVICE
+        )
+        x = torch.rand(4, 3, device=AVAILABLE_DEVICE)
+        certainty_factors(x).sum().backward()
+        self.assertFalse(bool(certainty_factors.weights.grad.isnan().any()))
+        self.assertFalse(bool((certainty_factors.weights.grad == 0).all()))

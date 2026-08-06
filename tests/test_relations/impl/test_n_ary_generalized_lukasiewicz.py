@@ -35,3 +35,40 @@ class TestGeneralizedLukasiewicz(TestNAryRelation):
         )
         self.assertTrue(torch.allclose(result.degrees, expected_degrees))
         self.assertFalse(bool(result.degrees.isnan().any()))
+
+    def test_gradient_flows_above_threshold_and_vanishes_below(self) -> None:
+        """
+        Golden-value/drift-detection test: no gradient test existed for
+        GeneralizedLukasiewicz at all. forward()'s relu(sum(degrees) - (n_vars -
+        1)) has a hard zero-gradient region below the threshold - confirms
+        degrees receive a real, non-zero gradient when the sum exceeds it
+        (n_vars=2, so threshold=1), and exactly (not NaN) zero when it doesn't.
+
+        Returns:
+            None
+        """
+        n_ary = GeneralizedLukasiewicz([(0, 0), (1, 0)], device=AVAILABLE_DEVICE)
+
+        above_threshold = torch.tensor(
+            [[[0.9], [0.9]]], device=AVAILABLE_DEVICE, requires_grad=True
+        )
+        membership = Membership(
+            degrees=above_threshold, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+        )
+        result = n_ary.forward(membership)
+        self.assertFalse(bool((result.degrees == 0).all()))
+        result.degrees.sum().backward()
+        self.assertFalse(bool(above_threshold.grad.isnan().any()))
+        self.assertFalse(bool((above_threshold.grad == 0).all()))
+
+        below_threshold = torch.tensor(
+            [[[0.1], [0.1]]], device=AVAILABLE_DEVICE, requires_grad=True
+        )
+        membership = Membership(
+            degrees=below_threshold, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+        )
+        result = n_ary.forward(membership)
+        self.assertTrue(bool((result.degrees == 0).all()))
+        result.degrees.sum().backward()
+        self.assertFalse(bool(below_threshold.grad.isnan().any()))
+        self.assertTrue(bool((below_threshold.grad == 0).all()))

@@ -228,6 +228,55 @@ class TestTrapezoidal(unittest.TestCase):
 
         path.unlink()
 
+    def test_gradient_flows_on_slope_and_vanishes_on_plateau_and_outside(
+        self,
+    ) -> None:
+        """
+        Golden-value/drift-detection test: only grad_fn-is-not-None was ever
+        checked for Trapezoidal (generically, across every FuzzySet subclass in
+        test_impl.py) - never an actual backward() call inspecting real gradient
+        values. trapezoidal_numpy's np.clip(..., 0.0, 1.0) (the flat-top plateau
+        AND flat-zero outside-support regions) is exactly the kind of clamping
+        that could silently break autograd or zero out the wrong region - this
+        confirms centers/widths/plateaus receive a real, non-zero gradient on the
+        sloped region, and exactly (not NaN) zero on both flat regions.
+
+        Returns:
+            None
+        """
+        # center=0.5, width=1.0, plateau=0.3 -> plateau (flat 1.0) is (0.2, 0.8),
+        # support is (-0.5, 1.5)
+        trapezoidal_mf = Trapezoidal(
+            centers=np.array([0.5]),
+            widths=np.array([1.0]),
+            plateaus=np.array([0.3]),
+            device=AVAILABLE_DEVICE,
+        )
+        on_slope = torch.tensor([[0.9]], device=AVAILABLE_DEVICE)
+        on_plateau = torch.tensor([[0.5]], device=AVAILABLE_DEVICE)
+        outside = torch.tensor([[5.0]], device=AVAILABLE_DEVICE)
+
+        trapezoidal_mf(on_slope).degrees.sum().backward()
+        for param in (
+            trapezoidal_mf.get_centers(),
+            trapezoidal_mf.get_widths(),
+            trapezoidal_mf.get_plateaus(),
+        ):
+            self.assertFalse(bool(param.grad.isnan().any()))
+            self.assertFalse(bool((param.grad == 0).all()))
+            param.grad = None
+
+        for point in (on_plateau, outside):
+            trapezoidal_mf(point).degrees.sum().backward()
+            for param in (
+                trapezoidal_mf.get_centers(),
+                trapezoidal_mf.get_widths(),
+                trapezoidal_mf.get_plateaus(),
+            ):
+                self.assertFalse(bool(param.grad.isnan().any()))
+                self.assertTrue(bool((param.grad == 0).all()))
+                param.grad = None
+
     def test_plateaus_must_be_numpy(self) -> None:
         """
         Test that the plateaus of a Trapezoidal fuzzy set must be a numpy array.
