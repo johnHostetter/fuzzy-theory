@@ -48,12 +48,11 @@ jobs:
 
       - name: Disable Jekyll 🧪
         run: |
-          # .nojekyll must live inside _build/ (not the repo root) so it is
-          # actually included in what gets deployed below - the deploy action
-          # reads _build/'s contents directly off disk, it does not need (and,
-          # since _build/ is gitignored, cannot have) them committed to this
-          # branch first
-          touch _build/.nojekyll
+          # Stage the file, commit and push
+          touch .nojekyll
+          git add .nojekyll
+          git add _build
+          git commit -m "Disable Jekyll"
 
       - name: Deploy Sphinx Documentation 🚀
         uses: JamesIves/github-pages-deploy-action@v4
