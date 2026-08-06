@@ -175,12 +175,12 @@ class TestKnowledgeBase(unittest.TestCase):
         # check that the stacked granule representation can easily be retrieved
         expected_granulation_layers: GranulationLayers = GranulationLayers(
             input=FuzzySetGroup(
-                modules_list=[Lorentzian.stack(self.linguistic_variables.inputs)],
-            ),
-            output=FuzzySetGroup(
-                modules_list=[Lorentzian.stack(self.linguistic_variables.targets)],
-            ),
-        )
+                modules_list=[
+                    Lorentzian.stack(
+                        self.linguistic_variables.inputs)], ), output=FuzzySetGroup(
+                modules_list=[
+                    Lorentzian.stack(
+                        self.linguistic_variables.targets)], ), )
         self.assertEqual(
             expected_granulation_layers,
             knowledge_base.granulation_layers,
@@ -188,15 +188,20 @@ class TestKnowledgeBase(unittest.TestCase):
 
         # check individual premise granules can be retrieved (from the
         # Knowledgebase.graph)
-        actual_granules: igraph.VertexSeq = knowledge_base.get_granules(tags="premise")
-        self.assertEqual(self.linguistic_variables.inputs, actual_granules["item"])
+        actual_granules: igraph.VertexSeq = knowledge_base.get_granules(
+            tags="premise")
+        self.assertEqual(
+            self.linguistic_variables.inputs,
+            actual_granules["item"])
 
         # check individual consequence granules can be retrieved (from the
         # Knowledgebase.graph)
         actual_granules: igraph.VertexSeq = knowledge_base.get_granules(
             tags="consequence"
         )
-        self.assertEqual(self.linguistic_variables.targets, actual_granules["item"])
+        self.assertEqual(
+            self.linguistic_variables.targets,
+            actual_granules["item"])
 
         # getting granules with nonexistent tag results in no matches
         actual_granules: igraph.VertexSeq = knowledge_base.get_granules(
@@ -207,16 +212,16 @@ class TestKnowledgeBase(unittest.TestCase):
         # count of premise terms is correct for each variable
         premise_terms_dim = np.array([3, 4], dtype=np.int32)
         self.assertTrue(
-            np.allclose(premise_terms_dim, knowledge_base.intra_dimensions("premise"))
-        )
+            np.allclose(
+                premise_terms_dim,
+                knowledge_base.intra_dimensions("premise")))
 
         # count of consequence terms is correct for each variable
         consequence_terms_dim = np.array([5, 2], dtype=np.int32)
         self.assertTrue(
             np.allclose(
-                consequence_terms_dim, knowledge_base.intra_dimensions("consequence")
-            )
-        )
+                consequence_terms_dim,
+                knowledge_base.intra_dimensions("consequence")))
 
         # check that we can save and load the KnowledgeBase
         save_dir: Path = Path(__file__).parent / "knowledge_base"
@@ -232,8 +237,8 @@ class TestKnowledgeBase(unittest.TestCase):
 
         # check that the loaded KnowledgeBase is the same as the original
         self.assertEqual(
-            knowledge_base.attribute_table, loaded_knowledge_base.attribute_table
-        )
+            knowledge_base.attribute_table,
+            loaded_knowledge_base.attribute_table)
 
         for vertex, loaded_vertex in zip(
             knowledge_base.graph.vs, loaded_knowledge_base.graph.vs
@@ -281,7 +286,9 @@ class TestKnowledgeBase(unittest.TestCase):
             None
         """
         knowledge_base = KnowledgeBase()
-        knowledge_base.set_granules(self.linguistic_variables.inputs, tags="premise")
+        knowledge_base.set_granules(
+            self.linguistic_variables.inputs,
+            tags="premise")
         vertex = knowledge_base.add_hypercube(tags="premise")
         self.assertIsNotNone(vertex)
         self.assertIsInstance(vertex["item"], FuzzySetGroup)

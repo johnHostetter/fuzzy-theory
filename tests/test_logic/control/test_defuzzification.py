@@ -37,8 +37,11 @@ class TestZeroOrder(unittest.TestCase):
 
     def setUp(self) -> None:
         self.shape = Shape(
-            n_inputs=2, n_input_terms=3, n_rules=4, n_outputs=2, n_output_terms=0
-        )
+            n_inputs=2,
+            n_input_terms=3,
+            n_rules=4,
+            n_outputs=2,
+            n_output_terms=0)
         self.zero_order = ZeroOrder(
             shape=self.shape,
             source=None,
@@ -59,8 +62,11 @@ class TestZeroOrder(unittest.TestCase):
             None
         """
         shape = Shape(
-            n_inputs=2, n_input_terms=3, n_rules=1, n_outputs=3, n_output_terms=0
-        )
+            n_inputs=2,
+            n_input_terms=3,
+            n_rules=1,
+            n_outputs=3,
+            n_output_terms=0)
         source = FuzzySetGroup(
             modules_list=[
                 Gaussian(
@@ -89,8 +95,9 @@ class TestZeroOrder(unittest.TestCase):
         try:
             loaded = ZeroOrder.load(path, device=AVAILABLE_DEVICE)
             self.assertTrue(
-                torch.allclose(self.zero_order.consequences, loaded.consequences)
-            )
+                torch.allclose(
+                    self.zero_order.consequences,
+                    loaded.consequences))
             self.assertEqual(loaded.shape, self.shape)
         finally:
             path.unlink(missing_ok=True)
@@ -134,8 +141,9 @@ class TestZeroOrder(unittest.TestCase):
                 loaded = Defuzzification.load(path, device=AVAILABLE_DEVICE)
             self.assertEqual(call_count, 2)
             self.assertTrue(
-                torch.allclose(self.zero_order.consequences, loaded.consequences)
-            )
+                torch.allclose(
+                    self.zero_order.consequences,
+                    loaded.consequences))
         finally:
             path.unlink(missing_ok=True)
 
@@ -152,9 +160,13 @@ class TestNormalizedZeroOrder(unittest.TestCase):
             None
         """
         shape = Shape(
-            n_inputs=2, n_input_terms=3, n_rules=3, n_outputs=2, n_output_terms=0
-        )
-        source = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], dtype=np.float32)
+            n_inputs=2,
+            n_input_terms=3,
+            n_rules=3,
+            n_outputs=2,
+            n_output_terms=0)
+        source = np.array(
+            [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], dtype=np.float32)
         normalized = NormalizedZeroOrder(
             shape=shape, source=source, device=AVAILABLE_DEVICE, rule_base=None
         )
@@ -168,7 +180,8 @@ class TestNormalizedZeroOrder(unittest.TestCase):
         output = normalized(rule_activations)
 
         numerator = degrees.unsqueeze(dim=-1) * normalized.consequences
-        expected = numerator.sum(dim=1) / (degrees.sum(dim=1, keepdim=True) + 1e-32)
+        expected = numerator.sum(
+            dim=1) / (degrees.sum(dim=1, keepdim=True) + 1e-32)
         self.assertTrue(torch.allclose(output, expected))
 
 
@@ -181,14 +194,19 @@ class TestTSK(unittest.TestCase):
 
     def setUp(self) -> None:
         self.shape = Shape(
-            n_inputs=2, n_input_terms=3, n_rules=3, n_outputs=2, n_output_terms=0
-        )
+            n_inputs=2,
+            n_input_terms=3,
+            n_rules=3,
+            n_outputs=2,
+            n_output_terms=0)
         # (n_outputs, n_rules, n_inputs + 1): column 0 is bias, the rest are weights
         self.source = (
-            np.random.default_rng(0)
-            .random((self.shape.n_outputs, self.shape.n_rules, self.shape.n_inputs + 1))
-            .astype(np.float32)
-        )
+            np.random.default_rng(0) .random(
+                (self.shape.n_outputs,
+                 self.shape.n_rules,
+                 self.shape.n_inputs +
+                 1)) .astype(
+                np.float32))
         self.tsk = TSK(
             shape=self.shape,
             source=self.source,
@@ -217,7 +235,10 @@ class TestTSK(unittest.TestCase):
         self.tsk.save(path)
         try:
             loaded = TSK.load(path, device=AVAILABLE_DEVICE)
-            self.assertTrue(torch.allclose(self.tsk.consequences, loaded.consequences))
+            self.assertTrue(
+                torch.allclose(
+                    self.tsk.consequences,
+                    loaded.consequences))
         finally:
             path.unlink(missing_ok=True)
 
@@ -266,7 +287,10 @@ class TestMamdani(unittest.TestCase):
             None
         """
         knowledge_base, _ = build_mamdani_knowledge_base(AVAILABLE_DEVICE)
-        flc = FLC(source=knowledge_base, inference=Mamdani, device=AVAILABLE_DEVICE)
+        flc = FLC(
+            source=knowledge_base,
+            inference=Mamdani,
+            device=AVAILABLE_DEVICE)
 
         with self.assertRaises(NotImplementedError):
             flc.defuzzification.save(Path("should_not_be_created"))

@@ -1,0 +1,63 @@
+name: Sphinx Documentation
+on:
+  push:
+    branches: [main, workflow_dispatch]
+  pull_request:
+    branches: [main, workflow_dispatch]
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v3
+        with: # https://stackoverflow.com/questions/59271919/how-to-clone-public-submodule-in-github-actions
+          submodules: true  # change to recursive if submodules require another submodule
+      - name: Setup Python ${{ matrix.python-version }} 🐍
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install Dependencies 🔧
+        run: |
+          # install project dependencies
+          python -m pip install pip==24.0
+          python -m pip install wheel==0.42.0
+          python -m pip install setuptools==69.1.0
+          python -m pip install pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python -m pip install -e .
+          # install Sphinx dependencies
+          python -m pip install -U sphinx
+          python -m pip install sphinx-rtd-theme
+
+      - name: Build Sphinx Documentation 📚
+        run: |
+          sphinx-apidoc -f -o docs/_source/ src
+          sphinx-build docs _build
+
+      - name: Setup git config 🛠️
+        run: |
+          # setup the username and email. I tend to use 'GitHub Actions Bot' with no email by default
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+
+      - name: Disable Jekyll 🧪
+        run: |
+          # Stage the file, commit and push
+          touch .nojekyll
+          git add .nojekyll
+          git add _build
+          git commit -m "Disable Jekyll"
+
+      - name: Deploy Sphinx Documentation 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: _build/ # The folder the action should deploy.
