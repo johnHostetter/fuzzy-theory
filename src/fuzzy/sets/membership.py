@@ -22,7 +22,12 @@ import torch
 from fuzzy.utils.options.impl.impl_enums import DimensionEnum
 
 
-class NamedTensor(namedtuple(typename="NamedTensor", field_names=("data", "names"))):
+class NamedTensor(
+    namedtuple(
+        typename="NamedTensor",
+        field_names=(
+            "data",
+            "names"))):
     """
     A tensor paired with a name for each of its dimensions (e.g., "batch", "variable"),
     validated at construction to actually match the tensor's number of dimensions.
@@ -33,8 +38,10 @@ class NamedTensor(namedtuple(typename="NamedTensor", field_names=("data", "names
         data: torch.Tensor,
         names: Union[List[str], Tuple[str, ...], Tuple[DimensionEnum, ...]],
     ):
-        assert isinstance(data, torch.Tensor), "The data must be a torch.Tensor"
-        assert data.ndim == len(names), "The data must have the same shape as names"
+        assert isinstance(
+            data, torch.Tensor), "The data must be a torch.Tensor"
+        assert data.ndim == len(
+            names), "The data must have the same shape as names"
         return super().__new__(cls, data, names)
 
 

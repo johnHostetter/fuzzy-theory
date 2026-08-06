@@ -140,7 +140,8 @@ class FuzzySetPlot:
             elif centers.ndim == 2 or centers.shape[0] > 1:
                 x_values = x_values[:, None, None]
 
-            memberships: torch.Tensor = fuzzy_set.calculate_membership(x_values)
+            memberships: torch.Tensor = fuzzy_set.calculate_membership(
+                x_values)
             if memberships.ndim == 2:
                 memberships = memberships.unsqueeze(
                     dim=1
@@ -240,8 +241,10 @@ class FuzzySetPlot:
                 )
             else:
                 axes[variable_idx].plot(
-                    variable_plot.x_values, term.y_values, alpha=0.5, label=term.label
-                )
+                    variable_plot.x_values,
+                    term.y_values,
+                    alpha=0.5,
+                    label=term.label)
         axes[variable_idx].legend(
             bbox_to_anchor=(0.5, -0.2),
             loc="upper center",

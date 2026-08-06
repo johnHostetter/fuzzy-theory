@@ -329,7 +329,8 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         # this can be computationally expensive, but it is necessary to calculate the responses
         # from all the modules in the torch.nn.ModuleList of FuzzySetGroup
         # ideally this should be done in parallel, but it is not possible with the current
-        # implementation; only use this if the torch.nn.Module objects are different
+        # implementation; only use this if the torch.nn.Module objects are
+        # different
         module_memberships: List[torch.Tensor] = (
             []
         )  # the primary response from the module

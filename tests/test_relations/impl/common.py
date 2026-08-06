@@ -31,7 +31,10 @@ def assert_matches_expected(
     Returns:
         None
     """
-    expected = torch.tensor(expected_values, dtype=torch.float32, device=device)
+    expected = torch.tensor(
+        expected_values,
+        dtype=torch.float32,
+        device=device)
     assert torch.allclose(actual, expected, atol=atol)
 
 

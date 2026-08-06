@@ -194,14 +194,12 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         if centers.ndim != widths.ndim:
             raise ValueError(
                 f"The number of dimensions for the centers ({centers.ndim}) and widths "
-                f"({widths.ndim}) must be the same."
-            )
+                f"({widths.ndim}) must be the same.")
 
         if centers.ndim == 0 or widths.ndim == 0:
             raise ValueError(
                 f"The centers and widths of a FuzzySet must have at least one dimension. "
-                f"Centers has {centers.ndim} dimensions and widths has {widths.ndim} dimensions."
-            )
+                f"Centers has {centers.ndim} dimensions and widths has {widths.ndim} dimensions.")
 
     # @log_method
     def __alloc_members(
@@ -265,7 +263,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             A torch.nn.Parameter object.
         """
         return torch.nn.Parameter(
-            torch.as_tensor(parameter, dtype=torch.float32, device=self.device),
+            torch.as_tensor(
+                parameter,
+                dtype=torch.float32,
+                device=self.device),
             # requires_grad=True,  # explicitly set to True
         )
 
@@ -283,7 +284,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             A torch.Tensor object.
         """
-        return torch.as_tensor(widths > 0.0, dtype=torch.uint8, device=self.device)
+        return torch.as_tensor(
+            widths > 0.0,
+            dtype=torch.uint8,
+            device=self.device)
         # return torch.nn.Parameter(
         #     torch.as_tensor(widths > 0.0, dtype=torch.int8, device=self.device),
         #     requires_grad=False,  # explicitly set to False (mask is not trainable)
@@ -319,8 +323,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             # the method is not implemented (e.g., self.calculate_membership)
             raise NotImplementedError(
                 "The FuzzySet has no defined membership function. Please create a class "
-                "and inherit from FuzzySet, or use a predefined class, such as Gaussian."
-            )
+                "and inherit from FuzzySet, or use a predefined class, such as Gaussian.")
 
         init_result: FuzzySetInitResult = method.initialize(
             shape=shape,
@@ -775,7 +778,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             A signature of this fuzzy set's parameters.
         """
-        return signature_of([self.get_centers(), self.get_widths(), self.get_mask()])
+        return signature_of(
+            [self.get_centers(), self.get_widths(), self.get_mask()])
 
     @torch.jit.ignore
     def clear_membership_cache(self) -> None:
@@ -785,13 +789,16 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             None
         """
-        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
+        cache: Union[None, MembershipCache] = getattr(
+            self, "_membership_cache", None)
         if cache is not None:
             cache.clear()
 
     @torch.jit.ignore
     @torch.compiler.disable
-    def _lookup_membership(self, observations: torch.Tensor) -> Optional[Membership]:
+    def _lookup_membership(
+            self,
+            observations: torch.Tensor) -> Optional[Membership]:
         """
         Retrieve memoized membership degrees for the given observations, if they are still valid.
 
@@ -814,7 +821,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             The memoized Membership, or None if it has to be calculated.
         """
-        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
+        cache: Union[None, MembershipCache] = getattr(
+            self, "_membership_cache", None)
         if cache is None or not cache.enabled:
             # skip computing parameter_signature() (which reads id(tensor) per
             # parameter) when there is no cache to serve the lookup anyway or it is
@@ -843,7 +851,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             None
         """
-        cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
+        cache: Union[None, MembershipCache] = getattr(
+            self, "_membership_cache", None)
         if cache is not None and cache.enabled:
             cache.store(observations, self.parameter_signature(), membership)
 
@@ -878,10 +887,10 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # a free (no GPU sync), crude estimate of what the resulting degrees tensor's
         # size will be, used only to decide whether syncing to ask "is there any NaN
         # at all?" is worth its cost - see _nan_safe_sync_threshold_numel
-        estimated_degrees_numel = observations.numel() * self.get_centers().shape[-1]
+        estimated_degrees_numel = observations.numel() * \
+            self.get_centers().shape[-1]
         if estimated_degrees_numel > self._nan_safe_sync_threshold_numel and not bool(
-            nan_mask.any()
-        ):
+                nan_mask.any()):
             return self.calculate_membership(observations)
 
         safe_observations = torch.where(
@@ -889,8 +898,11 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         )
         degrees = self.calculate_membership(safe_observations)
         return torch.where(
-            nan_mask.expand_as(degrees), torch.full_like(degrees, float("nan")), degrees
-        )
+            nan_mask.expand_as(degrees),
+            torch.full_like(
+                degrees,
+                float("nan")),
+            degrees)
 
     # @log_method
     def forward(self, observations: torch.Tensor) -> Membership:
@@ -917,7 +929,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             # is_compiling() to a compile-time constant, so this branch is pruned
             # entirely (not merely skipped) while tracing, avoiding the graph break
             # that calling a disabled function would otherwise force
-            cached: Optional[Membership] = self._lookup_membership(observations)
+            cached: Optional[Membership] = self._lookup_membership(
+                observations)
             if cached is not None:
                 return cached
 
@@ -925,7 +938,8 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         if observations.ndim == self.get_centers().ndim:
             observations = observations.unsqueeze(dim=-1)
 
-        degrees: torch.Tensor = self._calculate_membership_nan_safe(observations)
+        degrees: torch.Tensor = self._calculate_membership_nan_safe(
+            observations)
 
         if self._validate_degrees:
             assert (
