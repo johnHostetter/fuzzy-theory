@@ -90,8 +90,9 @@ class TestMembership(unittest.TestCase):
         self.assertIsNotNone(Membership.__doc__)
         self.assertIn("membership", Membership.__doc__.lower())
 
-    @unittest.skipUnless(torch.cuda.is_available(),
-                         "graph breaks are a torch.compile/CUDA concern")
+    @unittest.skipUnless(
+        torch.cuda.is_available(), "graph breaks are a torch.compile/CUDA concern"
+    )
     def test_no_graph_break_on_construction_and_field_access(self) -> None:
         """
         Direct regression test for the actual bug: torch.compile's Dynamo tracer must

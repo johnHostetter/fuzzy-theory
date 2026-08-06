@@ -124,13 +124,10 @@ class TestProduct(TestNAryRelation):
         )
         self.assertEqual(prod_membership.degrees.shape[0], N_OBSERVATIONS)
         self.assertEqual(prod_membership.degrees.shape[1], N_COMPOUNDS)
-        self.assertEqual(
-            prod_membership.degrees.shape,
-            expected_prod_values.shape)
+        self.assertEqual(prod_membership.degrees.shape, expected_prod_values.shape)
         self.assertTrue(
-            torch.allclose(
-                prod_membership.degrees.to_dense(),
-                expected_prod_values))
+            torch.allclose(prod_membership.degrees.to_dense(), expected_prod_values)
+        )
 
     @unittest.skipUnless(
         torch.cuda.is_available(), "the fused Triton path is CUDA-only"
@@ -231,8 +228,9 @@ class TestProduct(TestNAryRelation):
             n_ary(membership)
         mocked_gather_prod.assert_not_called()
 
-    @unittest.skipUnless(torch.cuda.is_available(),
-                         "comparing the fused path against its own fallback")
+    @unittest.skipUnless(
+        torch.cuda.is_available(), "comparing the fused path against its own fallback"
+    )
     def test_fused_and_fallback_paths_agree(self) -> None:
         """
         With TRITON_AVAILABLE forced off, Product.forward() must take the general
@@ -244,24 +242,19 @@ class TestProduct(TestNAryRelation):
         """
         torch.manual_seed(0)
         n_vars, n_terms, n_rules, batch_size = 12, 4, 6, 8
-        indices = [[(v, torch.randint(0, n_terms, (1,)).item())
-                    for v in range(n_vars)] for _ in range(n_rules)]
+        indices = [
+            [(v, torch.randint(0, n_terms, (1,)).item()) for v in range(n_vars)]
+            for _ in range(n_rules)
+        ]
         degrees = (
-            torch.rand(
-                batch_size,
-                n_vars,
-                n_terms,
-                device=AVAILABLE_DEVICE) *
-            0.9 +
-            0.05)
+            torch.rand(batch_size, n_vars, n_terms, device=AVAILABLE_DEVICE) * 0.9
+            + 0.05
+        )
         mask = torch.ones(n_vars, n_terms, device=AVAILABLE_DEVICE)
 
         n_ary_fused = Product(*indices, device=AVAILABLE_DEVICE)
         degrees_fused = degrees.clone().requires_grad_(True)
-        result_fused = n_ary_fused(
-            Membership(
-                degrees=degrees_fused,
-                mask=mask))
+        result_fused = n_ary_fused(Membership(degrees=degrees_fused, mask=mask))
         result_fused.degrees.sum().backward()
 
         n_ary_fallback = Product(*indices, device=AVAILABLE_DEVICE)
@@ -273,12 +266,8 @@ class TestProduct(TestNAryRelation):
             result_fallback.degrees.sum().backward()
 
         self.assertTrue(
-            torch.allclose(
-                result_fused.degrees,
-                result_fallback.degrees,
-                atol=1e-4))
+            torch.allclose(result_fused.degrees, result_fallback.degrees, atol=1e-4)
+        )
         self.assertTrue(
-            torch.allclose(
-                degrees_fused.grad,
-                degrees_fallback.grad,
-                atol=1e-4))
+            torch.allclose(degrees_fused.grad, degrees_fallback.grad, atol=1e-4)
+        )

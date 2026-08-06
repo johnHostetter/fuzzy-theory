@@ -106,12 +106,8 @@ class TestTNormPipeline(unittest.TestCase):
         # PremiseActivation's softmax-family output sums to 1 along the last
         # dim
         self.assertTrue(
-            torch.allclose(
-                result.sum(
-                    dim=-1),
-                torch.ones(
-                    5,
-                    device=AVAILABLE_DEVICE)))
+            torch.allclose(result.sum(dim=-1), torch.ones(5, device=AVAILABLE_DEVICE))
+        )
 
     def test_gradient_flows_through_layer_norm_and_certainty(self) -> None:
         """
@@ -233,12 +229,9 @@ class TestTNormPipeline(unittest.TestCase):
         configuration.save(path.parent / "configuration.yaml")
 
         try:
-            loaded_pipeline = TNormPipeline.load(
-                path, device=torch.device("cpu"))
-            self.assertEqual(
-                "cpu", loaded_pipeline.layer_norm.weight.device.type)
-            self.assertEqual(
-                "cpu", loaded_pipeline.layer_norm.bias.device.type)
+            loaded_pipeline = TNormPipeline.load(path, device=torch.device("cpu"))
+            self.assertEqual("cpu", loaded_pipeline.layer_norm.weight.device.type)
+            self.assertEqual("cpu", loaded_pipeline.layer_norm.bias.device.type)
             self.assertTrue(
                 torch.allclose(
                     pipeline.layer_norm.weight.cpu(),

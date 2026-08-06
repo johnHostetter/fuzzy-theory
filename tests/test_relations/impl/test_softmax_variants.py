@@ -37,10 +37,8 @@ class TestSoftmaxSum(TestNAryRelation):
         Returns:
             None
         """
-        n_ary = SoftmaxSum([(0, 0), (1, 0)], [
-                           (0, 1), (1, 1)], device=AVAILABLE_DEVICE)
-        degrees = torch.tensor(
-            [[[0.6, 0.4], [0.3, 0.7]]], device=AVAILABLE_DEVICE)
+        n_ary = SoftmaxSum([(0, 0), (1, 0)], [(0, 1), (1, 1)], device=AVAILABLE_DEVICE)
+        degrees = torch.tensor([[[0.6, 0.4], [0.3, 0.7]]], device=AVAILABLE_DEVICE)
         membership = Membership(
             degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
         )
@@ -48,11 +46,7 @@ class TestSoftmaxSum(TestNAryRelation):
         expected_degrees = torch.tensor(
             [[0.45016600, 0.54983400]], device=AVAILABLE_DEVICE
         )
-        self.assertTrue(
-            torch.allclose(
-                result.degrees,
-                expected_degrees,
-                atol=1e-6))
+        self.assertTrue(torch.allclose(result.degrees, expected_degrees, atol=1e-6))
 
     def test_gradient_flows_to_degrees(self) -> None:
         """
@@ -127,10 +121,8 @@ class TestSoftmaxMean(TestNAryRelation):
         Returns:
             None
         """
-        n_ary = SoftmaxMean([(0, 0), (1, 0)], [
-                            (0, 1), (1, 1)], device=AVAILABLE_DEVICE)
-        degrees = torch.tensor(
-            [[[0.6, 0.4], [0.3, 0.7]]], device=AVAILABLE_DEVICE)
+        n_ary = SoftmaxMean([(0, 0), (1, 0)], [(0, 1), (1, 1)], device=AVAILABLE_DEVICE)
+        degrees = torch.tensor([[[0.6, 0.4], [0.3, 0.7]]], device=AVAILABLE_DEVICE)
         membership = Membership(
             degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
         )
@@ -138,11 +130,7 @@ class TestSoftmaxMean(TestNAryRelation):
         expected_degrees = torch.tensor(
             [[0.47502081, 0.52497919]], device=AVAILABLE_DEVICE
         )
-        self.assertTrue(
-            torch.allclose(
-                result.degrees,
-                expected_degrees,
-                atol=1e-6))
+        self.assertTrue(torch.allclose(result.degrees, expected_degrees, atol=1e-6))
 
     def test_gradient_flows_to_degrees(self) -> None:
         """
@@ -222,15 +210,13 @@ class TestSoftmaxMean(TestNAryRelation):
         )
         doubled_degrees = torch.cat([degrees, degrees], dim=1)
         doubled_membership = Membership(
-            degrees=doubled_degrees, mask=torch.ones(
-                4, 2, device=AVAILABLE_DEVICE))
+            degrees=doubled_degrees, mask=torch.ones(4, 2, device=AVAILABLE_DEVICE)
+        )
         doubled_intermediate_values = doubled_n_ary.apply_mask(
             membership=doubled_membership
         )
         doubled_firing_strengths = doubled_intermediate_values.mean(dim=1)
 
         self.assertTrue(
-            torch.allclose(
-                firing_strengths,
-                doubled_firing_strengths,
-                atol=1e-5))
+            torch.allclose(firing_strengths, doubled_firing_strengths, atol=1e-5)
+        )
