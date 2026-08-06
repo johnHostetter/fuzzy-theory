@@ -55,6 +55,28 @@ class Minimum(TNorm):
                 membership=membership
             )
         )
+        # Regression fix: a variable not referenced at all by a given rule (common
+        # whenever an NAryRelation combines multiple rules with different variable
+        # subsets) gets forced to the shared masking machinery's identity constant,
+        # 1.0 - correct for the forward value (min(x, 1.0) == x for any x <= 1.0),
+        # but whenever a rule's *real* input also equals exactly 1.0 (a fully-
+        # satisfied rule - routine as training converges), torch.min()'s tie-
+        # breaking can pick that constant as the argmin instead of the real input.
+        # Since the constant has zero local derivative, the gradient silently
+        # vanishes into it instead of reaching the real, deserving parameter -
+        # confirmed empirically to be dependent on variable index order (whichever
+        # of the tied entries comes first along the vars dimension wins). Replacing
+        # every such phantom (var, rule) slot with +inf before min() guarantees it
+        # can never win a tie against a real value bounded in [0, 1] - identical
+        # forward result, but ties always resolve to a real input. Reuses the raw
+        # applied_mask already returned above (shape (vars, terms, rules) for both
+        # the gather and general paths) rather than any method-specific internal
+        # state, so this works regardless of which _apply_mask_func computed
+        # after_mask.
+        phantom = applied_mask.sum(dim=-2) == 0  # (vars, rules)
+        after_mask = torch.where(
+            phantom.unsqueeze(0), torch.inf, after_mask  # broadcast over batch
+        )
         return Membership(
             degrees=after_mask.min(dim=-2, keepdim=False).values,
             mask=applied_mask,
@@ -158,11 +180,7 @@ class SoftmaxSum(TNorm):
         firing_strengths = intermediate_values.sum(dim=1)
         max_values = firing_strengths.amax(dim=-1, keepdim=True)
         return Membership(
-            degrees=torch.nn.functional.softmax(
-                firing_strengths -
-                max_values,
-                dim=-
-                1),
+            degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
             mask=applied_mask,
         )
 
@@ -242,10 +260,6 @@ class SoftmaxMean(TNorm):
             dim=-1, keepdim=True
         )  # add this to prevent overflow
         return Membership(
-            degrees=torch.nn.functional.softmax(
-                firing_strengths -
-                max_values,
-                dim=-
-                1),
+            degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
             mask=applied_mask,
         )
