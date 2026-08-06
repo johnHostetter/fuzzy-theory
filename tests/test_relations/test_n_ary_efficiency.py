@@ -570,8 +570,11 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         """
         NAryMaskMethods.LINEAR_SUM was not exercised by any existing test. Verify it
         computes the documented linear combination of degrees and links directly,
-        and - unlike PROD/EXP_SUM_LOG/gather - returns None as its mask component,
-        since it has no single "applied mask" to expose.
+        and returns the applied mask reshaped to (var_count * term_count, n_rules) -
+        the same 2D view used internally for the linear combination - rather than
+        None. Previously returned None unconditionally; there was no evidence this
+        was an intentional design choice rather than an oversight, so it is treated
+        as a bug fix.
 
         Returns:
             None
@@ -592,6 +595,9 @@ class TestNAryRelationEfficiency(TestNAryRelation):
                 membership
             )
         )
-        self.assertIsNone(mask_component)
+        var_count, term_count, n_rules = mask.shape
+        self.assertTrue(
+            torch.equal(mask_component, mask.view(var_count * term_count, n_rules))
+        )
         expected = (degrees.unsqueeze(-1) * mask).sum(dim=(1, 2))
         self.assertTrue(torch.allclose(result, expected, atol=1e-5))
