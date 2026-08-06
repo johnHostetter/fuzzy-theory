@@ -158,7 +158,11 @@ class SoftmaxSum(TNorm):
         firing_strengths = intermediate_values.sum(dim=1)
         max_values = firing_strengths.amax(dim=-1, keepdim=True)
         return Membership(
-            degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
+            degrees=torch.nn.functional.softmax(
+                firing_strengths -
+                max_values,
+                dim=-
+                1),
             mask=applied_mask,
         )
 
@@ -238,6 +242,10 @@ class SoftmaxMean(TNorm):
             dim=-1, keepdim=True
         )  # add this to prevent overflow
         return Membership(
-            degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
+            degrees=torch.nn.functional.softmax(
+                firing_strengths -
+                max_values,
+                dim=-
+                1),
             mask=applied_mask,
         )

@@ -8,7 +8,8 @@ import unittest
 
 import numpy as np
 
-from fuzzy.sets.impl.gauss_variants.cmf import GaussianKernel, GeneralizedGuassian
+from fuzzy.sets.impl.gauss_variants.cmf import (GaussianKernel,
+                                                GeneralizedGuassian)
 from tests import AVAILABLE_DEVICE
 
 
