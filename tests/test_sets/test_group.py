@@ -6,6 +6,7 @@ Test functionality relating to FuzzySetGroup.
 # implementation details
 # pylint: disable=protected-access
 
+import pickle
 import shutil
 import unittest
 from pathlib import Path
@@ -32,7 +33,11 @@ class _GenericCentersWidthsMaskModule(torch.nn.Module):
     instances - see FuzzySetGroup's own docstring.
     """
 
-    def __init__(self, centers: torch.Tensor, widths: torch.Tensor, mask: torch.Tensor):
+    def __init__(
+            self,
+            centers: torch.Tensor,
+            widths: torch.Tensor,
+            mask: torch.Tensor):
         super().__init__()
         self._centers = centers
         self._widths = widths
@@ -120,7 +125,8 @@ class TestFuzzySetGroup(unittest.TestCase):
         Test that the grad_fn attribute is not None.
         """
         # test individual modules
-        input_data = torch.tensor([[1.0, 2.0], [3.0, 4.0]], device=AVAILABLE_DEVICE)
+        input_data = torch.tensor(
+            [[1.0, 2.0], [3.0, 4.0]], device=AVAILABLE_DEVICE)
         for module in self.grouped_fuzzy_sets.modules_list:
             self.assertIsInstance(module, Gaussian)
             output: Membership = module(input_data)
@@ -141,8 +147,7 @@ class TestFuzzySetGroup(unittest.TestCase):
         # test that FuzzySetGroup can be saved and loaded
         self.grouped_fuzzy_sets.save(Path("test_grouped_fuzzy_sets"))
         loaded_grouped_fuzzy_sets: FuzzySetGroup = self.grouped_fuzzy_sets.load(
-            Path("test_grouped_fuzzy_sets"), device=AVAILABLE_DEVICE
-        )
+            Path("test_grouped_fuzzy_sets"), device=AVAILABLE_DEVICE)
 
         for idx, module in enumerate(self.grouped_fuzzy_sets.modules_list):
             assert torch.equal(
@@ -160,7 +165,9 @@ class TestFuzzySetGroup(unittest.TestCase):
             if isinstance(value, torch.nn.ModuleList):
                 continue  # already checked above
             if isinstance(value, torch.Tensor):
-                assert torch.equal(value, getattr(loaded_grouped_fuzzy_sets, attribute))
+                assert torch.equal(
+                    value, getattr(
+                        loaded_grouped_fuzzy_sets, attribute))
             else:  # for non-tensors
                 assert value == getattr(loaded_grouped_fuzzy_sets, attribute)
 
@@ -168,6 +175,41 @@ class TestFuzzySetGroup(unittest.TestCase):
         # read-only files
 
         shutil.rmtree(Path("test_grouped_fuzzy_sets"), ignore_errors=True)
+
+    def test_load_skips_attributes_with_no_setter(self) -> None:
+        """
+        Coverage/regression test: NestedTorchJitModule.load()'s "setattr() failed
+        because it names a read-only property" branch had no test coverage - a
+        current save() never actually produces such an attribute (see
+        get_object_attributes()'s own _is_read_only_property filter, added
+        specifically because centers/widths/mask used to leak through as if they
+        were save-able state), so this simulates an older-format save that still has
+        one, confirming load() skips it gracefully rather than crashing.
+
+        Returns:
+            None
+        """
+        path = Path("test_group_stale_readonly_attribute")
+        self.grouped_fuzzy_sets.save(path)
+        try:
+            pickle_path = path / f"{FuzzySetGroup.__name__}.pickle"
+            with open(pickle_path, "rb") as handle:
+                saved_attributes = pickle.load(handle)
+            # "centers" is a real read-only property on FuzzySetGroup (no setter) -
+            # inject it as if an older save() had included it
+            saved_attributes["centers"] = torch.zeros(1)
+            with open(pickle_path, "wb") as handle:
+                pickle.dump(saved_attributes, handle)
+
+            loaded = FuzzySetGroup.load(path, device=AVAILABLE_DEVICE)
+            self.assertIsInstance(loaded, FuzzySetGroup)
+            # the injected bogus value must not have overridden the real, computed
+            # centers property
+            self.assertTrue(
+                torch.equal(self.grouped_fuzzy_sets.centers, loaded.centers)
+            )
+        finally:
+            shutil.rmtree(path, ignore_errors=True)
 
     def test_hash_eq_contract(self) -> None:
         """
@@ -267,7 +309,8 @@ class TestFuzzySetGroup(unittest.TestCase):
                 ),
             ]
         )
-        input_data = torch.tensor([[1.0, 2.0], [3.0, 4.0]], device=AVAILABLE_DEVICE)
+        input_data = torch.tensor(
+            [[1.0, 2.0], [3.0, 4.0]], device=AVAILABLE_DEVICE)
         output: Membership = group(input_data)
         self.assertFalse(output.degrees.is_sparse)
         self.assertEqual(output.degrees.shape[-1], 6)
@@ -409,7 +452,8 @@ class TestFuzzySetGroup(unittest.TestCase):
             len(group._membership_cache), 0
         )  # pylint: disable=protected-access
 
-    def test_lookup_and_store_defensive_when_cache_attribute_absent(self) -> None:
+    def test_lookup_and_store_defensive_when_cache_attribute_absent(
+            self) -> None:
         """
         _lookup_group_membership()/_store_group_membership() are looked up defensively
         (getattr with a None default) so a torch.jit.script'ed copy of this module - which
@@ -484,7 +528,9 @@ class TestFuzzySetGroup(unittest.TestCase):
                 5,  # pylint: disable=protected-access
             )
         finally:
-            shutil.rmtree(Path("test_group_cache_settings"), ignore_errors=True)
+            shutil.rmtree(
+                Path("test_group_cache_settings"),
+                ignore_errors=True)
 
     def test_eq_with_different_lengths_and_different_content(self) -> None:
         """

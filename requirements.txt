@@ -7,10 +7,14 @@ igraph==0.11.6
 scipy==1.13.1  # for sparse matrices
 sympy==1.13.2  # for torch
 graphviz==0.20.1
-torch==2.4.0
+torch>=2.4.0,<2.9  # allow patched versions up to (not including) the untested 2.9.x line
 torchquad==0.4.0
 rough-theory==0.0.3  # mine
 matplotlib==3.9.1  # for torchquad
 SciencePlots==2.1.1  # for scientific publication plots
 natsort==8.4.0  # for natural sorting
-triton==3.0.0  # optional: fused CUDA kernel for Product t-norm gather+prod reduction; CUDA-only, falls back gracefully if absent
+# triton: pulled in automatically by torch itself on Linux x86_64 (as an exact,
+# version-matched conditional dependency - e.g. torch 2.4.0 requires triton==3.0.0,
+# 2.5.0 requires 3.1.0, 2.8.0 requires 3.4.0), so no need to pin it here. Used for a
+# fused CUDA kernel for the Product t-norm's gather+prod reduction; CUDA-only, falls
+# back gracefully if absent.

@@ -68,8 +68,12 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
+# Sphinx documentation - the workflow (.github/workflows/documentation.yml)
+# regenerates both of these fresh on every run (sphinx-apidoc -f, sphinx-build) and
+# deploys the result to the gh-pages branch, so neither belongs in version control
 docs/_build/
+docs/_source/
+/_build/
 
 # PyBuilder
 .pybuilder/

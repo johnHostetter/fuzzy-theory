@@ -4,12 +4,9 @@ Test the various mechanisms in which a fuzzy logic rule can be created.
 
 import unittest
 
-from fuzzy.logic.knowledge_base import KnowledgeBase
-from fuzzy.logic.variables import LinguisticVariables
-from fuzzy.relations.t_norm import Product
 from tests import AVAILABLE_DEVICE
 
-from .demo_flcs import toy_mamdani
+from .common import build_mamdani_knowledge_base
 
 
 class TestFuzzyLogicRule(unittest.TestCase):
@@ -24,15 +21,7 @@ class TestFuzzyLogicRule(unittest.TestCase):
         Returns:
             None
         """
-        antecedents, consequents, rules = toy_mamdani(
-            t_norm=Product, device=AVAILABLE_DEVICE
-        )
-        knowledge_base = KnowledgeBase.create(
-            linguistic_variables=LinguisticVariables(
-                inputs=antecedents, targets=consequents
-            ),
-            rules=rules,
-        )
+        knowledge_base, rules = build_mamdani_knowledge_base(AVAILABLE_DEVICE)
         self.assertEqual(
             len(knowledge_base.graph.vs.select(tags_eq={"rule"})), len(rules)
         )

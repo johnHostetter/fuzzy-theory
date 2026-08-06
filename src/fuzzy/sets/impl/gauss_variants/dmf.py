@@ -62,7 +62,9 @@ class DimensionDependent(FuzzySet, abc.ABC):
         )
 
     @staticmethod
-    def _calculate_rho(n_inputs: torch.Tensor, device: torch.device) -> torch.Tensor:
+    def _calculate_rho(
+            n_inputs: torch.Tensor,
+            device: torch.device) -> torch.Tensor:
         with torch.no_grad():
             return (
                 torch.ones(1, device=device)
@@ -113,11 +115,15 @@ class GaussianNoExpDMF(DimensionDependent):
     @classmethod
     @torch.jit.ignore
     def sympy_formula(cls) -> sympy.Expr:
-        # centers (c), widths (sigma), observations (x), dimensions (N) and rho (rho)
+        # centers (c), widths (sigma), observations (x), dimensions (n) and rho (rho).
+        # dimensions is lowercase "n" (not "N") deliberately: sympy's parse_expr
+        # reserves the bare identifier "N" for its own numerical-evaluation shortcut
+        # (sympy.N), so interpolating Symbol("N") into a string later re-parsed by
+        # sympy.sympify() silently fails to round-trip - "n" is not reserved.
         center_symbol = sympy.Symbol("c")
         width_symbol = sympy.Symbol("sigma")
         input_symbol = sympy.Symbol("x")
-        dim_symbol = sympy.Symbol("N")
+        dim_symbol = sympy.Symbol("n")
         rho_symbol = sympy.Symbol("rho")
         return sympy.sympify(
             f"-1.0 * pow(({input_symbol} - {center_symbol}), 2) / "

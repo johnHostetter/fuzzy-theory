@@ -6,12 +6,42 @@ FuzzyLogicController's input-granulation layer. Only the resulting rule activati
 (different rule/consequence structures) - see the callers for those expected values.
 """
 
+from typing import List, Tuple
+
 import numpy as np
 import torch
 
 from fuzzy.logic.control.controller import FuzzyLogicController as FLC
+from fuzzy.logic.knowledge_base import KnowledgeBase
+from fuzzy.logic.rule import Rule
+from fuzzy.logic.variables import LinguisticVariables
+from fuzzy.relations.t_norm import Product
 from fuzzy.sets.membership import Membership
 from tests import AVAILABLE_DEVICE
+
+from .demo_flcs import toy_mamdani
+
+
+def build_mamdani_knowledge_base(
+    device: torch.device,
+) -> Tuple[KnowledgeBase, List[Rule]]:
+    """
+    Returns:
+        A KnowledgeBase built from the toy Mamdani antecedents/consequents/rules,
+        and the original list of Rule objects passed into it (distinct from
+        knowledge_base.rules - the recovered rules read back out of the graph - so
+        callers can still compare the two), shared by every test that just needs a
+        valid Mamdani source.
+    """
+    antecedents, consequents, rules = toy_mamdani(
+        t_norm=Product, device=device)
+    knowledge_base = KnowledgeBase.create(
+        linguistic_variables=LinguisticVariables(
+            inputs=antecedents, targets=consequents
+        ),
+        rules=rules,
+    )
+    return knowledge_base, rules
 
 
 def make_data_with_missing(device: torch.device) -> torch.Tensor:
@@ -98,7 +128,11 @@ def assert_compile_fullgraph_matches_eager(
     """
     eager_output = flc(input_data)
     compiled_output = torch.compile(flc, fullgraph=True)(input_data)
-    assert torch.allclose(eager_output, compiled_output, atol=atol, equal_nan=True)
+    assert torch.allclose(
+        eager_output,
+        compiled_output,
+        atol=atol,
+        equal_nan=True)
 
 
 def _assert_rule_activations_match(

@@ -44,20 +44,10 @@ class GeneralizedGuassian(FuzzySet):
                 f"The width multiplier must be > 0, but got"
                 f" {self._gaussian_kernel.width_multiplier}."
             )
-        self._width_multiplier = torch.nn.ParameterList(
-            [
-                self.make_parameter(
-                    self._gaussian_kernel.width_multiplier * np.ones_like(centers)
-                )
-            ]
-        )
-        self._slope_multiplier = torch.nn.ParameterList(
-            [
-                self.make_parameter(
-                    self._gaussian_kernel.slope_multiplier * np.ones_like(centers)
-                )
-            ]
-        )
+        self._width_multiplier = torch.nn.ParameterList([self.make_parameter(
+            self._gaussian_kernel.width_multiplier * np.ones_like(centers))])
+        self._slope_multiplier = torch.nn.ParameterList([self.make_parameter(
+            self._gaussian_kernel.slope_multiplier * np.ones_like(centers))])
 
     def get_width_multiplier(self) -> torch.Tensor:
         """
@@ -103,10 +93,8 @@ class GeneralizedGuassian(FuzzySet):
         Returns:
             The membership degrees of the observations for the Generalized Gaussian fuzzy set.
         """
-        vals = -1.0 * torch.pow(
-            (torch.pow(observations - centers, 2) / torch.pow(width_multiplier, 2)),
-            slope_multiplier,
-        )
+        vals = -1.0 * torch.pow((torch.pow(observations - centers, 2) /
+                                 torch.pow(width_multiplier, 2)), slope_multiplier, )
         # this works pretty well -- but does cause NaNs later on
         # vals = (
         #     -1.0 * torch.pow(observations - centers, 2) / torch.pow(width_multiplier, 2)
@@ -162,7 +150,7 @@ class LogGaussian(FuzzySet):
 
     @staticmethod
     @torch.jit.script
-    def internal_calculate_membership(
+    def internal_calculate_membership(  # pragma: no cover
         observations: torch.Tensor,
         centers: torch.Tensor,
         widths: torch.Tensor,
@@ -171,6 +159,15 @@ class LogGaussian(FuzzySet):
     ) -> torch.Tensor:
         """
         Calculate the membership of the observations to the Log Gaussian fuzzy set.
+
+        pragma: no cover justification: @torch.jit.script compiles this into
+        TorchScript IR, executed by TorchScript's own interpreter rather than as
+        CPython bytecode, so coverage.py's sys.settrace()-based tracer cannot
+        observe it regardless of test thoroughness (the same class of limitation as
+        the @triton.jit kernels in relations/triton_kernels.py) -
+        test_log_gaussian.py's test_calculate_membership_matches_formula does
+        exercise and numerically verify this method; it just cannot move this
+        file's line-coverage number.
         This is a static method, so it can be called without instantiating the class.
         This static method is particularly useful when animating the membership function.
 

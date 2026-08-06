@@ -70,6 +70,23 @@ class TestMinimum(TestNAryRelation):
         # min_values_script = n_ary_script.forward(membership)
         # self.assertTrue(torch.allclose(min_values_script, expected_min_values))
 
+    def test_str_single_relation_and_compound(self) -> None:
+        """
+        Coverage/regression test: TNorm.__str__() has two branches - a single
+        relation is rendered as "(var, term) AND (var, term) ...", while a compound
+        (multiple relations passed to one instance) falls back to the generic
+        NAryRelation.__str__() - neither had direct test coverage.
+
+        Returns:
+            None
+        """
+        single = Minimum((0, 1), (1, 0), device=AVAILABLE_DEVICE)
+        self.assertEqual("(0, 1) AND (1, 0)", str(single))
+
+        compound = Minimum([(0, 0), (1, 0)], [
+                           (0, 1), (1, 1)], device=AVAILABLE_DEVICE)
+        self.assertEqual(f"Minimum({compound.indices})", str(compound))
+
     def test_multiple_indices_passed_as_list(self) -> None:
         """
         Test the Minimum operation given multiple relations, where some variables are never used

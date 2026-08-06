@@ -26,9 +26,15 @@ class BinaryLinks(torch.nn.Module, Loggable):
     performing network morphism.
     """
 
-    def __init__(self, links: np.ndarray, device: torch.device, *args, **kwargs):
+    def __init__(
+            self,
+            links: np.ndarray,
+            device: torch.device,
+            *args,
+            **kwargs):
         super().__init__(*args, **kwargs)
-        self.links: torch.Tensor = torch.tensor(links, dtype=torch.int8, device=device)
+        self.links: torch.Tensor = torch.tensor(
+            links, dtype=torch.int8, device=device)
         # indices: torch.Tensor = torch.tensor(links.nonzero(), device=device)
         # self.links = torch.sparse_coo_tensor(
         #     indices=indices, values=torch.ones(indices.shape[1], dtype=torch.bool, device=device),
@@ -228,9 +234,8 @@ class GroupedLinks(NestedTorchJitModule, Loggable):
         # splitting up logits/links for the purpose of intra-GPU parallelism, then you need to
         # change self.membership_dimension = 2
         # self.membership_dimension = 2
-        dim_sum = sum(
-            module.shape[self.membership_dimension] for module in self.modules_list[1:]
-        )
+        dim_sum = sum(module.shape[self.membership_dimension]
+                      for module in self.modules_list[1:])
         shape = tuple(
             s + dim_sum if i == self.membership_dimension else s
             for i, s in enumerate(base_shape)

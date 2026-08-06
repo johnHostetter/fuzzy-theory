@@ -22,8 +22,11 @@ class NoOp(FuzzySet):
     """
 
     def __init__(
-        self, n_elements: int, membership: float, device: torch.device, **kwargs
-    ):
+            self,
+            n_elements: int,
+            membership: float,
+            device: torch.device,
+            **kwargs):
         centers = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         widths = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         self.membership = membership  # the flat membership degree of the NoOp fuzzy set
@@ -130,10 +133,16 @@ class Lorentzian(FuzzySet):
         """
         Gets the sigma for the Lorentzian fuzzy set; alias for the 'widths' parameter.
 
+        Regression fix: this used to read self.widths, a plain instance attribute
+        that no longer exists on FuzzySet since widths moved into the
+        _FuzzySetParameters submodule (see get_widths()) - every access raised
+        AttributeError, which Python's property protocol then silently reported as
+        "no attribute 'sigmas'" rather than the real cause.
+
         Returns:
             torch.Tensor
         """
-        return self.widths
+        return self.get_widths()
 
     @sigmas.setter
     @torch.jit.ignore
@@ -141,10 +150,22 @@ class Lorentzian(FuzzySet):
         """
         Sets the sigma for the Lorentzian fuzzy set; alias for the 'widths' parameter.
 
+        Writes in place into the existing widths parameter so gradient tracking and
+        any external references to it (e.g. an optimizer) remain valid. Only
+        correctly updates every width when they are backed by a single underlying
+        parameter (the overwhelmingly common case - see DynamicParameterList.tensor);
+        after extend() has grown this fuzzy set to more than one, the concatenation
+        read back is a fresh copy each time and writing into it would not persist.
+
         Returns:
             None
         """
-        self.widths = sigmas
+        with torch.no_grad():
+            self.get_widths().copy_(
+                torch.as_tensor(
+                    sigmas,
+                    dtype=torch.float32,
+                    device=self.device))
 
     @staticmethod
     def internal_calculate_membership(
@@ -348,8 +369,7 @@ class Trapezoidal(FuzzySet):
         if not isinstance(plateaus, np.ndarray):
             raise ValueError(
                 f"The plateaus of a Trapezoidal fuzzy set must be a numpy array, "
-                f"but got {type(plateaus)}"
-            )
+                f"but got {type(plateaus)}")
         if plateaus.ndim == 1:
             plateaus = plateaus[None, :]
         self._plateaus = DynamicParameterList(

@@ -53,7 +53,8 @@ class Defuzzification(TorchJitModule, abc.ABC):
         except UnicodeDecodeError:
             # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xde in position 157881408:
             # invalid continuation byte
-            state_dict = torch.load(path, weights_only=False, encoding="latin1")
+            state_dict = torch.load(
+                path, weights_only=False, encoding="latin1")
 
         shape: Shape = Shape(*state_dict.pop("shape"))
         class_name: str = state_dict.pop("class_name")
@@ -170,23 +171,6 @@ class ZeroOrder(Defuzzification):
         torch.save(state_dict, path)
         return state_dict
 
-    @classmethod
-    def load(cls, path: Path, device: torch.device) -> "ZeroOrder":
-        """
-        Load the defuzzification process from a directory.
-
-        Args:
-            path: The directory path to load the defuzzification process from.
-            device: The device to load the defuzzification process to.
-
-        Returns:
-            The defuzzification process.
-        """
-        state_dict: MutableMapping = torch.load(path, weights_only=False)
-        shape: Shape = Shape(*state_dict.pop("shape"))
-        source: np.ndarray = state_dict.pop("source")
-        return ZeroOrder(shape=shape, source=source, device=device, **state_dict)
-
     def to(self, device: torch.device, *args, **kwargs) -> "ZeroOrder":
         """
         Move the defuzzification process to a device.
@@ -234,31 +218,12 @@ class ZeroOrder(Defuzzification):
         #     # num of rules), MISO
         #     return (numerator / denominator)
 
-        # Multi-Input-Multi-Output (MIMO)
-        # try:
-        #     consequences = torch.mm(self.gg.cuda(), self.consequences.cuda())
-        # except AttributeError:
-        #     consequences = self.consequences
-        # numerator = torch.matmul(rule_activations, consequences)
-        # rule_links = self.intermediate_calculation_modules(antecedents_memberships)
-        # rule_weight_matrix = self.intermediate_calculation_modules.grouped_links(
-        #     antecedents_memberships.elements
-        # )
-        # curr_device = antecedents_memberships.elements.device
-        # rule_activations = (
-        #     antecedents_memberships.elements.unsqueeze(-1).to(curr_device) * (
-        #     rule_links.transpose(0, 1).to(curr_device) * rule_weight_matrix.to(curr_device)
-        #     ).sum(dim=-1).to(
-        #             curr_device
-        #     )
-        # )
-        # t = (
-        #     antecedents_memberships.elements.unsqueeze(dim=-1)
-        #     * self.consequences_matrix
-        # )
-        return (rule_activations.degrees.unsqueeze(dim=-1) * self.consequences).sum(
-            dim=1
-        )
+        return (
+            rule_activations.degrees.unsqueeze(
+                dim=-
+                1) *
+            self.consequences).sum(
+            dim=1)
 
 
 class NormalizedZeroOrder(ZeroOrder):
@@ -334,10 +299,8 @@ class TSK(Defuzzification):
         shape = consequences[:, :, 1:].shape
         # Flatten (r, o) into one big linear projection dimension
         self.r, self.o, self.f = shape[0], shape[1], shape[2]
-        self.weights = torch.nn.Parameter(
-            consequences[:, :, 1:].reshape(self.r * self.o, self.f).T.contiguous(),
-            requires_grad=True,
-        )
+        self.weights = torch.nn.Parameter(consequences[:, :, 1:].reshape(
+            self.r * self.o, self.f).T.contiguous(), requires_grad=True, )
         self.bias = torch.nn.Parameter(
             consequences[:, :, 0].contiguous().unsqueeze(0), requires_grad=True
         )
@@ -354,7 +317,11 @@ class TSK(Defuzzification):
         return torch.cat(
             [
                 self.bias.squeeze(0).unsqueeze(-1),
-                self.weights.reshape(self.r, self.o, self.f),
+                # self.weights is stored transposed (see __init__: reshape(r*o, f).T)
+                # for the linear-projection matmul in forward() - undo that transpose
+                # before reshaping back to (r, o, f), or reshape() reinterprets the
+                # wrong bytes and silently scrambles the values
+                self.weights.T.reshape(self.r, self.o, self.f),
             ],
             dim=-1,
         )
@@ -376,23 +343,6 @@ class TSK(Defuzzification):
         state_dict["source"] = self.consequences.detach().cpu().numpy()
         torch.save(state_dict, path)
         return state_dict
-
-    @classmethod
-    def load(cls, path: Path, device: torch.device) -> "TSK":
-        """
-        Load the defuzzification process from a directory.
-
-        Args:
-            path: The directory path to load the defuzzification process from.
-            device: The device to load the defuzzification process to.
-
-        Returns:
-            The defuzzification process.
-        """
-        state_dict: MutableMapping = torch.load(path, weights_only=False)
-        shape: Shape = Shape(*state_dict.pop("shape"))
-        source: np.ndarray = state_dict.pop("source")
-        return TSK(shape=shape, source=source, device=device, **state_dict)
 
     def to(self, device: torch.device, *args, **kwargs) -> "TSK":
         """
@@ -558,8 +508,9 @@ class Mamdani(Defuzzification):
             The defuzzified output of a Mamdani FLC.
         """
         numerator = (
-            self.output_links * self.consequences.centers * self.consequences.widths
-        )
+            self.output_links *
+            self.consequences.centers *
+            self.consequences.widths)
         denominator = self.output_links * self.consequences.widths
 
         # the below commented out is a Work in Progress

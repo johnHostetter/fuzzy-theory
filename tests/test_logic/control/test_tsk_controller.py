@@ -2,8 +2,12 @@
 Test TSK fuzzy systems are working as intended (e.g., their output is correctly calculated).
 """
 
+import shutil
 import unittest
+from collections import OrderedDict
+from pathlib import Path
 from typing import List, Tuple
+from unittest import mock
 
 import numpy as np
 import torch
@@ -48,9 +52,8 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             device=AVAILABLE_DEVICE,
         )
         # the first variable has fuzzy sets with centers 0, 1, 2 (the column)
-        centers = torch.nn.Parameter(
-            torch.tensor([[0, 1], [1, 2], [2, 3]], device=AVAILABLE_DEVICE).double()
-        )
+        centers = torch.nn.Parameter(torch.tensor(
+            [[0, 1], [1, 2], [2, 3]], device=AVAILABLE_DEVICE).double())
         actual_result = input_data.unsqueeze(dim=-1) - centers.T
         expected_result = torch.tensor(
             [
@@ -86,7 +89,9 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             None
         """
         self.fuzzy_logic_controller.to(torch.device("cpu"))
-        self.assertEqual(torch.device("cpu"), self.fuzzy_logic_controller.device)
+        self.assertEqual(
+            torch.device("cpu"),
+            self.fuzzy_logic_controller.device)
         # check that this is reflected in each of its torch.nn.Modules
         for module in self.fuzzy_logic_controller.children():
             self.assertEqual(torch.device("cpu"), module.device)
@@ -128,6 +133,147 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             self.fuzzy_logic_controller.defuzzification.consequences.shape,
             torch.Size([4, 1]),
         )
+
+    def test_forward_matches_independent_numpy_reference(self) -> None:
+        """
+        Golden-value/drift-detection test: test_tsk() above only checks
+        predicted_y's shape, never its values - TSK.consequences are randomly
+        initialized (torch.randn, unseeded) whenever an FLC is built through the
+        normal FLC(source=knowledge_base, inference=TSK, ...) path (see
+        configurations/abstract.py's defuzzification(), which always passes
+        source=None for non-Mamdani inference types), so self.fuzzy_logic_controller
+        itself produces a different output every run and cannot be pinned directly.
+
+        Works around that by building a small, fully deterministic TSK FLC here:
+        one input variable, two Gaussian terms (centers 0.0 and 2.0, width 1.0),
+        one rule per term, and explicit (not randomly initialized) consequences
+        injected via TSK's own source= constructor argument (the same mechanism
+        save()/load() already round-trip through) - rule 0's consequence is
+        y = 1.0*x + 0.0, rule 1's is y = -1.0*x + 5.0.
+
+        The expected output is computed independently in NumPy (Gaussian
+        membership, product t-norm - trivial for a single-term rule, normalized
+        firing-strength weighting, and the per-rule linear consequences) rather
+        than by calling any of the FLC's own building blocks, so this catches a
+        regression in the underlying math - not just a wiring/threading bug two
+        copies of the same formula would share.
+
+        Returns:
+            None
+        """
+        antecedent = Gaussian(
+            centers=np.array([0.0, 2.0]),
+            widths=np.array([1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
+        )
+        rules = [
+            Rule(
+                premise=Product((0, 0), device=AVAILABLE_DEVICE),
+                consequence=NAryRelation((0, 0), device=AVAILABLE_DEVICE),
+            ),
+            Rule(
+                premise=Product((0, 1), device=AVAILABLE_DEVICE),
+                consequence=NAryRelation((0, 1), device=AVAILABLE_DEVICE),
+            ),
+        ]
+        knowledge_base = KnowledgeBase.create(
+            linguistic_variables=LinguisticVariables(
+                inputs=[antecedent], targets=[]), rules=rules, )
+        flc = FLC(
+            source=knowledge_base,
+            inference=TSK,
+            device=AVAILABLE_DEVICE)
+        # rule 0: y = 1.0*x + 0.0 ; rule 1: y = -1.0*x + 5.0 - shape is
+        # (n_outputs=1, n_rules=2, n_inputs + 1=2), first column is bias (see
+        # TSK.consequences)
+        deterministic_consequences = np.array(
+            [[[0.0, 1.0], [5.0, -1.0]]], dtype=np.float32
+        )
+        flc.defuzzification = TSK(
+            shape=flc.defuzzification.shape,
+            source=deterministic_consequences,
+            device=AVAILABLE_DEVICE,
+            rule_base=None,
+        )
+
+        input_data = torch.tensor(
+            [[0.5], [1.5], [1.0]], device=AVAILABLE_DEVICE)
+        predicted_y = flc(input_data)
+        self.assertIsNotNone(predicted_y.grad_fn)
+
+        # vectorized over both rules at once (columns), rather than one named
+        # variable pair per rule, to keep this within pylint's too-many-locals
+        # budget
+        observations = input_data.cpu().detach().numpy()  # (N, 1)
+        term_centers = np.array([0.0, 2.0])
+        memberships = np.exp(-1.0 * np.power(observations - term_centers, 2))
+        firing_strengths = memberships / memberships.sum(axis=1, keepdims=True)
+        rule_outputs = observations * \
+            np.array([1.0, -1.0]) + np.array([0.0, 5.0])
+        expected = (firing_strengths * rule_outputs).sum(axis=1)
+
+        self.assertTrue(
+            np.allclose(
+                predicted_y.cpu().detach().numpy().flatten(),
+                expected,
+                atol=1e-5))
+
+    def test_save_and_load_round_trip(self) -> None:
+        """
+        Coverage/regression test: FuzzyLogicController.save()/.load() - and the
+        configurations.impl.Defined class load() reconstructs a FuzzySystem
+        through - had no test coverage at all. A loaded FLC must produce identical
+        output to the original for the same input.
+
+        Returns:
+            None
+        """
+        path = Path("test_flc_save_and_load")
+        self.fuzzy_logic_controller.save(path)
+        try:
+            loaded_flc: FLC = FLC.load(path, device=AVAILABLE_DEVICE)
+
+            self.assertEqual(
+                loaded_flc.shape.n_inputs,
+                self.fuzzy_logic_controller.shape.n_inputs)
+            self.assertEqual(
+                loaded_flc.shape.n_outputs,
+                self.fuzzy_logic_controller.shape.n_outputs)
+
+            original_output = self.fuzzy_logic_controller(self.input_data)
+            loaded_output = loaded_flc(self.input_data)
+            self.assertTrue(torch.allclose(original_output, loaded_output))
+        finally:
+            shutil.rmtree(path, ignore_errors=True)
+
+    def test_linguistic_variables_rejects_unexpected_granulation_layer_count(
+        self,
+    ) -> None:
+        """
+        Coverage/regression test: linguistic_variables() must reject a
+        split_granules_by_type() result with fewer than 1 or more than 2 entries
+        (neither reachable via normal construction - every real FLC has exactly an
+        input, and optionally an output, granulation layer - so the guard is
+        exercised directly against a mocked return value).
+
+        Returns:
+            None
+        """
+        with mock.patch.object(
+            self.fuzzy_logic_controller,
+            "split_granules_by_type",
+            return_value=OrderedDict(),
+        ):
+            with self.assertRaises(ValueError):
+                self.fuzzy_logic_controller.linguistic_variables()
+
+        with mock.patch.object(
+            self.fuzzy_logic_controller,
+            "split_granules_by_type",
+            return_value=OrderedDict(a=[], b=[], c=[]),
+        ):
+            with self.assertRaises(ValueError):
+                self.fuzzy_logic_controller.linguistic_variables()
 
     def test_compile_fullgraph_matches_eager(self) -> None:
         """
@@ -283,9 +429,8 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
         )
         # check that rules were correctly created
         knowledge_base = KnowledgeBase.create(
-            linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
-            rules=rules,
-        )
+            linguistic_variables=LinguisticVariables(
+                inputs=antecedents, targets=[]), rules=rules, )
         rule_vertex = knowledge_base.graph.vs.find(item_eq=rules[0])
         self.assertEqual(
             rule_vertex["item"], rules[0]
@@ -335,7 +480,8 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
         assert flc.shape.n_outputs == 1
 
         actual_variables: List[FuzzySet] = flc.linguistic_variables().inputs
-        for actual_variable, expected_variable in zip(actual_variables, antecedents):
+        for actual_variable, expected_variable in zip(
+                actual_variables, antecedents):
             assert torch.allclose(
                 actual_variable.get_centers(), expected_variable.get_centers()
             )
@@ -345,7 +491,8 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
 
         return flc, input_data, rules
 
-    def test_execution_options_defaults_match_previous_flat_kwargs(self) -> None:
+    def test_execution_options_defaults_match_previous_flat_kwargs(
+            self) -> None:
         """
         FuzzyLogicController used to take disabled_parameters/max_batch_chunk/
         gradient_checkpointing as three flat keyword arguments; they are now bundled
@@ -360,7 +507,8 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
         self.assertIsNone(self.fuzzy_logic_controller.max_batch_chunk)
         self.assertFalse(self.fuzzy_logic_controller.gradient_checkpointing)
 
-    def test_max_batch_chunk_produces_the_same_output_as_unchunked(self) -> None:
+    def test_max_batch_chunk_produces_the_same_output_as_unchunked(
+            self) -> None:
         """
         FuzzyLogicController.forward() splits the batch into chunks of at most
         max_batch_chunk observations (and concatenates the per-chunk outputs) purely
@@ -435,13 +583,19 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             ),
         ]
         knowledge_base = KnowledgeBase.create(
-            linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
-            rules=rules,
-        )
-        flc = FLC(source=knowledge_base, inference=TSK, device=AVAILABLE_DEVICE)
+            linguistic_variables=LinguisticVariables(
+                inputs=antecedents, targets=[]), rules=rules, )
+        flc = FLC(
+            source=knowledge_base,
+            inference=TSK,
+            device=AVAILABLE_DEVICE)
 
-        self.assertEqual(flc.defuzzification.weights.device.type, AVAILABLE_DEVICE.type)
-        self.assertEqual(flc.defuzzification.bias.device.type, AVAILABLE_DEVICE.type)
+        self.assertEqual(
+            flc.defuzzification.weights.device.type,
+            AVAILABLE_DEVICE.type)
+        self.assertEqual(
+            flc.defuzzification.bias.device.type,
+            AVAILABLE_DEVICE.type)
 
         # the actual symptom: this used to raise a device-mismatch RuntimeError
         output = flc(torch.tensor([[2.0]], device=AVAILABLE_DEVICE))
@@ -484,10 +638,12 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             ),
         ]
         knowledge_base = KnowledgeBase.create(
-            linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
-            rules=rules,
-        )
-        flc = FLC(source=knowledge_base, inference=TSK, device=AVAILABLE_DEVICE)
+            linguistic_variables=LinguisticVariables(
+                inputs=antecedents, targets=[]), rules=rules, )
+        flc = FLC(
+            source=knowledge_base,
+            inference=TSK,
+            device=AVAILABLE_DEVICE)
 
         observations = torch.rand(8, n_inputs, device=AVAILABLE_DEVICE)
         with torch.no_grad():
@@ -505,7 +661,8 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
         for param in flc.defuzzification.parameters():
             self.assertFalse(bool(param.grad.isnan().any()))
 
-    def test_tsk_epsilon_offset_does_not_perturb_normal_scale_output(self) -> None:
+    def test_tsk_epsilon_offset_does_not_perturb_normal_scale_output(
+            self) -> None:
         """
         The epsilon offset added to guard against the underflow case above must not
         meaningfully change TSK's output when rule strengths are a normal, non-tiny
@@ -540,10 +697,12 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             ),
         ]
         knowledge_base = KnowledgeBase.create(
-            linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
-            rules=rules,
-        )
-        flc = FLC(source=knowledge_base, inference=TSK, device=AVAILABLE_DEVICE)
+            linguistic_variables=LinguisticVariables(
+                inputs=antecedents, targets=[]), rules=rules, )
+        flc = FLC(
+            source=knowledge_base,
+            inference=TSK,
+            device=AVAILABLE_DEVICE)
         input_data = torch.tensor(
             [[1.2, 0.2], [1.1, 0.3], [2.1, 0.1], [2.7, 0.15], [1.7, 0.25]],
             device=AVAILABLE_DEVICE,
@@ -556,7 +715,8 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             # confirm this is actually the normal (non-underflowed) case, so this
             # test is meaningfully exercising "epsilon negligible at normal
             # scale"
-            self.assertFalse(bool((rule_strengths.degrees.sum(dim=1) == 0.0).any()))
+            self.assertFalse(
+                bool((rule_strengths.degrees.sum(dim=1) == 0.0).any()))
 
             tsk = flc.defuzzification
             rule_output = (input_data @ tsk.weights).view(
@@ -567,5 +727,6 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             fir_str_bar_unguarded = rule_strengths.degrees / torch.sum(
                 rule_strengths.degrees, 1
             ).unsqueeze(1)
-            expected = torch.einsum("NRC,NR->NC", rule_output, fir_str_bar_unguarded)
+            expected = torch.einsum(
+                "NRC,NR->NC", rule_output, fir_str_bar_unguarded)
         self.assertTrue(torch.allclose(output, expected, atol=1e-6))

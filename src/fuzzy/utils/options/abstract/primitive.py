@@ -50,7 +50,8 @@ class IntOptions(IterableOptions):
     def assign(self, trial, name) -> int:
         @self.assign_once
         def suggest():
-            return trial.suggest_int(name, self.start, self.end, step=self.step)
+            return trial.suggest_int(
+                name, self.start, self.end, step=self.step)
 
         return suggest()
 
@@ -75,8 +76,10 @@ class FloatOptions(Options):
         with open(path, "rb") as file:
             loaded_dict = pickle.load(file)
         kwargs = {
-            key: value for key, value in loaded_dict.items() if key in ["start", "end"]
-        }
+            key: value for key,
+            value in loaded_dict.items() if key in [
+                "start",
+                "end"]}
         float_options = FloatOptions(**kwargs)
         if loaded_dict["_value"] is not None:
             float_options.selection = loaded_dict["_value"]
@@ -213,8 +216,8 @@ class GroupedOptions(Options):
             loaded_dict = pickle.load(file)
         covered_keys: Tuple[str, str] = ("options", "_value")
         kwargs = {
-            key: value for key, value in loaded_dict.items() if key not in covered_keys
-        }
+            key: value for key,
+            value in loaded_dict.items() if key not in covered_keys}
         grouped_options = GroupedOptions(**kwargs)
         if loaded_dict["_value"] is not None:
             grouped_options.selection = loaded_dict["_value"]
