@@ -270,9 +270,8 @@ class TestTriangular(unittest.TestCase):
             None
         """
         triangular_mf = Triangular(
-            centers=np.array(
-                [1.0]), widths=np.array(
-                [2.0]), device=AVAILABLE_DEVICE)
+            centers=np.array([1.0]), widths=np.array([2.0]), device=AVAILABLE_DEVICE
+        )
         # center=1.0, width=2.0 -> support is (0.0, 2.0); 1.5 is inside, 5.0 is
         # far outside (clamped to exactly 0)
         inside = torch.tensor([[1.5]], device=AVAILABLE_DEVICE)

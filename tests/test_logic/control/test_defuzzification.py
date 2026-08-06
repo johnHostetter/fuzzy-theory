@@ -308,11 +308,8 @@ class TestMamdani(unittest.TestCase):
             None
         """
         shape = Shape(
-            n_inputs=1,
-            n_input_terms=2,
-            n_rules=2,
-            n_outputs=1,
-            n_output_terms=2)
+            n_inputs=1, n_input_terms=2, n_rules=2, n_outputs=1, n_output_terms=2
+        )
         consequent = Gaussian(
             centers=np.array([-2.0, 4.0]),
             widths=np.array([1.0, 3.0]),
@@ -334,16 +331,9 @@ class TestMamdani(unittest.TestCase):
         result = mamdani(rule_activations)
 
         firing_strengths, centers, widths = [0.6, 0.9], [-2.0, 4.0], [1.0, 3.0]
-        numerator = sum(
-            f * w * c for f,
-            w,
-            c in zip(
-                firing_strengths,
-                widths,
-                centers))
+        numerator = sum(f * w * c for f, w, c in zip(firing_strengths, widths, centers))
         denominator = sum(f * w for f, w in zip(firing_strengths, widths))
-        expected = torch.tensor(
-            [[numerator / denominator]], device=AVAILABLE_DEVICE)
+        expected = torch.tensor([[numerator / denominator]], device=AVAILABLE_DEVICE)
         self.assertTrue(torch.allclose(result, expected, atol=1e-5))
 
     def test_widths_receive_nonzero_gradient(self) -> None:
@@ -358,10 +348,7 @@ class TestMamdani(unittest.TestCase):
             None
         """
         knowledge_base, _ = build_mamdani_knowledge_base(AVAILABLE_DEVICE)
-        flc = FLC(
-            source=knowledge_base,
-            inference=Mamdani,
-            device=AVAILABLE_DEVICE)
+        flc = FLC(source=knowledge_base, inference=Mamdani, device=AVAILABLE_DEVICE)
         input_data = torch.tensor(
             [[1.2, 0.2], [1.1, 0.3], [2.1, 0.1]], device=AVAILABLE_DEVICE
         )

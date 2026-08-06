@@ -531,9 +531,8 @@ class Mamdani(Defuzzification):
             dim=-1
         ) * self.output_links.unsqueeze(dim=0)
         numerator = (
-            weighted_links *
-            self.consequences.centers *
-            self.consequences.widths)
+            weighted_links * self.consequences.centers * self.consequences.widths
+        )
         denominator = weighted_links * self.consequences.widths
 
         # sum over both rules (dim=1) and terms (dim=-1) jointly, then divide once -

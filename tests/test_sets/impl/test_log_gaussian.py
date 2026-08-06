@@ -127,8 +127,7 @@ class TestLogGaussian(unittest.TestCase):
         # test actually exercise the intended (unclamped) formula
         self.assertFalse(bool((degrees == -10).any()))
 
-    def test_gradient_flows_when_unclamped_and_vanishes_when_clamped(
-            self) -> None:
+    def test_gradient_flows_when_unclamped_and_vanishes_when_clamped(self) -> None:
         """
         Golden-value/drift-detection test: only grad_fn-is-not-None was ever
         checked for LogGaussian (generically, across every FuzzySet subclass in

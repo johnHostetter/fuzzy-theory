@@ -136,19 +136,11 @@ class TestTNormPipeline(unittest.TestCase):
             n_relations=n_relations,
             device=AVAILABLE_DEVICE,
         )
-        x = torch.rand(
-            5,
-            n_relations,
-            device=AVAILABLE_DEVICE,
-            requires_grad=True)
+        x = torch.rand(5, n_relations, device=AVAILABLE_DEVICE, requires_grad=True)
         result = pipeline(x)
         loss = (
-            result *
-            torch.linspace(
-                0.5,
-                2.0,
-                n_relations,
-                device=AVAILABLE_DEVICE)).sum()
+            result * torch.linspace(0.5, 2.0, n_relations, device=AVAILABLE_DEVICE)
+        ).sum()
         loss.backward()
 
         self.assertFalse(bool(x.grad.isnan().any()))

@@ -71,8 +71,8 @@ class TestCertaintyFactors(unittest.TestCase):
         """
         with self.assertRaises(ValueError):
             CertaintyFactors.load(
-                Path("does_not_exist_certainty_factors_dir"),
-                device=AVAILABLE_DEVICE)
+                Path("does_not_exist_certainty_factors_dir"), device=AVAILABLE_DEVICE
+            )
 
     def test_gradient_flows_to_weights(self) -> None:
         """

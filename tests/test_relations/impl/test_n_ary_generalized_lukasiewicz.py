@@ -47,15 +47,14 @@ class TestGeneralizedLukasiewicz(TestNAryRelation):
         Returns:
             None
         """
-        n_ary = GeneralizedLukasiewicz(
-            [(0, 0), (1, 0)], device=AVAILABLE_DEVICE)
+        n_ary = GeneralizedLukasiewicz([(0, 0), (1, 0)], device=AVAILABLE_DEVICE)
 
         above_threshold = torch.tensor(
             [[[0.9], [0.9]]], device=AVAILABLE_DEVICE, requires_grad=True
         )
         membership = Membership(
-            degrees=above_threshold, mask=torch.ones(
-                2, 1, device=AVAILABLE_DEVICE))
+            degrees=above_threshold, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+        )
         result = n_ary.forward(membership)
         self.assertFalse(bool((result.degrees == 0).all()))
         result.degrees.sum().backward()
@@ -66,8 +65,8 @@ class TestGeneralizedLukasiewicz(TestNAryRelation):
             [[[0.1], [0.1]]], device=AVAILABLE_DEVICE, requires_grad=True
         )
         membership = Membership(
-            degrees=below_threshold, mask=torch.ones(
-                2, 1, device=AVAILABLE_DEVICE))
+            degrees=below_threshold, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+        )
         result = n_ary.forward(membership)
         self.assertTrue(bool((result.degrees == 0).all()))
         result.degrees.sum().backward()

@@ -60,8 +60,7 @@ class TestSoftmaxSum(TestNAryRelation):
         Returns:
             None
         """
-        n_ary = SoftmaxSum([(0, 0), (1, 0)], [
-                           (0, 1), (1, 1)], device=AVAILABLE_DEVICE)
+        n_ary = SoftmaxSum([(0, 0), (1, 0)], [(0, 1), (1, 1)], device=AVAILABLE_DEVICE)
         degrees = torch.tensor(
             [[[0.6, 0.4], [0.3, 0.7]]], device=AVAILABLE_DEVICE, requires_grad=True
         )
@@ -142,8 +141,7 @@ class TestSoftmaxMean(TestNAryRelation):
         Returns:
             None
         """
-        n_ary = SoftmaxMean([(0, 0), (1, 0)], [
-                            (0, 1), (1, 1)], device=AVAILABLE_DEVICE)
+        n_ary = SoftmaxMean([(0, 0), (1, 0)], [(0, 1), (1, 1)], device=AVAILABLE_DEVICE)
         degrees = torch.tensor(
             [[[0.6, 0.4], [0.3, 0.7]]], device=AVAILABLE_DEVICE, requires_grad=True
         )
