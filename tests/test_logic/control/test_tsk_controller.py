@@ -134,6 +134,90 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             torch.Size([4, 1]),
         )
 
+    def test_forward_matches_independent_numpy_reference(self) -> None:
+        """
+        Golden-value/drift-detection test: test_tsk() above only checks
+        predicted_y's shape, never its values - TSK.consequences are randomly
+        initialized (torch.randn, unseeded) whenever an FLC is built through the
+        normal FLC(source=knowledge_base, inference=TSK, ...) path (see
+        configurations/abstract.py's defuzzification(), which always passes
+        source=None for non-Mamdani inference types), so self.fuzzy_logic_controller
+        itself produces a different output every run and cannot be pinned directly.
+
+        Works around that by building a small, fully deterministic TSK FLC here:
+        one input variable, two Gaussian terms (centers 0.0 and 2.0, width 1.0),
+        one rule per term, and explicit (not randomly initialized) consequences
+        injected via TSK's own source= constructor argument (the same mechanism
+        save()/load() already round-trip through) - rule 0's consequence is
+        y = 1.0*x + 0.0, rule 1's is y = -1.0*x + 5.0.
+
+        The expected output is computed independently in NumPy (Gaussian
+        membership, product t-norm - trivial for a single-term rule, normalized
+        firing-strength weighting, and the per-rule linear consequences) rather
+        than by calling any of the FLC's own building blocks, so this catches a
+        regression in the underlying math - not just a wiring/threading bug two
+        copies of the same formula would share.
+
+        Returns:
+            None
+        """
+        antecedent = Gaussian(
+            centers=np.array([0.0, 2.0]),
+            widths=np.array([1.0, 1.0]),
+            device=AVAILABLE_DEVICE,
+        )
+        rules = [
+            Rule(
+                premise=Product((0, 0), device=AVAILABLE_DEVICE),
+                consequence=NAryRelation((0, 0), device=AVAILABLE_DEVICE),
+            ),
+            Rule(
+                premise=Product((0, 1), device=AVAILABLE_DEVICE),
+                consequence=NAryRelation((0, 1), device=AVAILABLE_DEVICE),
+            ),
+        ]
+        knowledge_base = KnowledgeBase.create(
+            linguistic_variables=LinguisticVariables(
+                inputs=[antecedent], targets=[]), rules=rules, )
+        flc = FLC(
+            source=knowledge_base,
+            inference=TSK,
+            device=AVAILABLE_DEVICE)
+        # rule 0: y = 1.0*x + 0.0 ; rule 1: y = -1.0*x + 5.0 - shape is
+        # (n_outputs=1, n_rules=2, n_inputs + 1=2), first column is bias (see
+        # TSK.consequences)
+        deterministic_consequences = np.array(
+            [[[0.0, 1.0], [5.0, -1.0]]], dtype=np.float32
+        )
+        flc.defuzzification = TSK(
+            shape=flc.defuzzification.shape,
+            source=deterministic_consequences,
+            device=AVAILABLE_DEVICE,
+            rule_base=None,
+        )
+
+        input_data = torch.tensor(
+            [[0.5], [1.5], [1.0]], device=AVAILABLE_DEVICE)
+        predicted_y = flc(input_data)
+        self.assertIsNotNone(predicted_y.grad_fn)
+
+        # vectorized over both rules at once (columns), rather than one named
+        # variable pair per rule, to keep this within pylint's too-many-locals
+        # budget
+        observations = input_data.cpu().detach().numpy()  # (N, 1)
+        term_centers = np.array([0.0, 2.0])
+        memberships = np.exp(-1.0 * np.power(observations - term_centers, 2))
+        firing_strengths = memberships / memberships.sum(axis=1, keepdims=True)
+        rule_outputs = observations * \
+            np.array([1.0, -1.0]) + np.array([0.0, 5.0])
+        expected = (firing_strengths * rule_outputs).sum(axis=1)
+
+        self.assertTrue(
+            np.allclose(
+                predicted_y.cpu().detach().numpy().flatten(),
+                expected,
+                atol=1e-5))
+
     def test_save_and_load_round_trip(self) -> None:
         """
         Coverage/regression test: FuzzyLogicController.save()/.load() - and the
