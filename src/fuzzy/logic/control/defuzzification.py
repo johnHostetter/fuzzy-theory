@@ -171,27 +171,6 @@ class ZeroOrder(Defuzzification):
         torch.save(state_dict, path)
         return state_dict
 
-    @classmethod
-    def load(cls, path: Path, device: torch.device) -> "ZeroOrder":
-        """
-        Load the defuzzification process from a directory.
-
-        Args:
-            path: The directory path to load the defuzzification process from.
-            device: The device to load the defuzzification process to.
-
-        Returns:
-            The defuzzification process.
-        """
-        state_dict: MutableMapping = torch.load(path, weights_only=False)
-        shape: Shape = Shape(*state_dict.pop("shape"))
-        source: np.ndarray = state_dict.pop("source")
-        return ZeroOrder(
-            shape=shape,
-            source=source,
-            device=device,
-            **state_dict)
-
     def to(self, device: torch.device, *args, **kwargs) -> "ZeroOrder":
         """
         Move the defuzzification process to a device.
@@ -338,7 +317,11 @@ class TSK(Defuzzification):
         return torch.cat(
             [
                 self.bias.squeeze(0).unsqueeze(-1),
-                self.weights.reshape(self.r, self.o, self.f),
+                # self.weights is stored transposed (see __init__: reshape(r*o, f).T)
+                # for the linear-projection matmul in forward() - undo that transpose
+                # before reshaping back to (r, o, f), or reshape() reinterprets the
+                # wrong bytes and silently scrambles the values
+                self.weights.T.reshape(self.r, self.o, self.f),
             ],
             dim=-1,
         )
@@ -360,23 +343,6 @@ class TSK(Defuzzification):
         state_dict["source"] = self.consequences.detach().cpu().numpy()
         torch.save(state_dict, path)
         return state_dict
-
-    @classmethod
-    def load(cls, path: Path, device: torch.device) -> "TSK":
-        """
-        Load the defuzzification process from a directory.
-
-        Args:
-            path: The directory path to load the defuzzification process from.
-            device: The device to load the defuzzification process to.
-
-        Returns:
-            The defuzzification process.
-        """
-        state_dict: MutableMapping = torch.load(path, weights_only=False)
-        shape: Shape = Shape(*state_dict.pop("shape"))
-        source: np.ndarray = state_dict.pop("source")
-        return TSK(shape=shape, source=source, device=device, **state_dict)
 
     def to(self, device: torch.device, *args, **kwargs) -> "TSK":
         """

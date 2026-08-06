@@ -6,6 +6,7 @@ Test functionality relating to FuzzySetGroup.
 # implementation details
 # pylint: disable=protected-access
 
+import pickle
 import shutil
 import unittest
 from pathlib import Path
@@ -168,6 +169,41 @@ class TestFuzzySetGroup(unittest.TestCase):
         # read-only files
 
         shutil.rmtree(Path("test_grouped_fuzzy_sets"), ignore_errors=True)
+
+    def test_load_skips_attributes_with_no_setter(self) -> None:
+        """
+        Coverage/regression test: NestedTorchJitModule.load()'s "setattr() failed
+        because it names a read-only property" branch had no test coverage - a
+        current save() never actually produces such an attribute (see
+        get_object_attributes()'s own _is_read_only_property filter, added
+        specifically because centers/widths/mask used to leak through as if they
+        were save-able state), so this simulates an older-format save that still has
+        one, confirming load() skips it gracefully rather than crashing.
+
+        Returns:
+            None
+        """
+        path = Path("test_group_stale_readonly_attribute")
+        self.grouped_fuzzy_sets.save(path)
+        try:
+            pickle_path = path / f"{FuzzySetGroup.__name__}.pickle"
+            with open(pickle_path, "rb") as handle:
+                saved_attributes = pickle.load(handle)
+            # "centers" is a real read-only property on FuzzySetGroup (no setter) -
+            # inject it as if an older save() had included it
+            saved_attributes["centers"] = torch.zeros(1)
+            with open(pickle_path, "wb") as handle:
+                pickle.dump(saved_attributes, handle)
+
+            loaded = FuzzySetGroup.load(path, device=AVAILABLE_DEVICE)
+            self.assertIsInstance(loaded, FuzzySetGroup)
+            # the injected bogus value must not have overridden the real, computed
+            # centers property
+            self.assertTrue(
+                torch.equal(self.grouped_fuzzy_sets.centers, loaded.centers)
+            )
+        finally:
+            shutil.rmtree(path, ignore_errors=True)
 
     def test_hash_eq_contract(self) -> None:
         """

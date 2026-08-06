@@ -37,12 +37,25 @@ except ImportError:  # pragma: no cover - exercised only on installs without tri
 
 if TRITON_AVAILABLE:
 
+    # pragma: no cover justification (applies to every @triton.jit function/kernel
+    # body below, and to backward()/_gather_prod_backward()): @triton.jit functions
+    # are traced by Triton's own compiler into GPU code, never executed as CPython
+    # bytecode, so coverage.py's sys.settrace()-based tracer cannot observe them
+    # regardless of how thoroughly they are tested - test_triton_kernels.py exercises
+    # every kernel (forward, backward, with/without zeros, edge-case shapes) and
+    # verifies numeric correctness against an eager reference; it just cannot move
+    # this file's line-coverage number. _gather_prod_backward() and
+    # _GatherProdReduce.backward() are ordinary Python functions but are invoked by
+    # PyTorch's autograd engine from a C++-owned worker thread (confirmed via
+    # threading.current_thread().name during a real .backward() call, which reports a
+    # "Dummy-*" thread, not MainThread) that never goes through Python's threading
+    # module - so even coverage.py's concurrency=thread setting cannot see it.
     @triton.jit
-    def _mul_combine(a, b):
+    def _mul_combine(a, b):  # pragma: no cover
         return a * b
 
     @triton.jit
-    def _add_combine(a, b):
+    def _add_combine(a, b):  # pragma: no cover
         return a + b
 
     # ALL_CAPS is the Triton community convention for tl.constexpr kernel parameters
@@ -65,7 +78,7 @@ if TRITON_AVAILABLE:
         stride_ob,
         stride_or,
         BLOCK_V: tl.constexpr,
-    ):
+    ):  # pragma: no cover
         pid_b = tl.program_id(0)
         pid_r = tl.program_id(1)
 
@@ -110,7 +123,7 @@ if TRITON_AVAILABLE:
         stride_gob,
         stride_gor,
         BLOCK_V: tl.constexpr,
-    ):
+    ):  # pragma: no cover
         pid_b = tl.program_id(0)
         pid_r = tl.program_id(1)
 
@@ -133,7 +146,8 @@ if TRITON_AVAILABLE:
             )
             vals = tl.load(d_ptrs, mask=v_mask, other=1.0)
             is_zero = (vals == 0.0) & v_mask
-            nz_count += tl.reduce(is_zero.to(tl.int32), axis=0, combine_fn=_add_combine)
+            nz_count += tl.reduce(is_zero.to(tl.int32),
+                                  axis=0, combine_fn=_add_combine)
             safe_vals = tl.where(is_zero | (~v_mask), 1.0, vals)
             block_prod = tl.reduce(safe_vals, axis=0, combine_fn=_mul_combine)
             prod_nonzero = prod_nonzero * block_prod
@@ -179,7 +193,9 @@ if TRITON_AVAILABLE:
 
     # pylint: enable=invalid-name,too-many-arguments,too-many-positional-arguments,too-many-locals
 
-    def _gather_prod_forward(degrees: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
+    def _gather_prod_forward(
+            degrees: torch.Tensor,
+            idx: torch.Tensor) -> torch.Tensor:
         batch_size, n_vars, _ = degrees.shape
         n_rules = idx.shape[1]
         out = torch.empty(
@@ -201,7 +217,7 @@ if TRITON_AVAILABLE:
         )
         return out
 
-    def _gather_prod_backward(
+    def _gather_prod_backward(  # pragma: no cover
         degrees: torch.Tensor, idx: torch.Tensor, grad_output: torch.Tensor
     ) -> torch.Tensor:
         batch_size, n_vars, _ = degrees.shape
@@ -236,15 +252,21 @@ if TRITON_AVAILABLE:
         """See module docstring; forward/backward for a gather-then-product reduction."""
 
         @staticmethod
-        def forward(ctx, degrees: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
+        def forward(
+                ctx,
+                degrees: torch.Tensor,
+                idx: torch.Tensor) -> torch.Tensor:
             out = _gather_prod_forward(degrees, idx)
             ctx.save_for_backward(degrees, idx)
             return out
 
         @staticmethod
-        def backward(ctx, grad_output: torch.Tensor) -> Tuple[torch.Tensor, None]:
+        def backward(  # pragma: no cover
+            ctx, grad_output: torch.Tensor
+        ) -> Tuple[torch.Tensor, None]:
             degrees, idx = ctx.saved_tensors
-            grad_degrees = _gather_prod_backward(degrees, idx, grad_output.contiguous())
+            grad_degrees = _gather_prod_backward(
+                degrees, idx, grad_output.contiguous())
             return grad_degrees, None
 
     # pylint: enable=abstract-method,arguments-differ

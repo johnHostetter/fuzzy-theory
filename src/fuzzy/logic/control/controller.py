@@ -20,7 +20,6 @@ from fuzzy.sets.abstract import FuzzySet
 from ...relations.n_ary import NAryRelation
 from ...relations.t_norm import TNorm
 from ...sets import FuzzySetGroup
-from ...utils import load_module_class
 from .configurations.abstract import FuzzySystem
 from .configurations.data import ExecutionOptions, GranulationLayers, Shape
 from .configurations.impl import Defined
@@ -120,6 +119,7 @@ class FuzzyLogicController(torch.nn.Sequential):
         """
         # each component is given its own directory to save to for easier access
         # and to avoid the risk of overwriting files
+        path.mkdir(parents=True, exist_ok=True)
         state_dict: MutableMapping[str, Any] = self.state_dict()
         # cast to tuple for serialization
         state_dict["shape"] = tuple(self.shape)
@@ -146,15 +146,19 @@ class FuzzyLogicController(torch.nn.Sequential):
         Returns:
             The FLC object.
         """
-        # load the components from their respective directories
+        # load the components from their respective directories. NAryRelation.load()
+        # dispatches to the correct concrete engine subclass itself (it reads the
+        # class name back out of the saved state dict via get_subclass() - see
+        # NAryRelation.save()/._state_dict()), so the caller does not need to know
+        # the engine's concrete type ahead of time.
         input_granules = FuzzySetGroup.load(path / "input", device=device)
-        module_class_path: Path = next((path / "engine").iterdir())
-        klass = load_module_class(module_class_path.name)
-        assert issubclass(
-            klass, TNorm
-        ), "The loaded class type must be an instance of TNorm."
-        engine: NAryRelation = klass.load(module_class_path, device=device)
-        defuzzification = Defuzzification.load(path / "defuzzification", device=device)
+        engine: NAryRelation = NAryRelation.load(
+            path / "engine", device=device)
+        assert isinstance(
+            engine, TNorm
+        ), "The loaded engine must be an instance of TNorm."
+        defuzzification = Defuzzification.load(
+            path / "defuzzification", device=device)
 
         # load the FLC state dictionary for the remaining components
         state_dict: MutableMapping[str, Any] = torch.load(

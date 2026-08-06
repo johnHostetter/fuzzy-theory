@@ -2,8 +2,12 @@
 Test TSK fuzzy systems are working as intended (e.g., their output is correctly calculated).
 """
 
+import shutil
 import unittest
+from collections import OrderedDict
+from pathlib import Path
 from typing import List, Tuple
+from unittest import mock
 
 import numpy as np
 import torch
@@ -128,6 +132,63 @@ class TestTSK(MissingDataHandlingMixin, unittest.TestCase):
             self.fuzzy_logic_controller.defuzzification.consequences.shape,
             torch.Size([4, 1]),
         )
+
+    def test_save_and_load_round_trip(self) -> None:
+        """
+        Coverage/regression test: FuzzyLogicController.save()/.load() - and the
+        configurations.impl.Defined class load() reconstructs a FuzzySystem
+        through - had no test coverage at all. A loaded FLC must produce identical
+        output to the original for the same input.
+
+        Returns:
+            None
+        """
+        path = Path("test_flc_save_and_load")
+        self.fuzzy_logic_controller.save(path)
+        try:
+            loaded_flc: FLC = FLC.load(path, device=AVAILABLE_DEVICE)
+
+            self.assertEqual(
+                loaded_flc.shape.n_inputs, self.fuzzy_logic_controller.shape.n_inputs
+            )
+            self.assertEqual(
+                loaded_flc.shape.n_outputs, self.fuzzy_logic_controller.shape.n_outputs
+            )
+
+            original_output = self.fuzzy_logic_controller(self.input_data)
+            loaded_output = loaded_flc(self.input_data)
+            self.assertTrue(torch.allclose(original_output, loaded_output))
+        finally:
+            shutil.rmtree(path, ignore_errors=True)
+
+    def test_linguistic_variables_rejects_unexpected_granulation_layer_count(
+        self,
+    ) -> None:
+        """
+        Coverage/regression test: linguistic_variables() must reject a
+        split_granules_by_type() result with fewer than 1 or more than 2 entries
+        (neither reachable via normal construction - every real FLC has exactly an
+        input, and optionally an output, granulation layer - so the guard is
+        exercised directly against a mocked return value).
+
+        Returns:
+            None
+        """
+        with mock.patch.object(
+            self.fuzzy_logic_controller,
+            "split_granules_by_type",
+            return_value=OrderedDict(),
+        ):
+            with self.assertRaises(ValueError):
+                self.fuzzy_logic_controller.linguistic_variables()
+
+        with mock.patch.object(
+            self.fuzzy_logic_controller,
+            "split_granules_by_type",
+            return_value=OrderedDict(a=[], b=[], c=[]),
+        ):
+            with self.assertRaises(ValueError):
+                self.fuzzy_logic_controller.linguistic_variables()
 
     def test_compile_fullgraph_matches_eager(self) -> None:
         """
