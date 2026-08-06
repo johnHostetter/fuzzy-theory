@@ -606,7 +606,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         expected = (degrees.unsqueeze(-1) * mask).sum(dim=(1, 2))
         self.assertTrue(torch.allclose(result, expected, atol=1e-5))
 
-    def test_linear_sum_and_exp_sum_log_gradients_flow_to_degrees(self) -> None:
+    def test_linear_sum_and_exp_sum_log_gradients_flow_to_degrees(
+            self) -> None:
         """
         Golden-value/drift-detection test: no gradient test existed for either
         NAryMaskMethods.LINEAR_SUM or EXP_SUM_LOG - only PROD (via the gather-path
@@ -618,7 +619,9 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         Returns:
             None
         """
-        for method in (NAryMaskMethods.LINEAR_SUM, NAryMaskMethods.EXP_SUM_LOG):
+        for method in (
+                NAryMaskMethods.LINEAR_SUM,
+                NAryMaskMethods.EXP_SUM_LOG):
             relation = NAryRelation(
                 [(0, 0), (1, 0)],
                 [(0, 1), (1, 1)],
@@ -626,8 +629,7 @@ class TestNAryRelationEfficiency(TestNAryRelation):
                 method=method,
             )
             degrees = torch.rand(
-                4, 2, 2, device=AVAILABLE_DEVICE, requires_grad=True
-            )
+                4, 2, 2, device=AVAILABLE_DEVICE, requires_grad=True)
             membership = Membership(
                 degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
             )

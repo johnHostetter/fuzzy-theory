@@ -75,7 +75,9 @@ class TestSoftmaxSum(TestNAryRelation):
             degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
         )
         result = n_ary.forward(membership)
-        loss = (result.degrees * torch.tensor([2.0, -3.0], device=AVAILABLE_DEVICE)).sum()
+        loss = (
+            result.degrees * torch.tensor([2.0, -3.0], device=AVAILABLE_DEVICE)
+        ).sum()
         loss.backward()
         self.assertFalse(bool(degrees.grad.isnan().any()))
         self.assertFalse(bool((degrees.grad == 0).all()))
@@ -161,7 +163,9 @@ class TestSoftmaxMean(TestNAryRelation):
             degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
         )
         result = n_ary.forward(membership)
-        loss = (result.degrees * torch.tensor([2.0, -3.0], device=AVAILABLE_DEVICE)).sum()
+        loss = (
+            result.degrees * torch.tensor([2.0, -3.0], device=AVAILABLE_DEVICE)
+        ).sum()
         loss.backward()
         self.assertFalse(bool(degrees.grad.isnan().any()))
         self.assertFalse(bool((degrees.grad == 0).all()))

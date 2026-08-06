@@ -43,8 +43,7 @@ class TestPremiseActivationFunctions(unittest.TestCase):
         mean_fn = PremiseAggregation.func(PremiseAggregationEnum.MEAN)
         degrees = torch.tensor([[1.0, 2.0, 3.0]])
         self.assertTrue(torch.equal(sum_fn(degrees), -1 * degrees.sum(dim=1)))
-        self.assertTrue(torch.equal(
-            mean_fn(degrees), -1 * degrees.mean(dim=1)))
+        self.assertTrue(torch.equal(mean_fn(degrees), -1 * degrees.mean(dim=1)))
 
     def test_bound_alpha_entmax(self) -> None:
         """
@@ -62,9 +61,7 @@ class TestPremiseActivationFunctions(unittest.TestCase):
             BoundAlphaEntmaxEnum.HARD_TANH,
             BoundAlphaEntmaxEnum.SOFTPLUS,
         ):
-            module = BoundAlphaEntmax(
-                bounding_strategy=strategy,
-                alpha=alpha.clone())
+            module = BoundAlphaEntmax(bounding_strategy=strategy, alpha=alpha.clone())
             bounded = module.bound_alpha()
             # every strategy must keep alpha strictly within (1, 2), per the
             # class' documented contract
@@ -87,8 +84,7 @@ class TestPremiseActivationFunctions(unittest.TestCase):
     @unittest.skipUnless(
         torch.cuda.is_available(), "requires a second device (CUDA) to move to"
     )
-    def test_bound_alpha_entmax_forward_moves_alpha_to_input_device(
-            self) -> None:
+    def test_bound_alpha_entmax_forward_moves_alpha_to_input_device(self) -> None:
         """
         Coverage/regression test: forward() must move its bounded alpha onto the
         input tensor's device when they differ, rather than letting entmax_bisect
@@ -146,9 +142,7 @@ class TestPremiseActivationFunctions(unittest.TestCase):
             BoundAlphaEntmaxEnum.HARD_TANH,
             BoundAlphaEntmaxEnum.SOFTPLUS,
         ):
-            module = BoundAlphaEntmax(
-                bounding_strategy=strategy, alpha=torch.zeros(1)
-            )
+            module = BoundAlphaEntmax(bounding_strategy=strategy, alpha=torch.zeros(1))
             x = torch.rand(3, 4, requires_grad=True)
             output = module(x)
             loss = (output * torch.linspace(0.5, 2.0, 4)).sum()

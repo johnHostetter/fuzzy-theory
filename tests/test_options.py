@@ -12,23 +12,34 @@ from unittest import mock
 
 import scipy.stats
 
-from fuzzy.utils.options.abstract.meta import (EnumPromoter, IterableOptions,
-                                               Options)
-from fuzzy.utils.options.abstract.primitive import (CategoricalEnumOptions,
-                                                    CategoricalOptions,
-                                                    FloatOptions,
-                                                    GroupedOptions, IntOptions)
-from fuzzy.utils.options.impl.impl_enums import (NeurogenesisEnum,
-                                                 PremiseActivationEnum,
-                                                 PremiseAggregationEnum,
-                                                 PremiseEliminationEnum,
-                                                 RuleElevationEnum,
-                                                 RuleEliminationEnum,
-                                                 RuleWeightsEnum, SamplingEnum)
+from fuzzy.utils.options.abstract.meta import EnumPromoter, IterableOptions, Options
+from fuzzy.utils.options.abstract.primitive import (
+    CategoricalEnumOptions,
+    CategoricalOptions,
+    FloatOptions,
+    GroupedOptions,
+    IntOptions,
+)
+from fuzzy.utils.options.impl.impl_enums import (
+    NeurogenesisEnum,
+    PremiseActivationEnum,
+    PremiseAggregationEnum,
+    PremiseEliminationEnum,
+    RuleElevationEnum,
+    RuleEliminationEnum,
+    RuleWeightsEnum,
+    SamplingEnum,
+)
 from fuzzy.utils.options.impl.impl_options import (
-    _64_BIT_INT, EvolutionConfig, GumbelConfig,
-    NeuroFuzzyNetworkHyperparameters, PremiseActivation,
-    PremiseConfig, Range, RuleConfig)
+    _64_BIT_INT,
+    EvolutionConfig,
+    GumbelConfig,
+    NeuroFuzzyNetworkHyperparameters,
+    PremiseActivation,
+    PremiseConfig,
+    Range,
+    RuleConfig,
+)
 
 
 class DemoEnum(Enum):
@@ -106,18 +117,14 @@ class _OptionsTestHelpers(unittest.TestCase):
         self.assertEqual(selection, options_object.selection)
         # check that it has not changed the absent selection in the loaded copy
         self.assertRaises(
-            ValueError,
-            lambda: loaded_options_object_before_assignment.selection)
+            ValueError, lambda: loaded_options_object_before_assignment.selection
+        )
         # check that we can save it with the assigned selection
-        loaded_categorical_options = self.check_save_and_load(
-            options_object, path=path)
+        loaded_categorical_options = self.check_save_and_load(options_object, path=path)
         self.assertEqual(options_object, loaded_categorical_options)
         return loaded_options_object_before_assignment, options_object
 
-    def check_save_and_load(
-            self,
-            options_object: Options,
-            path: Path) -> Options:
+    def check_save_and_load(self, options_object: Options, path: Path) -> Options:
         """
         A generic function that checks the class that inherits and implements from Options can
         save and load.
@@ -194,14 +201,15 @@ class _GroupedOptionsTestHelpers(_OptionsTestHelpers):
             None
         """
         # check that we can save and load it
-        loaded_grouped_options = self.check_save_and_load(
-            grouped_options, path=path)
+        loaded_grouped_options = self.check_save_and_load(grouped_options, path=path)
         self.assertIsInstance(loaded_grouped_options, GroupedOptions)
         for attr_name in kwargs:
             orig_attr_value = self.check_attr_exists_and_options_are_not_yet_assigned(
-                grouped_options, attr_name)
+                grouped_options, attr_name
+            )
             loaded_attr_value = self.check_attr_exists_and_options_are_not_yet_assigned(
-                loaded_grouped_options, attr_name)
+                loaded_grouped_options, attr_name
+            )
             self.assertEqual(type(orig_attr_value), type(loaded_attr_value))
 
     def check_attr_exists_and_options_are_not_yet_assigned(
@@ -244,8 +252,7 @@ class TestPrimitiveOptions(_OptionsTestHelpers):
     optuna Trial delegation via assign()).
     """
 
-    def test_categorical_options(
-            self) -> Tuple[CategoricalOptions, CategoricalOptions]:
+    def test_categorical_options(self) -> Tuple[CategoricalOptions, CategoricalOptions]:
         """
         Test categorical options satisfies common functionality and can reliably store its
         selected categorical value.
@@ -340,7 +347,8 @@ class TestPrimitiveOptions(_OptionsTestHelpers):
         """
         args: Tuple[float, float] = (0.1, 0.9)
         before_assignment, after_assignment = self.check_common_functionality(
-            FloatOptions, args, selection=0.75, path=self.dir / "float_options.pickle")
+            FloatOptions, args, selection=0.75, path=self.dir / "float_options.pickle"
+        )
         # type checking
         self.assertIsInstance(before_assignment, FloatOptions)
         self.assertIsInstance(after_assignment, FloatOptions)
@@ -378,9 +386,7 @@ class TestPrimitiveOptions(_OptionsTestHelpers):
         self.assertEqual(0.5, float_options.selection)
 
         categorical_options = CategoricalOptions("A", "B", "C")
-        self.assertEqual(
-            "B", categorical_options.assign(
-                trial, "categorical_param"))
+        self.assertEqual("B", categorical_options.assign(trial, "categorical_param"))
         trial.suggest_categorical.assert_called_once_with(
             "categorical_param", ("A", "B", "C")
         )
@@ -415,7 +421,9 @@ class TestGroupedOptions(_GroupedOptionsTestHelpers):
         )
         int_options_before_assignment, int_options_after_assignment = (
             self.check_common_functionality(
-                IntOptions, (0, 4, 1), selection=2, path=self.dir / "int_options.pickle"))
+                IntOptions, (0, 4, 1), selection=2, path=self.dir / "int_options.pickle"
+            )
+        )
         float_options_before_assignment, float_options_after_assignment = (
             self.check_common_functionality(
                 FloatOptions,
@@ -466,8 +474,7 @@ class TestGroupedOptions(_GroupedOptionsTestHelpers):
         )
         grouped_options.assign(trial=trial, name="group")
 
-        trial.suggest_int.assert_called_once_with(
-            "group.int_options", 0, 4, step=1)
+        trial.suggest_int.assert_called_once_with("group.int_options", 0, 4, step=1)
         # already_assigned must be left untouched - assign() only touches members
         # that are still assignable
         trial.suggest_float.assert_not_called()
@@ -517,8 +524,7 @@ class TestGroupedOptions(_GroupedOptionsTestHelpers):
         finally:
             shutil.rmtree(path, ignore_errors=True)
 
-    def test_grouped_options_save_and_load_with_its_own_selection(
-            self) -> None:
+    def test_grouped_options_save_and_load_with_its_own_selection(self) -> None:
         """
         Coverage/regression test: GroupedOptions.load()'s "restore this group's own
         .selection" branch (as opposed to its members') was never exercised - a
@@ -567,15 +573,9 @@ class TestConfigDefaults(unittest.TestCase):
         """
         premise_config: PremiseConfig = PremiseConfig()
         self.assertIsNotNone(premise_config)
-        self.assertEqual(
-            PremiseAggregationEnum.SUM,
-            premise_config.aggregation)
-        self.assertEqual(
-            PremiseEliminationEnum.NONE,
-            premise_config.elimination)
-        self.assertEqual(
-            PremiseActivationEnum.SOFTMAX,
-            premise_config.activation)
+        self.assertEqual(PremiseAggregationEnum.SUM, premise_config.aggregation)
+        self.assertEqual(PremiseEliminationEnum.NONE, premise_config.elimination)
+        self.assertEqual(PremiseActivationEnum.SOFTMAX, premise_config.activation)
 
     def test_rule_config(self) -> None:
         """
@@ -605,35 +605,23 @@ class TestConfigDefaults(unittest.TestCase):
         self.assertEqual(nfn.parameter.premise.init_width, 0.5)
 
         # --- default evolution settings --- #
-        self.assertEqual(
-            nfn.evolution.premise.neurogenesis,
-            NeurogenesisEnum.NONE)
+        self.assertEqual(nfn.evolution.premise.neurogenesis, NeurogenesisEnum.NONE)
         self.assertEqual(nfn.evolution.premise.epsilon, 0.5)
         self.assertEqual(nfn.evolution.premise.add_premise_delay, 1)
-        self.assertEqual(
-            nfn.evolution.rule.sampling,
-            SamplingEnum.ST_GUMBEL_SOFTMAX)
+        self.assertEqual(nfn.evolution.rule.sampling, SamplingEnum.ST_GUMBEL_SOFTMAX)
         self.assertEqual(nfn.evolution.rule.temperature, 1.0)
         self.assertEqual(nfn.evolution.rule.epsilon_filter, 0.0)
         self.assertEqual(nfn.evolution.rule.noise_delay, 1)
 
         # --- default inference settings --- #
-        self.assertEqual(
-            nfn.inference.premise.aggregation,
-            PremiseAggregationEnum.SUM)
-        self.assertEqual(
-            nfn.inference.premise.elimination,
-            PremiseEliminationEnum.NONE)
+        self.assertEqual(nfn.inference.premise.aggregation, PremiseAggregationEnum.SUM)
+        self.assertEqual(nfn.inference.premise.elimination, PremiseEliminationEnum.NONE)
         self.assertEqual(
             nfn.inference.premise.activation, PremiseActivationEnum.SOFTMAX
         )
         self.assertEqual(nfn.inference.rule.weights, RuleWeightsEnum.NONE)
-        self.assertEqual(
-            nfn.inference.rule.elimination,
-            RuleEliminationEnum.NONE)
-        self.assertEqual(
-            nfn.inference.rule.elevation,
-            RuleEliminationEnum.NONE)
+        self.assertEqual(nfn.inference.rule.elimination, RuleEliminationEnum.NONE)
+        self.assertEqual(nfn.inference.rule.elevation, RuleEliminationEnum.NONE)
 
     def test_epsilon_filter_disabled_for_every_instance(self) -> None:
         """
@@ -650,8 +638,7 @@ class TestConfigDefaults(unittest.TestCase):
         # guard would have consumed
         NeuroFuzzyNetworkHyperparameters()
 
-        custom_evolution = EvolutionConfig(
-            rule=GumbelConfig(epsilon_filter=0.1))
+        custom_evolution = EvolutionConfig(rule=GumbelConfig(epsilon_filter=0.1))
         self.assertEqual(0.1, custom_evolution.rule.epsilon_filter)
 
         nfn = NeuroFuzzyNetworkHyperparameters(evolution=custom_evolution)
@@ -721,9 +708,7 @@ class TestRange(unittest.TestCase):
         """
         log_range = Range(low=1, high=100, log=True)
         log_distribution = log_range.to_scipy()
-        self.assertIsInstance(
-            log_distribution.dist, type(
-                scipy.stats.loguniform))
+        self.assertIsInstance(log_distribution.dist, type(scipy.stats.loguniform))
 
         plain_range = Range(low=0, high=4)
         plain_distribution = plain_range.to_scipy()
@@ -746,8 +731,7 @@ class TestRange(unittest.TestCase):
         trial.suggest_int.assert_called_once_with("step_param", 0, 4, step=1)
 
         Range(low=1, high=100, log=True).to_optuna(trial, "log_param")
-        trial.suggest_float.assert_called_once_with(
-            "log_param", 1, 100, log=True)
+        trial.suggest_float.assert_called_once_with("log_param", 1, 100, log=True)
 
         Range(low=0, high=4).to_optuna(trial, "plain_param")
         trial.suggest_float.assert_called_with("plain_param", 0, 4)
@@ -783,8 +767,7 @@ class TestRange(unittest.TestCase):
 
         full_range = Range(low=1, high=100, log=True, step=1)
         full_dict = full_range.to_dict()
-        self.assertEqual(
-            {"low": 1, "high": 100, "log": True, "step": 1}, full_dict)
+        self.assertEqual({"low": 1, "high": 100, "log": True, "step": 1}, full_dict)
         self.assertEqual(full_range, Range.from_dict(full_dict))
 
     def test_range_repr(self) -> None:
@@ -811,8 +794,7 @@ class TestCategoricalEnumOptions(unittest.TestCase):
         super().__init__(*args, **kwargs)
         self.dir = Path(os.path.dirname(os.path.abspath(__file__)))
 
-    def test_categorical_enum_options_promotes_onto_concrete_subclass(
-            self) -> None:
+    def test_categorical_enum_options_promotes_onto_concrete_subclass(self) -> None:
         """
         Regression guard: CategoricalEnumOptions.__init__ used to call
         EnumPromoter.__init_subclass__(enum_cls=self.enum_cls) directly.

@@ -99,8 +99,7 @@ class TestDimensionDependent(unittest.TestCase):
             # center - observations must stay very close to their centers to
             # exercise the real, unclamped gradient
             observations = torch.tensor(
-                [[[0.001], [0.999]]], device=AVAILABLE_DEVICE
-            )
+                [[[0.001], [0.999]]], device=AVAILABLE_DEVICE)
             fuzzy_set.calculate_membership(observations).sum().backward()
             centers_grad = fuzzy_set.get_centers().grad
             widths_grad = fuzzy_set.get_widths().grad

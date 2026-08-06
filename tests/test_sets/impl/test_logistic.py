@@ -60,7 +60,8 @@ class TestLogistic(unittest.TestCase):
             )
         )
 
-    def test_gradient_flows_to_midpoint_and_growth_but_not_supremum(self) -> None:
+    def test_gradient_flows_to_midpoint_and_growth_but_not_supremum(
+            self) -> None:
         """
         Golden-value/drift-detection test: LogisticCurve had no gradient test at
         all. midpoint/growth are real, trainable Parameters and must receive a
@@ -73,7 +74,8 @@ class TestLogistic(unittest.TestCase):
         Returns:
             None
         """
-        elements = torch.tensor([[-1.1258, 0.8487, 0.4681]], device=AVAILABLE_DEVICE)
+        elements = torch.tensor(
+            [[-1.1258, 0.8487, 0.4681]], device=AVAILABLE_DEVICE)
         logistic_curve = LogisticCurve(
             midpoint=0.5, growth=10, supremum=1, device=AVAILABLE_DEVICE
         )
