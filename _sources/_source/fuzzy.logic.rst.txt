@@ -1,0 +1,53 @@
+fuzzy.logic package
+===================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   fuzzy.logic.control
+
+Submodules
+----------
+
+fuzzy.logic.knowledge\_base module
+----------------------------------
+
+.. automodule:: fuzzy.logic.knowledge_base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.logic.rule module
+-----------------------
+
+.. automodule:: fuzzy.logic.rule
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.logic.rulebase module
+---------------------------
+
+.. automodule:: fuzzy.logic.rulebase
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.logic.variables module
+----------------------------
+
+.. automodule:: fuzzy.logic.variables
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: fuzzy.logic
+   :members:
+   :undoc-members:
+   :show-inheritance:

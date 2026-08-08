@@ -1,0 +1,918 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.relations.n_ary &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.relations.n_ary</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.relations.n_ary</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Classes for representing n-ary fuzzy relations, such as t-norms and t-conorms. These relations</span>
+<span class="sd">are used to combine multiple membership values into a single value. The n-ary relations (of</span>
+<span class="sd">differing types) can then be combined into a compound relation.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">igraph</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sps</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.sets.membership</span><span class="w"> </span><span class="kn">import</span> <span class="n">Membership</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">TorchJitModule</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.classes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Loggable</span>
+
+<span class="c1"># , log_classmethod, log_func, log_method</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">exp_sum_log</span><span class="p">,</span> <span class="n">module_class</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.linkage</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinaryLinks</span><span class="p">,</span> <span class="n">GroupedLinks</span>
+
+<span class="c1"># from line_profiler import profile</span>
+
+
+<span class="c1"># Deciding &quot;is there any NaN in this tensor at all?&quot; on a CUDA tensor requires either</span>
+<span class="c1"># a device sync (to pull the reduced boolean back to Python) or paying for the</span>
+<span class="c1"># NaN-handling unconditionally. Calibration (see benchmarks/) showed a CUDA</span>
+<span class="c1"># tensor.any()-then-bool() sync costs roughly 400-750us in practice, regardless of the</span>
+<span class="c1"># tensor&#39;s size - far more than a bare torch.cuda.synchronize() (~3us) - almost</span>
+<span class="c1"># certainly the cost of the reduction kernel plus the blocking scalar readback</span>
+<span class="c1"># together, not the sync primitive itself. Meanwhile, unconditionally doing the (cheap)</span>
+<span class="c1"># NaN-handling scales linearly with tensor size. Below this many elements, paying for</span>
+<span class="c1"># NaN-handling unconditionally is cheaper than syncing to find out whether it is</span>
+<span class="c1"># needed; above it, the sync-and-maybe-skip approach wins. selected.numel() is known</span>
+<span class="c1"># from tensor shape metadata alone, so checking it costs nothing on the GPU. This</span>
+<span class="c1"># threshold is an empirically-calibrated heuristic (measured on one GPU) rather than a</span>
+<span class="c1"># theoretically derived constant, so it may not sit exactly at the true crossover on</span>
+<span class="c1"># different hardware - but the crossover exists on any GPU where a sync has a</span>
+<span class="c1"># meaningfully higher fixed cost than issuing a same-sized elementwise kernel, which is</span>
+<span class="c1"># generally true.</span>
+<span class="n">GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4_000_000</span>
+
+
+<div class="viewcode-block" id="NAryMaskMethods">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryMaskMethods">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NAryMaskMethods</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The available methods for completing n-ary fuzzy relations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">PROD</span> <span class="o">=</span> <span class="s2">&quot;prod&quot;</span>  <span class="c1"># the default implementation</span>
+    <span class="n">EXP_SUM_LOG</span> <span class="o">=</span> <span class="s2">&quot;exp_sum_log&quot;</span>  <span class="c1"># an alternative implementation</span>
+    <span class="c1"># a more efficient calculation if sum is to be applied immediately after</span>
+    <span class="n">LINEAR_SUM</span> <span class="o">=</span> <span class="s2">&quot;linear&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="NAryRelation">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NAryRelation</span><span class="p">(</span><span class="n">TorchJitModule</span><span class="p">,</span> <span class="n">Loggable</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents an n-ary fuzzy relation. An n-ary fuzzy relation is a relation that takes</span>
+<span class="sd">    n arguments and returns a (float) value. This class is useful for representing fuzzy relations</span>
+<span class="sd">    that take multiple arguments, such as a t-norm that takes two or more arguments and returns a</span>
+<span class="sd">    truth value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># pylint: disable=too-many-instance-attributes</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">indices</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]],</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">grouped_links</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">GroupedLinks</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">nan_replacement</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">NAryMaskMethods</span> <span class="o">=</span> <span class="n">NAryMaskMethods</span><span class="o">.</span><span class="n">PROD</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply an n-ary relation to the indices (i.e., relation&#39;s matrix) on the provided device.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            items: The 2-tuple indices to apply the n-ary relation to (e.g., (0, 1), (1, 0)).</span>
+<span class="sd">            device: The device to use for the relation.</span>
+<span class="sd">            grouped_links: The end-user can provide the links to use for the relation; this is</span>
+<span class="sd">                useful for when the links are already created and the user wants to use them, or</span>
+<span class="sd">                for a relation that requires more complex setup. Default is None.</span>
+<span class="sd">            nan_replacement: The value to use when a value is missing in the relation (i.e., nan);</span>
+<span class="sd">                this is useful for when input to the relation is not complete. Default is 0.0</span>
+<span class="sd">                (penalize), a value of 1.0 would ignore missing values (i.e., do not penalize).</span>
+<span class="sd">            method: The selected method to apply the mask to the membership degrees. Some</span>
+<span class="sd">                implementations are more efficient if we can incorporate subsequent calculations</span>
+<span class="sd">                (e.g., it is possible to use torch.nn.functional.linear if we know a .sum is applied</span>
+<span class="sd">                immediately afterward).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="k">if</span> <span class="n">nan_replacement</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The nan_replacement must be either 0.0 or 1.0.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nan_replacement</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">nan_replacement</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">:</span> <span class="n">NAryMaskMethods</span> <span class="o">=</span> <span class="n">method</span>
+        <span class="c1"># cache the selected method; very important for performance to avoid</span>
+        <span class="c1"># branching</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span>
+            <span class="p">[</span><span class="n">Membership</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_apply_mask_func</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matrix</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># created later (via self._rebuild)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">GroupedLinks</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">None</span>  <span class="c1"># created later (via self._rebuild)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># will be created later (via self._rebuild)</span>
+
+        <span class="c1"># variables used for when the indices are given</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coo_matrix</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">sps</span><span class="o">.</span><span class="n">_coo</span><span class="o">.</span><span class="n">coo_matrix</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_original_shape</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">indices</span><span class="p">:</span>  <span class="c1"># indices are not given</span>
+            <span class="k">if</span> <span class="n">grouped_links</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;At least one set of indices must be provided, or GroupedLinks must be given.&quot;</span>
+                <span class="p">)</span>
+            <span class="c1"># note that many features are not available when using</span>
+            <span class="c1"># grouped_links</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span> <span class="o">=</span> <span class="n">grouped_links</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># indices are given</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+
+            <span class="c1"># this scenario is for when we have multiple compound indices that use the same relation</span>
+            <span class="c1"># this is useful for computational efficiency (i.e., not having to</span>
+            <span class="c1"># use a for loop)</span>
+            <span class="k">for</span> <span class="n">relation_indices</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">relation_indices</span><span class="p">))</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">relation_indices</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;The indices must be unique for the relation to be well-defined.&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">coo_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_indices_to_matrix</span><span class="p">(</span><span class="n">relation_indices</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_original_shape</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coo_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_coo_matrix</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coo_matrix</span><span class="p">)</span>
+            <span class="c1"># now convert to a list of matrices</span>
+            <span class="n">max_var</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_original_shape</span><span class="p">)</span>
+            <span class="n">max_term</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_original_shape</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rebuild</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">max_var</span><span class="p">,</span> <span class="n">max_term</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links_complement</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links_bool</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_use_gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gather_indices</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gather_active</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_mask</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_precompute_gather_indices</span><span class="p">()</span>
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nan_replacement</span><span class="p">)</span> <span class="o">+</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">NAryRelation</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">applied_mask</span><span class="p">,</span> <span class="n">other_applied_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_mask</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">get_mask</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">applied_mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">other_applied_mask</span><span class="o">.</span><span class="n">shape</span>
+            <span class="ow">and</span> <span class="p">(</span><span class="n">applied_mask</span> <span class="o">-</span> <span class="n">other_applied_mask</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">nan_replacement</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">nan_replacement</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the shape of the relation&#39;s matrix.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The shape of the relation&#39;s matrix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="o">.</span><span class="n">shape</span>
+
+<div class="viewcode-block" id="NAryRelation.convert_indices_to_matrix">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation.convert_indices_to_matrix">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="c1"># @log_func</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert_indices_to_matrix</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sps</span><span class="o">.</span><span class="n">_coo</span><span class="o">.</span><span class="n">coo_matrix</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert the given indices to a COO matrix.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            indices: The indices where a &#39;1&#39; will be placed at each index.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The COO matrix with a &#39;1&#39; at each index.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">))</span>  <span class="c1"># a &#39;1&#39; indicates a relation exists</span>
+        <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">indices</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sps</span><span class="o">.</span><span class="n">coo_matrix</span><span class="p">((</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="NAryRelation.get_mask">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation.get_mask">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the applied mask.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The applied mask.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># test if the relation is well-defined &amp; build it</span>
+        <span class="c1"># the last index, -1, is the relation index; first 2 are (variable,</span>
+        <span class="c1"># term) indices</span>
+        <span class="n">membership_shape</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># but we also need to include a dummy batch dimension (32) for the</span>
+        <span class="c1"># grouped_links</span>
+        <span class="n">batched_membership_shape</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">([</span><span class="mi">32</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">membership_shape</span><span class="p">))</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>  <span class="c1"># disable grad checking</span>
+            <span class="n">dummy_membership</span><span class="p">:</span> <span class="n">Membership</span> <span class="o">=</span> <span class="n">Membership</span><span class="p">(</span>
+                <span class="c1"># elements=torch.empty(membership_shape, device=self.device),</span>
+                <span class="n">degrees</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">batched_membership_shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                <span class="n">mask</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">membership_shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="p">(</span><span class="n">dummy_membership</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">is_sparse</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">mask</span><span class="o">.</span><span class="n">is_coalesced</span><span class="p">():</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">coalesce</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">mask</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="NAryRelation.to">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation.to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;NAryRelation&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Move the n-ary relation to the specified device.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            device: The device to move the n-ary relation to.</span>
+<span class="sd">            *args: Additional positional arguments.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The n-ary relation on the specified device.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">invalidate_links_cache</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_gather</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_gather_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gather_indices</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_gather_active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gather_active</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cached_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        An internal method to get the state dictionary for the n-ary relation. A path is required</span>
+<span class="sd">        to save the grouped_links, as it is not saved in the state dictionary.</span>
+
+<span class="sd">        Allows subclasses to override the save method without having to repeat the code for saving</span>
+<span class="sd">        the state dictionary of the general n-ary relation.</span>
+
+<span class="sd">        Note: THIS WILL SAVE THE GROUPED_LINKS TO THE GIVEN PATH (AFTER SOME MODIFICATION).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The path to save the grouped_links.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The state dictionary for the n-ary relation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;nan_replacement&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nan_replacement</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;class_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># we will rebuild from the grouped_links, so we do not need to save</span>
+            <span class="c1"># the indices</span>
+            <span class="n">grouped_links_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;grouped_links:</span><span class="si">{</span><span class="n">module_class</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">grouped_links_dir</span><span class="p">)</span>
+            <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;grouped_links&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">grouped_links_dir</span>  <span class="c1"># save the path to the grouped_links</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># we will rebuild from the indices, so we do not need to save the</span>
+            <span class="c1"># grouped_links</span>
+            <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;indices&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">state_dict</span>
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="NAryRelation.save">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the n-ary relation to a dictionary given a path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The (requested) path to save the n-ary relation. This may be modified to ensure</span>
+<span class="sd">            all necessary files are saved (e.g., it may be turned into a directory instead).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The dictionary representation of the n-ary relation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_dict</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;state_dict.pt&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">state_dict</span></div>
+
+
+<div class="viewcode-block" id="NAryRelation.load">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation.load">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="c1"># @log_classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;NAryRelation&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load the n-ary relation from a file and put it on the specified device.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The path to load the t-norm relation.</span>
+<span class="sd">            device: The physical device to load the t-norm relation onto.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The n-ary relation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.pt&quot;</span><span class="p">:</span>
+            <span class="c1"># load from indices</span>
+            <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># load from grouped_links, path is a directory</span>
+            <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;state_dict.pt&quot;</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;nan_replacement&quot;</span><span class="p">:</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;nan_replacement&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;device&quot;</span><span class="p">:</span> <span class="n">device</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="n">fuzzy_cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_subclass</span><span class="p">(</span><span class="n">class_name</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;class_name&quot;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="s2">&quot;indices&quot;</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;indices&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">fuzzy_cls</span><span class="p">(</span><span class="o">*</span><span class="n">indices</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">grouped_links</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;grouped_links&quot;</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;grouped_links&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">GroupedLinks</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">grouped_links</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">fuzzy_cls</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># add other attributes that may be specific to the subclass</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">obj</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="NAryRelation.create_ndarray">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation.create_ndarray">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_ndarray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_var</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">max_term</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Make (or update) the numpy matrix from the COO matrices.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            max_var: The maximum number of variables.</span>
+<span class="sd">            max_term: The maximum number of terms.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">matrices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">coo_matrix</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coo_matrix</span><span class="p">:</span>
+            <span class="c1"># first resize</span>
+            <span class="n">coo_matrix</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">max_var</span><span class="p">,</span> <span class="n">max_term</span><span class="p">)</span>
+            <span class="n">matrices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coo_matrix</span><span class="o">.</span><span class="n">toarray</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># need at least one array to stack</span>
+            <span class="c1"># make a new axis and stack along that axis</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">matrices</span><span class="p">)</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="NAryRelation.create_igraph">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation.create_igraph">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_igraph</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create the graph representation of the relation(s).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">graphs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">igraph</span><span class="o">.</span><span class="n">Graph</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">relation</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">:</span>
+            <span class="c1"># create a directed (mode=&quot;in&quot;) star graph with the relation as the</span>
+            <span class="c1"># center (vertex 0)</span>
+            <span class="n">graphs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">igraph</span><span class="o">.</span><span class="n">Graph</span><span class="o">.</span><span class="n">Star</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">relation</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;in&quot;</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+            <span class="c1"># relation vertices are the first vertices in the graph</span>
+            <span class="c1"># located at index 0</span>
+            <span class="n">relation_vertex</span><span class="p">:</span> <span class="n">igraph</span><span class="o">.</span><span class="n">Vertex</span> <span class="o">=</span> <span class="n">graphs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">vs</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="c1"># set item and tags for the relation vertex for easy retrieval;</span>
+            <span class="c1"># name is for graph union</span>
+            <span class="p">(</span>
+                <span class="n">relation_vertex</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+                <span class="n">relation_vertex</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">],</span>
+                <span class="n">relation_vertex</span><span class="p">[</span><span class="s2">&quot;tags&quot;</span><span class="p">],</span>
+            <span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">+</span> <span class="nb">hash</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">relation</span><span class="p">)),</span> <span class="bp">self</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;relation&quot;</span><span class="p">})</span>
+            <span class="c1"># anchor vertices are the var-term pairs that are involved in the</span>
+            <span class="c1"># relation vertex</span>
+            <span class="n">anchor_vertices</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">igraph</span><span class="o">.</span><span class="n">Vertex</span><span class="p">]</span> <span class="o">=</span> <span class="n">relation_vertex</span><span class="o">.</span><span class="n">predecessors</span><span class="p">()</span>
+            <span class="c1"># set anchor vertices&#39; item and tags for easy retrieval; name is</span>
+            <span class="c1"># for graph union</span>
+            <span class="k">for</span> <span class="n">anchor_vertex</span><span class="p">,</span> <span class="n">index_pair</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">anchor_vertices</span><span class="p">,</span> <span class="n">relation</span><span class="p">):</span>
+                <span class="n">anchor_vertex</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">anchor_vertex</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">],</span> <span class="n">anchor_vertex</span><span class="p">[</span><span class="s2">&quot;tags&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">index_pair</span><span class="p">,</span>
+                    <span class="n">index_pair</span><span class="p">,</span>
+                    <span class="p">{</span><span class="s2">&quot;anchor&quot;</span><span class="p">},</span>
+                <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">graphs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># need at least one graph to union</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">igraph</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">graphs</span><span class="p">,</span> <span class="n">byname</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_rebuild</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">shape</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Rebuild the relation&#39;s matrix and graph.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            shape: The new shape of the n-ary fuzzy relation; assuming shape is (max_var, max_term).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># re-create the self.matrix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># update the self.grouped_links to reflect the new shape</span>
+        <span class="c1"># these links are used to zero out the values that are not part of the</span>
+        <span class="c1"># relation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span> <span class="o">=</span> <span class="n">GroupedLinks</span><span class="p">(</span>
+            <span class="n">modules_list</span><span class="o">=</span><span class="p">[</span><span class="n">BinaryLinks</span><span class="p">(</span><span class="n">links</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">matrix</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)]</span>
+        <span class="p">)</span>
+        <span class="c1"># re-create self.graph (has to happen after self.grouped_links is</span>
+        <span class="c1"># created)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_igraph</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_precompute_gather_indices</span><span class="p">()</span>
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="NAryRelation.resize">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation.resize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">shape</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resize the matrix in-place to the given shape, and then rebuild the relations&#39; members.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            shape: The new shape of the matrix.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">coo_matrix</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coo_matrix</span><span class="p">:</span>
+            <span class="n">coo_matrix</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="o">*</span><span class="n">shape</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rebuild</span><span class="p">(</span><span class="o">*</span><span class="n">shape</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">invalidate_links_cache</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="NAryRelation.invalidate_links_cache">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation.invalidate_links_cache">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">invalidate_links_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Invalidate the cached links tensors. Must be called after any change to</span>
+<span class="sd">        the underlying links (e.g., resize, device move, Gumbel-Softmax resample).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links_complement</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links_bool</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_links_are_cacheable</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Whether this relation&#39;s links are safe to cache indefinitely (until an explicit</span>
+<span class="sd">        invalidate_links_cache() call).</span>
+
+<span class="sd">        Only BinaryLinks are safe: its forward() ignores its argument entirely and always</span>
+<span class="sd">        returns the same fixed tensor, so &quot;compute once, reuse forever&quot; is correct. Any</span>
+<span class="sd">        other module type in grouped_links.modules_list - such as a stochastic,</span>
+<span class="sd">        Gumbel-Softmax-resampled logits module (see GroupedLinks&#39; own docstring) - could</span>
+<span class="sd">        legitimately produce a *different* result on every call, and this cache has no way</span>
+<span class="sd">        to detect that on its own; it can only be told to forget via</span>
+<span class="sd">        invalidate_links_cache(). Recomputing every call for anything other than</span>
+<span class="sd">        BinaryLinks keeps the cache safe by construction rather than relying on every</span>
+<span class="sd">        future caller remembering to invalidate it.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            True if every module backing this relation&#39;s links is a BinaryLinks.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="p">,</span> <span class="s2">&quot;modules_list&quot;</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">BinaryLinks</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="o">.</span><span class="n">modules_list</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_links_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Lazily compute and cache the links tensor and its derived forms.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_links_are_cacheable</span><span class="p">():</span>
+            <span class="k">return</span>
+        <span class="n">links</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="p">(</span><span class="n">membership</span><span class="o">=</span><span class="n">membership</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links</span> <span class="o">=</span> <span class="n">links</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links_bool</span> <span class="o">=</span> <span class="n">links</span><span class="o">.</span><span class="n">bool</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links_complement</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">links</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the after-mask tensor and the raw applied mask from the GroupedLinks using</span>
+<span class="sd">        the given Membership object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            membership: The Membership object to use in determining the applied mask.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The after-mask tensor, and the applied mask based on the given membership.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_links_cache</span><span class="p">(</span><span class="n">membership</span><span class="p">)</span>
+        <span class="n">applied_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links</span>
+        <span class="n">after_mask</span> <span class="o">=</span> <span class="n">membership</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">applied_mask</span>
+        <span class="k">return</span> <span class="n">after_mask</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links_complement</span><span class="p">,</span> <span class="n">applied_mask</span>
+
+    <span class="c1"># @log_method</span>
+    <span class="c1"># @profile</span>
+<div class="viewcode-block" id="NAryRelation.apply_mask">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation.apply_mask">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the n-ary relation&#39;s mask to the given memberships.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            membership: The membership values to apply the minimum n-ary relation to.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The masked membership values (zero may or may not be a valid degree of truth).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask_with_mask</span><span class="p">(</span><span class="n">membership</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_mask_with_mask</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The implementation behind apply_mask(), also returning the raw mask that was</span>
+<span class="sd">        applied. TNorm.forward() implementations (see relations/t_norm.py) need both</span>
+<span class="sd">        values to build their returned Membership - they used to get the second one by</span>
+<span class="sd">        reading self.applied_mask right after calling apply_mask(), but mutating a</span>
+<span class="sd">        module attribute mid-forward is incompatible with torch.compile(fullgraph=True)</span>
+<span class="sd">        whenever that forward() runs inside torch.utils.checkpoint (Dynamo forbids</span>
+<span class="sd">        in-place attribute mutation inside a checkpoint&#39;s traced subgraph), so it is</span>
+<span class="sd">        returned directly instead.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            membership: The membership values to apply the n-ary relation to.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The masked membership values, and the raw applied mask.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">membership_shape</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span> <span class="o">=</span> <span class="n">membership</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">membership_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="o">*</span><span class="n">membership_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask_func</span><span class="p">(</span><span class="n">membership</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_cache_apply_mask_func</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Membership</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">NAryMaskMethods</span><span class="o">.</span><span class="n">PROD</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prod_apply_mask</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">NAryMaskMethods</span><span class="o">.</span><span class="n">LINEAR_SUM</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_linear_sum_apply_mask</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">NAryMaskMethods</span><span class="o">.</span><span class="n">EXP_SUM_LOG</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exp_sum_log_apply_mask</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The given method &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39; does not have an implemented behavior within &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_precompute_gather_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Precompute gather indices for an optimized mask application that avoids</span>
+<span class="sd">        the O(batch * vars * terms * rules) intermediate tensor. Only applicable</span>
+<span class="sd">        when all links are BinaryLinks and each (variable, rule) pair has at most</span>
+<span class="sd">        one active term.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_use_gather</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="p">,</span> <span class="s2">&quot;modules_list&quot;</span>
+        <span class="p">):</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">NAryMaskMethods</span><span class="o">.</span><span class="n">PROD</span><span class="p">,</span> <span class="n">NAryMaskMethods</span><span class="o">.</span><span class="n">EXP_SUM_LOG</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="n">all_binary</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">BinaryLinks</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="o">.</span><span class="n">modules_list</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">all_binary</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="p">(</span><span class="n">membership</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">terms_per_var_rule</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">terms_per_var_rule</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_use_gather</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gather_indices</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gather_active</span> <span class="o">=</span> <span class="n">terms_per_var_rule</span><span class="o">.</span><span class="n">bool</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_active</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gather_active</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_mask</span> <span class="o">=</span> <span class="n">mask</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gather_apply_mask</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gather_apply_mask</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Optimized mask application using torch.gather. Produces a (batch, vars, rules)</span>
+<span class="sd">        tensor directly instead of materializing the full (batch, vars, terms, rules)</span>
+<span class="sd">        intermediate, reducing memory by a factor of n_terms.</span>
+
+<span class="sd">        This must reproduce _prod_apply_mask&#39;s NaN behaviour exactly, not just its</span>
+<span class="sd">        non-NaN values, since which of the two runs is an invisible implementation</span>
+<span class="sd">        detail (chosen automatically by _precompute_gather_indices). _prod_apply_mask&#39;s</span>
+<span class="sd">        formula - degrees * mask + (1 - mask), then a product over the term dimension -</span>
+<span class="sd">        means IEEE754&#39;s NaN * 0 = NaN causes a NaN in *any* term of a variable to poison</span>
+<span class="sd">        *every* rule that touches that variable at all, including rules that select a</span>
+<span class="sd">        different term of it, and even rules that do not use that variable&#39;s terms in</span>
+<span class="sd">        their antecedent at all (every term, active or not, participates in the product).</span>
+<span class="sd">        A plain torch.gather of only the selected term would miss all of that</span>
+<span class="sd">        propagation, so it is reconstructed explicitly below.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">applied_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_mask</span>
+        <span class="n">degrees</span> <span class="o">=</span> <span class="n">membership</span><span class="o">.</span><span class="n">degrees</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">degrees</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gather_indices</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">selected</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">degrees</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">idx</span><span class="p">)</span>
+
+        <span class="c1"># a NaN anywhere among a variable&#39;s terms must poison every rule that variable</span>
+        <span class="c1"># participates in (structurally active or not) - see docstring above</span>
+        <span class="n">any_nan_per_variable</span> <span class="o">=</span> <span class="n">degrees</span><span class="o">.</span><span class="n">isnan</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">is_compiling</span><span class="p">()</span>
+            <span class="ow">and</span> <span class="n">selected</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL</span>
+        <span class="p">):</span>
+            <span class="c1"># large tensor: sync once to find out whether there is anything to do,</span>
+            <span class="c1"># and skip the (comparatively expensive at this size) NaN-handling</span>
+            <span class="c1"># entirely when there isn&#39;t - see</span>
+            <span class="c1"># GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL. Guarded off entirely while</span>
+            <span class="c1"># compiling: is_compiling() is a compile-time constant, so Dynamo prunes</span>
+            <span class="c1"># this branch rather than tracing into the graph-breaking bool(...any())</span>
+            <span class="c1"># sync below, always taking the small-tensor (unconditional) path</span>
+            <span class="c1"># instead.</span>
+            <span class="n">has_nan</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">any_nan_per_variable</span><span class="o">.</span><span class="n">any</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">has_nan</span><span class="p">:</span>
+                <span class="n">selected</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="n">any_nan_per_variable</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">selected</span><span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">selected</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)),</span>
+                    <span class="n">selected</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># small tensor: skip the sync entirely and always do the (cheap at this</span>
+            <span class="c1"># size) NaN-handling unconditionally</span>
+            <span class="n">has_nan</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">selected</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="n">any_nan_per_variable</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">selected</span><span class="p">),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">selected</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)),</span>
+                <span class="n">selected</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_active</span><span class="p">:</span>
+            <span class="c1"># Preserve IEEE NaN propagation: inactive entries where the gathered</span>
+            <span class="c1"># degree is NaN must stay NaN (matching NaN * 0 + 1 = NaN behavior),</span>
+            <span class="c1"># while inactive entries with valid degrees become 1.0 (product</span>
+            <span class="c1"># identity).</span>
+            <span class="n">selected</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_gather_active</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="n">selected</span><span class="o">.</span><span class="n">isnan</span><span class="p">(),</span>
+                <span class="n">selected</span><span class="p">,</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">degrees</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">degrees</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">has_nan</span><span class="p">:</span>
+            <span class="c1"># only reachable from the large-tensor branch above; nan_to_num is a</span>
+            <span class="c1"># no-op away from NaN/inf, and has_nan already proves `selected` is</span>
+            <span class="c1"># NaN-free (it is only ever assembled from `degrees` entries and the</span>
+            <span class="c1"># constant 1.0 above, neither of which introduces a NaN when has_nan is</span>
+            <span class="c1"># False) - skipping it avoids a full elementwise pass over the tensor,</span>
+            <span class="c1"># which profiling showed was the single largest cost in the rule engine</span>
+            <span class="c1"># for FLCs with many input variables.</span>
+            <span class="k">return</span> <span class="n">selected</span><span class="p">,</span> <span class="n">applied_mask</span>
+        <span class="k">return</span> <span class="n">selected</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nan_replacement</span><span class="p">),</span> <span class="n">applied_mask</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prod_apply_mask</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The default resolution strategy for applying the mask to the given fuzzy relation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            membership: The membership values.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The fuzzy relation values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># torch.prod on large dims can be slow and non-fusible</span>
+        <span class="n">after_mask</span><span class="p">,</span> <span class="n">applied_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask</span><span class="p">(</span><span class="n">membership</span><span class="o">=</span><span class="n">membership</span><span class="p">)</span>
+        <span class="n">prod_result</span> <span class="o">=</span> <span class="n">after_mask</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nan_replacement</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">prod_result</span><span class="p">,</span> <span class="n">applied_mask</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_exp_sum_log_apply_mask</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A possibly more efficient resolution strategy for applying the mask to the given</span>
+<span class="sd">        fuzzy relation; it is mathematically equivalent to the product technique.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            membership: The membership values.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The fuzzy relation values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># &quot;exp-sum-log trick&quot; for stable product via log-domain</span>
+        <span class="c1"># more accurately: a numerically stable log-space product</span>
+        <span class="c1"># so use the below version to be much faster and more numerically stable, GPU-friendly</span>
+        <span class="c1"># exp_sum_log_impl_result = torch.exp(</span>
+        <span class="c1">#     torch.sum(torch.log(vals + 1e-12), dim=2)</span>
+        <span class="c1"># ).nan_to_num(self.nan_replacement)</span>
+        <span class="n">after_mask</span><span class="p">,</span> <span class="n">applied_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask</span><span class="p">(</span><span class="n">membership</span><span class="o">=</span><span class="n">membership</span><span class="p">)</span>
+        <span class="n">exp_sum_log_func_result</span> <span class="o">=</span> <span class="n">exp_sum_log</span><span class="p">(</span><span class="n">after_mask</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nan_replacement</span>
+        <span class="p">)</span>
+        <span class="c1"># assert torch.allclose(exp_sum_log_impl_result, exp_sum_log_func_result)</span>
+        <span class="k">return</span> <span class="n">exp_sum_log_func_result</span><span class="p">,</span> <span class="n">applied_mask</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_linear_sum_apply_mask</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A very efficient resolution strategy for applying the mask to the given fuzzy relation if</span>
+<span class="sd">        the summation is taken immediately afterward; it is *NOT* mathematically equivalent to the</span>
+<span class="sd">        product/exp-sum-log technique unless they also are followed by sum(dim=1). This is</span>
+<span class="sd">        particularly helpful if a TSK product inference engine is utilized, and the fuzzy inference</span>
+<span class="sd">        is exploiting the softmax that occurs within the calculations.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            membership: The membership values.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The fuzzy relation values, and the applied mask reshaped to</span>
+<span class="sd">            (var_count * term_count, n_rules) - the same 2D view used internally</span>
+<span class="sd">            for the linear combination below, rather than the raw</span>
+<span class="sd">            (var_count, term_count, n_rules) shape PROD/EXP_SUM_LOG/gather return.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">membership_shape</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span> <span class="o">=</span> <span class="n">membership</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">var_count</span><span class="p">,</span> <span class="n">term_count</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">membership_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">membership_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">membership_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_links_cache</span><span class="p">(</span><span class="n">membership</span><span class="p">)</span>
+        <span class="c1"># BinaryLinks stores its links as int8; torch.nn.functional.linear requires both</span>
+        <span class="c1"># operands to share a dtype, so without this cast this method raises</span>
+        <span class="c1"># &quot;expected mat1 and mat2 to have the same dtype&quot; for any real (non-float) links -</span>
+        <span class="c1"># a bug that had gone unnoticed because no test exercised this method</span>
+        <span class="c1"># before</span>
+        <span class="n">applied_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_links</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">membership</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">n_rules</span> <span class="o">=</span> <span class="n">applied_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">reshaped_mask</span> <span class="o">=</span> <span class="n">applied_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">var_count</span> <span class="o">*</span> <span class="n">term_count</span><span class="p">,</span> <span class="n">n_rules</span><span class="p">)</span>
+        <span class="n">linear_result</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span>  <span class="c1"># pylint: disable=not-callable</span>
+            <span class="n">membership</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">var_count</span> <span class="o">*</span> <span class="n">term_count</span><span class="p">),</span>
+            <span class="n">reshaped_mask</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">linear_result</span><span class="p">,</span> <span class="n">reshaped_mask</span>
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="NAryRelation.forward">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Membership</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the n-ary relation to the given memberships.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            membership: The membership values to apply the n-ary relation to.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The resulting membership values, according to the n-ary relation (i.e., which truth</span>
+<span class="sd">            values to actually consider).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> has no defined forward function. Please create a class &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;and inherit from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">, or use a predefined class.&quot;</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

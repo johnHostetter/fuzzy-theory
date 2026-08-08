@@ -1,0 +1,350 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.sets.impl.gauss_variants.dmf &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.sets.impl.gauss_variants.dmf</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.sets.impl.gauss_variants.dmf</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Implements dimension-dependent membership functions as proposed in:</span>
+
+<span class="sd">    High-Dimensional Fuzzy Inference Systems</span>
+
+<span class="sd">by Guangdong Xue; Jian Wang; Kai Zhang; Nikhil R. Pal</span>
+
+<span class="sd">Citation:</span>
+
+<span class="sd">    G. Xue, J. Wang, K. Zhang and N. R. Pal, &quot;High-Dimensional Fuzzy Inference Systems,&quot;</span>
+<span class="sd">    in IEEE Transactions on Systems, Man, and Cybernetics: Systems, vol. 54, no. 1, pp. 507-519,</span>
+<span class="sd">    Jan. 2024, doi: 10.1109/TSMC.2023.3311475.</span>
+
+<span class="sd">The code was modified from the public repository of the authors:</span>
+
+<span class="sd">    https://github.com/Eandon/HDFIS/</span>
+
+<span class="sd">to make it compatible with this fuzzy-theory library.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">abc</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sympy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.sets.abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.sets.impl.gauss_variants.cmf</span><span class="w"> </span><span class="kn">import</span> <span class="n">Gaussian</span><span class="p">,</span> <span class="n">LogGaussian</span>
+
+
+<div class="viewcode-block" id="DimensionDependent">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.DimensionDependent">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DimensionDependent</span><span class="p">(</span><span class="n">FuzzySet</span><span class="p">,</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents a Dimension-Dependent fuzzy set. It is an abstract base class that</span>
+<span class="sd">    provides the basic structure for Dimension-Dependent fuzzy sets, such as Gaussian DMF and</span>
+<span class="sd">    Gaussian No-Exp DMF. It inherits from the FuzzySet class and implements the</span>
+<span class="sd">    calculate_membership method, which is used to calculate the membership of observations</span>
+<span class="sd">    to the fuzzy set based on the centers, widths, and rho parameters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">widths</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">rho</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">centers</span><span class="o">=</span><span class="n">centers</span><span class="p">,</span> <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># dtype must be wide enough to hold n_inputs without overflow (this class</span>
+        <span class="c1"># exists specifically for high-dimensional problems - a fixed-width int dtype</span>
+        <span class="c1"># such as int8 silently wraps around for as few as 128 inputs) and must be a</span>
+        <span class="c1"># floating type since n_inputs is only ever used via .log() and torch.pow()</span>
+        <span class="c1"># below</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_inputs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">centers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>  <span class="c1"># count of input variables/features/dimensions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_rho</span><span class="p">(</span><span class="n">n_inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_inputs</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">rho</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">rho</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_rho</span><span class="p">(</span><span class="n">n_inputs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+                <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">745</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">log</span><span class="p">()</span> <span class="o">/</span> <span class="n">n_inputs</span><span class="o">.</span><span class="n">log</span><span class="p">()</span>
+            <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="GaussianNoExpDMF">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GaussianNoExpDMF">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GaussianNoExpDMF</span><span class="p">(</span><span class="n">DimensionDependent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents the Gaussian w/ No-Exp Dimension-Dependent fuzzy set. This is a special</span>
+<span class="sd">    case of the Dimension-Dependent fuzzy set where the Gaussian membership function is assumed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GaussianNoExpDMF.internal_calculate_membership">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GaussianNoExpDMF.internal_calculate_membership">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">internal_calculate_membership</span><span class="p">(</span>
+        <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">widths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">n_inputs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">rho</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Dimension-Dependent fuzzy set.</span>
+<span class="sd">        This is a static method, so it can be called without instantiating the class.</span>
+<span class="sd">        This static method is particularly useful when animating the membership function.</span>
+
+<span class="sd">        Warning: This method is not meant to be called directly, as it does not take into account</span>
+<span class="sd">        the mask that likely should exist. Use the calculate_membership method instead.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+<span class="sd">            centers: The centers of the Gaussian DMF fuzzy set.</span>
+<span class="sd">            widths: The widths of the Gaussian DMF fuzzy set.</span>
+<span class="sd">            n_inputs: The widths of the Gaussian DMF fuzzy set.</span>
+<span class="sd">            rho: The scale parameter for the Gaussian DMF fuzzy set.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Gaussian DMF fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">LogGaussian</span><span class="o">.</span><span class="n">internal_calculate_membership</span><span class="p">(</span>
+            <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+            <span class="n">centers</span><span class="o">=</span><span class="n">centers</span><span class="p">,</span>
+            <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span>
+            <span class="n">width_multiplier</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">n_inputs</span><span class="p">,</span> <span class="n">rho</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GaussianNoExpDMF.sympy_formula">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GaussianNoExpDMF.sympy_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sympy_formula</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+        <span class="c1"># centers (c), widths (sigma), observations (x), dimensions (n) and rho (rho).</span>
+        <span class="c1"># dimensions is lowercase &quot;n&quot; (not &quot;N&quot;) deliberately: sympy&#39;s parse_expr</span>
+        <span class="c1"># reserves the bare identifier &quot;N&quot; for its own numerical-evaluation shortcut</span>
+        <span class="c1"># (sympy.N), so interpolating Symbol(&quot;N&quot;) into a string later re-parsed by</span>
+        <span class="c1"># sympy.sympify() silently fails to round-trip - &quot;n&quot; is not reserved.</span>
+        <span class="n">center_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">)</span>
+        <span class="n">width_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">)</span>
+        <span class="n">input_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
+        <span class="n">dim_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;n&quot;</span><span class="p">)</span>
+        <span class="n">rho_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;rho&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sympy</span><span class="o">.</span><span class="n">sympify</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;-1.0 * pow((</span><span class="si">{</span><span class="n">input_symbol</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">center_symbol</span><span class="si">}</span><span class="s2">), 2) / &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;(pow(</span><span class="si">{</span><span class="n">dim_symbol</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">rho_symbol</span><span class="si">}</span><span class="s2">) + pow(</span><span class="si">{</span><span class="n">width_symbol</span><span class="si">}</span><span class="s2">, 2))&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GaussianNoExpDMF.calculate_membership">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GaussianNoExpDMF.calculate_membership">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_membership</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Log Gaussian fuzzy set.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Log Gaussian fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">GaussianNoExpDMF</span><span class="o">.</span><span class="n">internal_calculate_membership</span><span class="p">(</span>
+            <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+            <span class="n">centers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span>
+            <span class="n">widths</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">(),</span>
+            <span class="n">n_inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_inputs</span><span class="p">,</span>
+            <span class="n">rho</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="GaussianDMF">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GaussianDMF">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GaussianDMF</span><span class="p">(</span><span class="n">DimensionDependent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents the Gaussian Dimension-Dependent fuzzy set. This is a special case of the</span>
+<span class="sd">    Dimension-Dependent fuzzy set where the Gaussian membership function is assumed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GaussianDMF.internal_calculate_membership">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GaussianDMF.internal_calculate_membership">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">internal_calculate_membership</span><span class="p">(</span>
+        <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">widths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">n_inputs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">rho</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Dimension-Dependent fuzzy set.</span>
+<span class="sd">        This is a static method, so it can be called without instantiating the class.</span>
+<span class="sd">        This static method is particularly useful when animating the membership function.</span>
+
+<span class="sd">        Warning: This method is not meant to be called directly, as it does not take into account</span>
+<span class="sd">        the mask that likely should exist. Use the calculate_membership method instead.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+<span class="sd">            centers: The centers of the Gaussian DMF fuzzy set.</span>
+<span class="sd">            widths: The widths of the Gaussian DMF fuzzy set.</span>
+<span class="sd">            n_inputs: The widths of the Gaussian DMF fuzzy set.</span>
+<span class="sd">            rho: The scale parameter for the Gaussian DMF fuzzy set.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Gaussian DMF fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">Gaussian</span><span class="o">.</span><span class="n">internal_calculate_membership</span><span class="p">(</span>
+            <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+            <span class="n">centers</span><span class="o">=</span><span class="n">centers</span><span class="p">,</span>
+            <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span>
+            <span class="n">width_multiplier</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">n_inputs</span><span class="p">,</span> <span class="n">rho</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+        <span class="p">)</span></div>
+
+        <span class="c1"># ORIGINAL:</span>
+        <span class="c1"># return torch.exp(</span>
+        <span class="c1">#     -1.0</span>
+        <span class="c1">#     * (</span>
+        <span class="c1">#         torch.pow(</span>
+        <span class="c1">#             observations - centers,</span>
+        <span class="c1">#             2,</span>
+        <span class="c1">#         )</span>
+        <span class="c1">#         / (torch.pow(n_inputs, rho) + torch.pow(widths, 2) + 1e-32)</span>
+        <span class="c1">#     )</span>
+        <span class="c1"># )</span>
+
+<div class="viewcode-block" id="GaussianDMF.sympy_formula">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GaussianDMF.sympy_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sympy_formula</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sympy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">GaussianNoExpDMF</span><span class="o">.</span><span class="n">sympy_formula</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="GaussianDMF.calculate_membership">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GaussianDMF.calculate_membership">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_membership</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Log Gaussian fuzzy set.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Log Gaussian fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">GaussianDMF</span><span class="o">.</span><span class="n">internal_calculate_membership</span><span class="p">(</span>
+            <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+            <span class="n">centers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span>
+            <span class="n">widths</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">(),</span>
+            <span class="n">n_inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_inputs</span><span class="p">,</span>
+            <span class="n">rho</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

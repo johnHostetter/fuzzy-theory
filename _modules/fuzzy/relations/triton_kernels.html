@@ -1,0 +1,390 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.relations.triton_kernels &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.relations.triton_kernels</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.relations.triton_kernels</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">A fused, Triton-accelerated implementation of &quot;gather one term per variable per rule,</span>
+<span class="sd">then take the product across variables&quot; - the core computation of a gather-eligible</span>
+<span class="sd">Product t-norm (see NAryRelation._gather_apply_mask and t_norm.Product.forward).</span>
+
+<span class="sd">The eager implementation materializes an intermediate (batch, vars, rules) tensor via</span>
+<span class="sd">torch.gather, then reduces it with torch.prod - two separate kernels, with the</span>
+<span class="sd">intermediate written and then immediately re-read. This module fuses both into a</span>
+<span class="sd">single kernel that never materializes that intermediate, and pairs it with a</span>
+<span class="sd">numerically-safe (division-free) backward that handles exact-zero factors correctly -</span>
+<span class="sd">verified to match torch.prod&#39;s own backward, including at exact zeros, to floating</span>
+<span class="sd">point precision.</span>
+
+<span class="sd">This module only covers the common case: no NaN present in `degrees`, and every</span>
+<span class="sd">variable structurally active for every rule (relation._all_active). Callers are</span>
+<span class="sd">responsible for checking those preconditions (see t_norm.Product.forward) and falling</span>
+<span class="sd">back to the general-purpose eager path otherwise - this module does not attempt to</span>
+<span class="sd">replicate the NaN-poisoning-via-any-unselected-term or partial-variable-coverage</span>
+<span class="sd">semantics of the general path.</span>
+
+<span class="sd">Requires Triton and a CUDA tensor; TRITON_AVAILABLE is False (and the public function</span>
+<span class="sd">raises) when triton cannot be imported, so callers must guard on it before use.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">triton</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">triton.language</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tl</span>
+
+    <span class="n">TRITON_AVAILABLE</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover - exercised only on installs without triton</span>
+    <span class="n">TRITON_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="k">if</span> <span class="n">TRITON_AVAILABLE</span><span class="p">:</span>
+
+    <span class="c1"># pragma: no cover justification (applies to every @triton.jit function/kernel</span>
+    <span class="c1"># body below, and to backward()/_gather_prod_backward()): @triton.jit functions</span>
+    <span class="c1"># are traced by Triton&#39;s own compiler into GPU code, never executed as CPython</span>
+    <span class="c1"># bytecode, so coverage.py&#39;s sys.settrace()-based tracer cannot observe them</span>
+    <span class="c1"># regardless of how thoroughly they are tested - test_triton_kernels.py exercises</span>
+    <span class="c1"># every kernel (forward, backward, with/without zeros, edge-case shapes) and</span>
+    <span class="c1"># verifies numeric correctness against an eager reference; it just cannot move</span>
+    <span class="c1"># this file&#39;s line-coverage number. _gather_prod_backward() and</span>
+    <span class="c1"># _GatherProdReduce.backward() are ordinary Python functions but are invoked by</span>
+    <span class="c1"># PyTorch&#39;s autograd engine from a C++-owned worker thread (confirmed via</span>
+    <span class="c1"># threading.current_thread().name during a real .backward() call, which reports a</span>
+    <span class="c1"># &quot;Dummy-*&quot; thread, not MainThread) that never goes through Python&#39;s threading</span>
+    <span class="c1"># module - so even coverage.py&#39;s concurrency=thread setting cannot see it.</span>
+    <span class="nd">@triton</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_mul_combine</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>  <span class="c1"># pragma: no cover</span>
+        <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span>
+
+    <span class="nd">@triton</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_combine</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>  <span class="c1"># pragma: no cover</span>
+        <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span>
+
+    <span class="c1"># ALL_CAPS is the Triton community convention for tl.constexpr kernel parameters</span>
+    <span class="c1"># (matches e.g. the official Triton tutorials&#39; BLOCK_SIZE), and a GPU kernel</span>
+    <span class="c1"># necessarily takes one argument per pointer/stride/size since Triton kernels</span>
+    <span class="c1"># cannot accept structs or dataclasses in their signature - both are inherent to</span>
+    <span class="c1"># writing a Triton kernel, not something to refactor away.</span>
+    <span class="c1"># pylint: disable=invalid-name,too-many-arguments,too-many-positional-arguments,too-many-locals</span>
+    <span class="nd">@triton</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gather_prod_fwd_kernel</span><span class="p">(</span>
+        <span class="n">degrees_ptr</span><span class="p">,</span>
+        <span class="n">idx_ptr</span><span class="p">,</span>
+        <span class="n">out_ptr</span><span class="p">,</span>
+        <span class="n">V</span><span class="p">,</span>
+        <span class="n">stride_db</span><span class="p">,</span>
+        <span class="n">stride_dv</span><span class="p">,</span>
+        <span class="n">stride_dt</span><span class="p">,</span>
+        <span class="n">stride_iv</span><span class="p">,</span>
+        <span class="n">stride_ir</span><span class="p">,</span>
+        <span class="n">stride_ob</span><span class="p">,</span>
+        <span class="n">stride_or</span><span class="p">,</span>
+        <span class="n">BLOCK_V</span><span class="p">:</span> <span class="n">tl</span><span class="o">.</span><span class="n">constexpr</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pragma: no cover</span>
+        <span class="n">pid_b</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">program_id</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">pid_r</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">program_id</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">acc</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">for</span> <span class="n">v_start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">BLOCK_V</span><span class="p">):</span>
+            <span class="n">v_offsets</span> <span class="o">=</span> <span class="n">v_start</span> <span class="o">+</span> <span class="n">tl</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">BLOCK_V</span><span class="p">)</span>
+            <span class="n">v_mask</span> <span class="o">=</span> <span class="n">v_offsets</span> <span class="o">&lt;</span> <span class="n">V</span>
+
+            <span class="n">idx_ptrs</span> <span class="o">=</span> <span class="n">idx_ptr</span> <span class="o">+</span> <span class="n">v_offsets</span> <span class="o">*</span> <span class="n">stride_iv</span> <span class="o">+</span> <span class="n">pid_r</span> <span class="o">*</span> <span class="n">stride_ir</span>
+            <span class="n">term_idx</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">idx_ptrs</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">v_mask</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">d_ptrs</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">degrees_ptr</span>
+                <span class="o">+</span> <span class="n">pid_b</span> <span class="o">*</span> <span class="n">stride_db</span>
+                <span class="o">+</span> <span class="n">v_offsets</span> <span class="o">*</span> <span class="n">stride_dv</span>
+                <span class="o">+</span> <span class="n">term_idx</span> <span class="o">*</span> <span class="n">stride_dt</span>
+            <span class="p">)</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">d_ptrs</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">v_mask</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">v_mask</span><span class="p">,</span> <span class="n">vals</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">block_prod</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">combine_fn</span><span class="o">=</span><span class="n">_mul_combine</span><span class="p">)</span>
+            <span class="n">acc</span> <span class="o">=</span> <span class="n">acc</span> <span class="o">*</span> <span class="n">block_prod</span>
+
+        <span class="n">out_ptrs</span> <span class="o">=</span> <span class="n">out_ptr</span> <span class="o">+</span> <span class="n">pid_b</span> <span class="o">*</span> <span class="n">stride_ob</span> <span class="o">+</span> <span class="n">pid_r</span> <span class="o">*</span> <span class="n">stride_or</span>
+        <span class="n">tl</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">out_ptrs</span><span class="p">,</span> <span class="n">acc</span><span class="p">)</span>
+
+    <span class="c1"># pylint: enable=invalid-name,too-many-arguments,too-many-positional-arguments,too-many-locals</span>
+
+    <span class="c1"># see _gather_prod_fwd_kernel above for why these are disabled</span>
+    <span class="c1"># pylint: disable=invalid-name,too-many-arguments,too-many-positional-arguments,too-many-locals</span>
+    <span class="nd">@triton</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gather_prod_bwd_kernel</span><span class="p">(</span>
+        <span class="n">degrees_ptr</span><span class="p">,</span>
+        <span class="n">idx_ptr</span><span class="p">,</span>
+        <span class="n">grad_out_ptr</span><span class="p">,</span>
+        <span class="n">grad_degrees_ptr</span><span class="p">,</span>
+        <span class="n">V</span><span class="p">,</span>
+        <span class="n">stride_db</span><span class="p">,</span>
+        <span class="n">stride_dv</span><span class="p">,</span>
+        <span class="n">stride_dt</span><span class="p">,</span>
+        <span class="n">stride_iv</span><span class="p">,</span>
+        <span class="n">stride_ir</span><span class="p">,</span>
+        <span class="n">stride_gob</span><span class="p">,</span>
+        <span class="n">stride_gor</span><span class="p">,</span>
+        <span class="n">BLOCK_V</span><span class="p">:</span> <span class="n">tl</span><span class="o">.</span><span class="n">constexpr</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pragma: no cover</span>
+        <span class="n">pid_b</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">program_id</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">pid_r</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">program_id</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># pass 1: nz_count (how many of the V selected values are exactly zero) and</span>
+        <span class="c1"># prod_nonzero (product of only the nonzero selected values) - together these</span>
+        <span class="c1"># give a closed-form, division-free leave-one-out product below, avoiding a</span>
+        <span class="c1"># sequential prefix/suffix scan</span>
+        <span class="n">nz_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">prod_nonzero</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">for</span> <span class="n">v_start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">BLOCK_V</span><span class="p">):</span>
+            <span class="n">v_offsets</span> <span class="o">=</span> <span class="n">v_start</span> <span class="o">+</span> <span class="n">tl</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">BLOCK_V</span><span class="p">)</span>
+            <span class="n">v_mask</span> <span class="o">=</span> <span class="n">v_offsets</span> <span class="o">&lt;</span> <span class="n">V</span>
+            <span class="n">idx_ptrs</span> <span class="o">=</span> <span class="n">idx_ptr</span> <span class="o">+</span> <span class="n">v_offsets</span> <span class="o">*</span> <span class="n">stride_iv</span> <span class="o">+</span> <span class="n">pid_r</span> <span class="o">*</span> <span class="n">stride_ir</span>
+            <span class="n">term_idx</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">idx_ptrs</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">v_mask</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">d_ptrs</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">degrees_ptr</span>
+                <span class="o">+</span> <span class="n">pid_b</span> <span class="o">*</span> <span class="n">stride_db</span>
+                <span class="o">+</span> <span class="n">v_offsets</span> <span class="o">*</span> <span class="n">stride_dv</span>
+                <span class="o">+</span> <span class="n">term_idx</span> <span class="o">*</span> <span class="n">stride_dt</span>
+            <span class="p">)</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">d_ptrs</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">v_mask</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">is_zero</span> <span class="o">=</span> <span class="p">(</span><span class="n">vals</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">v_mask</span>
+            <span class="n">nz_count</span> <span class="o">+=</span> <span class="n">tl</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">is_zero</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">tl</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">combine_fn</span><span class="o">=</span><span class="n">_add_combine</span><span class="p">)</span>
+            <span class="n">safe_vals</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_zero</span> <span class="o">|</span> <span class="p">(</span><span class="o">~</span><span class="n">v_mask</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">vals</span><span class="p">)</span>
+            <span class="n">block_prod</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">safe_vals</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">combine_fn</span><span class="o">=</span><span class="n">_mul_combine</span><span class="p">)</span>
+            <span class="n">prod_nonzero</span> <span class="o">=</span> <span class="n">prod_nonzero</span> <span class="o">*</span> <span class="n">block_prod</span>
+
+        <span class="n">grad_y_ptr</span> <span class="o">=</span> <span class="n">grad_out_ptr</span> <span class="o">+</span> <span class="n">pid_b</span> <span class="o">*</span> <span class="n">stride_gob</span> <span class="o">+</span> <span class="n">pid_r</span> <span class="o">*</span> <span class="n">stride_gor</span>
+        <span class="n">grad_y</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">grad_y_ptr</span><span class="p">)</span>
+
+        <span class="c1"># pass 2: leave-one-out product per position, scatter-added into</span>
+        <span class="c1"># grad_degrees (accumulation is required: multiple rules may select the</span>
+        <span class="c1"># same (variable, term) pair)</span>
+        <span class="k">for</span> <span class="n">v_start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">BLOCK_V</span><span class="p">):</span>
+            <span class="n">v_offsets</span> <span class="o">=</span> <span class="n">v_start</span> <span class="o">+</span> <span class="n">tl</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">BLOCK_V</span><span class="p">)</span>
+            <span class="n">v_mask</span> <span class="o">=</span> <span class="n">v_offsets</span> <span class="o">&lt;</span> <span class="n">V</span>
+            <span class="n">idx_ptrs</span> <span class="o">=</span> <span class="n">idx_ptr</span> <span class="o">+</span> <span class="n">v_offsets</span> <span class="o">*</span> <span class="n">stride_iv</span> <span class="o">+</span> <span class="n">pid_r</span> <span class="o">*</span> <span class="n">stride_ir</span>
+            <span class="n">term_idx</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">idx_ptrs</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">v_mask</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">d_ptrs</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">degrees_ptr</span>
+                <span class="o">+</span> <span class="n">pid_b</span> <span class="o">*</span> <span class="n">stride_db</span>
+                <span class="o">+</span> <span class="n">v_offsets</span> <span class="o">*</span> <span class="n">stride_dv</span>
+                <span class="o">+</span> <span class="n">term_idx</span> <span class="o">*</span> <span class="n">stride_dt</span>
+            <span class="p">)</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">d_ptrs</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">v_mask</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">is_zero</span> <span class="o">=</span> <span class="n">vals</span> <span class="o">==</span> <span class="mf">0.0</span>
+
+            <span class="c1"># x != 0: leave-one-out is prod_nonzero/x only if there is no OTHER</span>
+            <span class="c1"># zero in the group (else some other zero kills it); x == 0: leave-one-out</span>
+            <span class="c1"># is prod_nonzero only if x is the group&#39;s *only* zero (else another</span>
+            <span class="c1"># zero kills it)</span>
+            <span class="n">loo_nonzero_case</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="n">nz_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">prod_nonzero</span> <span class="o">/</span> <span class="n">tl</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_zero</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">vals</span><span class="p">),</span> <span class="mf">0.0</span>
+            <span class="p">)</span>
+            <span class="n">loo_zero_case</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">nz_count</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">prod_nonzero</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+            <span class="n">leave_one_out</span> <span class="o">=</span> <span class="n">tl</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_zero</span><span class="p">,</span> <span class="n">loo_zero_case</span><span class="p">,</span> <span class="n">loo_nonzero_case</span><span class="p">)</span>
+
+            <span class="n">grad_contribution</span> <span class="o">=</span> <span class="n">grad_y</span> <span class="o">*</span> <span class="n">leave_one_out</span>
+            <span class="n">out_ptrs</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">grad_degrees_ptr</span>
+                <span class="o">+</span> <span class="n">pid_b</span> <span class="o">*</span> <span class="n">stride_db</span>
+                <span class="o">+</span> <span class="n">v_offsets</span> <span class="o">*</span> <span class="n">stride_dv</span>
+                <span class="o">+</span> <span class="n">term_idx</span> <span class="o">*</span> <span class="n">stride_dt</span>
+            <span class="p">)</span>
+            <span class="n">tl</span><span class="o">.</span><span class="n">atomic_add</span><span class="p">(</span><span class="n">out_ptrs</span><span class="p">,</span> <span class="n">grad_contribution</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">v_mask</span><span class="p">)</span>
+
+    <span class="c1"># pylint: enable=invalid-name,too-many-arguments,too-many-positional-arguments,too-many-locals</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gather_prod_forward</span><span class="p">(</span><span class="n">degrees</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">n_vars</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">degrees</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">n_rules</span> <span class="o">=</span> <span class="n">idx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">n_rules</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">degrees</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">degrees</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
+        <span class="n">_gather_prod_fwd_kernel</span><span class="p">[(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">n_rules</span><span class="p">)](</span>
+            <span class="n">degrees</span><span class="p">,</span>
+            <span class="n">idx</span><span class="p">,</span>
+            <span class="n">out</span><span class="p">,</span>
+            <span class="n">n_vars</span><span class="p">,</span>
+            <span class="n">degrees</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">degrees</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">degrees</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+            <span class="n">idx</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">idx</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">BLOCK_V</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gather_prod_backward</span><span class="p">(</span>  <span class="c1"># pragma: no cover</span>
+        <span class="n">degrees</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">n_vars</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">degrees</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">n_rules</span> <span class="o">=</span> <span class="n">idx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">grad_degrees</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">degrees</span><span class="p">)</span>
+        <span class="n">_gather_prod_bwd_kernel</span><span class="p">[(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">n_rules</span><span class="p">)](</span>
+            <span class="n">degrees</span><span class="p">,</span>
+            <span class="n">idx</span><span class="p">,</span>
+            <span class="n">grad_output</span><span class="p">,</span>
+            <span class="n">grad_degrees</span><span class="p">,</span>
+            <span class="n">n_vars</span><span class="p">,</span>
+            <span class="n">degrees</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">degrees</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">degrees</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+            <span class="n">idx</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">idx</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">grad_output</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">grad_output</span><span class="o">.</span><span class="n">stride</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">BLOCK_V</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">grad_degrees</span>
+
+    <span class="c1"># torch.autograd.Function subclasses implementing only forward()/backward() (the</span>
+    <span class="c1"># standard reverse-mode-only API, as opposed to jvp/vmap for forward-mode AD or</span>
+    <span class="c1"># vmap support, neither used here) never override jvp/setup_context/vjp/vmap -</span>
+    <span class="c1"># this is how every custom autograd.Function in PyTorch is written, not something</span>
+    <span class="c1"># missing. Likewise, forward()/backward() necessarily have a narrower, concrete</span>
+    <span class="c1"># signature than the base class&#39; generic *args - again the standard, idiomatic</span>
+    <span class="c1"># shape for every such subclass.</span>
+    <span class="c1"># pylint: disable=abstract-method,arguments-differ</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">_GatherProdReduce</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;See module docstring; forward/backward for a gather-then-product reduction.&quot;&quot;&quot;</span>
+
+        <span class="nd">@staticmethod</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">degrees</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">_gather_prod_forward</span><span class="p">(</span><span class="n">degrees</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span><span class="n">degrees</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">out</span>
+
+        <span class="nd">@staticmethod</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span>  <span class="c1"># pragma: no cover</span>
+            <span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="n">degrees</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
+            <span class="n">grad_degrees</span> <span class="o">=</span> <span class="n">_gather_prod_backward</span><span class="p">(</span><span class="n">degrees</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">grad_output</span><span class="o">.</span><span class="n">contiguous</span><span class="p">())</span>
+            <span class="k">return</span> <span class="n">grad_degrees</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="c1"># pylint: enable=abstract-method,arguments-differ</span>
+
+
+<div class="viewcode-block" id="gather_prod">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.triton_kernels.gather_prod">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">gather_prod</span><span class="p">(</span><span class="n">degrees</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fused, differentiable equivalent of:</span>
+
+<span class="sd">        selected = torch.gather(degrees, dim=2, index=idx.unsqueeze(0).expand(B, -1, -1))</span>
+<span class="sd">        return selected.prod(dim=1)</span>
+
+<span class="sd">    without materializing `selected`. Only valid when TRITON_AVAILABLE is True and</span>
+<span class="sd">    degrees is a CUDA tensor - callers must check both themselves.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        degrees: (batch, vars, terms) membership degrees.</span>
+<span class="sd">        idx: (vars, rules) term index each variable contributes to each rule, e.g.</span>
+<span class="sd">            NAryRelation._gather_indices.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (batch, rules) product, one value per (observation, rule).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_GatherProdReduce</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">degrees</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>  <span class="c1"># pylint: disable=no-member</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

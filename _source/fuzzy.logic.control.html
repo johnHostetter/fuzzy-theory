@@ -1,0 +1,722 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.logic.control package &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="fuzzy.logic.control.configurations package" href="fuzzy.logic.control.configurations.html" />
+    <link rel="prev" title="fuzzy.logic package" href="fuzzy.logic.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">src</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="fuzzy.html">fuzzy package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="fuzzy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="fuzzy.logic.html">fuzzy.logic package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.relations.html">fuzzy.relations package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.html">fuzzy.sets package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.utils.html">fuzzy.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.html#module-fuzzy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">src</a></li>
+          <li class="breadcrumb-item"><a href="fuzzy.html">fuzzy package</a></li>
+          <li class="breadcrumb-item"><a href="fuzzy.logic.html">fuzzy.logic package</a></li>
+      <li class="breadcrumb-item active">fuzzy.logic.control package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_source/fuzzy.logic.control.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fuzzy-logic-control-package">
+<h1>fuzzy.logic.control package<a class="headerlink" href="#fuzzy-logic-control-package" title="Link to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="fuzzy.logic.control.configurations.html">fuzzy.logic.control.configurations package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.logic.control.configurations.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.logic.control.configurations.html#module-fuzzy.logic.control.configurations.abstract">fuzzy.logic.control.configurations.abstract module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.abstract.FuzzySystem"><code class="docutils literal notranslate"><span class="pre">FuzzySystem</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.abstract.FuzzySystem.shape"><code class="docutils literal notranslate"><span class="pre">FuzzySystem.shape</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.abstract.FuzzySystem.granulation_layers"><code class="docutils literal notranslate"><span class="pre">FuzzySystem.granulation_layers</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.abstract.FuzzySystem.engine"><code class="docutils literal notranslate"><span class="pre">FuzzySystem.engine</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.abstract.FuzzySystem.defuzzification"><code class="docutils literal notranslate"><span class="pre">FuzzySystem.defuzzification()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.logic.control.configurations.html#module-fuzzy.logic.control.configurations.data">fuzzy.logic.control.configurations.data module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape"><code class="docutils literal notranslate"><span class="pre">Shape</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape.n_inputs"><code class="docutils literal notranslate"><span class="pre">Shape.n_inputs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape.n_input_terms"><code class="docutils literal notranslate"><span class="pre">Shape.n_input_terms</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape.n_rules"><code class="docutils literal notranslate"><span class="pre">Shape.n_rules</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape.n_outputs"><code class="docutils literal notranslate"><span class="pre">Shape.n_outputs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape.n_output_terms"><code class="docutils literal notranslate"><span class="pre">Shape.n_output_terms</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.GranulationLayers"><code class="docutils literal notranslate"><span class="pre">GranulationLayers</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.GranulationLayers.input"><code class="docutils literal notranslate"><span class="pre">GranulationLayers.input</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.GranulationLayers.output"><code class="docutils literal notranslate"><span class="pre">GranulationLayers.output</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.ExecutionOptions"><code class="docutils literal notranslate"><span class="pre">ExecutionOptions</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.ExecutionOptions.disabled_parameters"><code class="docutils literal notranslate"><span class="pre">ExecutionOptions.disabled_parameters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.ExecutionOptions.max_batch_chunk"><code class="docutils literal notranslate"><span class="pre">ExecutionOptions.max_batch_chunk</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.ExecutionOptions.gradient_checkpointing"><code class="docutils literal notranslate"><span class="pre">ExecutionOptions.gradient_checkpointing</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.logic.control.configurations.html#module-fuzzy.logic.control.configurations.impl">fuzzy.logic.control.configurations.impl module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.impl.Defined"><code class="docutils literal notranslate"><span class="pre">Defined</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.impl.Defined.shape"><code class="docutils literal notranslate"><span class="pre">Defined.shape</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.impl.Defined.granulation_layers"><code class="docutils literal notranslate"><span class="pre">Defined.granulation_layers</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.impl.Defined.engine"><code class="docutils literal notranslate"><span class="pre">Defined.engine</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.impl.Defined.defuzzification"><code class="docutils literal notranslate"><span class="pre">Defined.defuzzification()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.logic.control.configurations.html#module-fuzzy.logic.control.configurations">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-fuzzy.logic.control.controller">
+<span id="fuzzy-logic-control-controller-module"></span><h2>fuzzy.logic.control.controller module<a class="headerlink" href="#module-fuzzy.logic.control.controller" title="Link to this heading"></a></h2>
+<p>Contains various classes necessary for Fuzzy Logic Controllers (FLCs) to function properly,
+as well as the Fuzzy Logic Controller (FLC) itself.</p>
+<p>This Python module also contains functions for extracting information from a knowledge base
+(to avoid circular dependency). The functions are used to extract premise terms, consequence terms,
+and fuzzy logic rule matrices. These components may then be used to create a fuzzy inference system.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.logic.control.controller.FuzzyLogicController">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.logic.control.controller.</span></span><span class="sig-name descname"><span class="pre">FuzzyLogicController</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inference</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">execution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/controller.html#FuzzyLogicController"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.controller.FuzzyLogicController" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.modules.container.Sequential.html#torch.nn.modules.container.Sequential" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequential</span></code></a></p>
+<p>Abstract implementation of the Multiple-Input-Multiple-Output (MIMO)
+Fuzzy Logic Controller (FLC).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.abstract.FuzzySystem" title="fuzzy.logic.control.configurations.abstract.FuzzySystem"><em>FuzzySystem</em></a>)</p></li>
+<li><p><strong>inference</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.14)"><em>Type</em></a><em>[</em><a class="reference internal" href="#fuzzy.logic.control.defuzzification.Defuzzification" title="fuzzy.logic.control.defuzzification.Defuzzification"><em>Defuzzification</em></a><em>]</em>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>execution</strong> (<a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.ExecutionOptions" title="fuzzy.logic.control.configurations.data.ExecutionOptions"><em>ExecutionOptions</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.logic.control.controller.FuzzyLogicController.shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape" title="fuzzy.logic.control.configurations.data.Shape"><span class="pre">Shape</span></a></em><a class="headerlink" href="#fuzzy.logic.control.controller.FuzzyLogicController.shape" title="Link to this definition"></a></dt>
+<dd><p>Shortcut to the shape of the FLC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The shape of the FLC.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.controller.FuzzyLogicController.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/controller.html#FuzzyLogicController.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.controller.FuzzyLogicController.save" title="Link to this definition"></a></dt>
+<dd><p>Save the FLC to a directory. This is a custom process to ensure that all the necessary
+components are saved properly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The directory path to save the FLC to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.controller.FuzzyLogicController.load">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/controller.html#FuzzyLogicController.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.controller.FuzzyLogicController.load" title="Link to this definition"></a></dt>
+<dd><p>Load the FLC from a directory. This is a custom process to ensure that all the necessary
+components are loaded properly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The directory path to load the FLC from.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>) – The device to load the FLC to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The FLC object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.logic.control.controller.FuzzyLogicController" title="fuzzy.logic.control.controller.FuzzyLogicController"><em>FuzzyLogicController</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.controller.FuzzyLogicController.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/controller.html#FuzzyLogicController.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.controller.FuzzyLogicController.to" title="Link to this definition"></a></dt>
+<dd><p>Move the FLC to a different device. This is an override of the ‘to’ method in the
+‘torch.nn.Module’ class. This exists as some modules within the FLC may not be moved
+properly using the ‘to’ method. For example, modules that have tensors that are not
+torch.nn.Parameters, but are important for fuzzy inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*args</strong> – The positional arguments.</p></li>
+<li><p><strong>**kwargs</strong> – The keyword arguments.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.controller.FuzzyLogicController.disable_parameters_and_build">
+<span class="sig-name descname"><span class="pre">disable_parameters_and_build</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">modules</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/controller.html#FuzzyLogicController.disable_parameters_and_build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.controller.FuzzyLogicController.disable_parameters_and_build" title="Link to this definition"></a></dt>
+<dd><p>Disable any selected parameters across the modules (e.g., granulation layers). This is
+useful for stability and convergence. It is also useful for preventing the learning of
+certain parameters. Adds the modules to the FLC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>*modules</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.html#collections.OrderedDict" title="(in Python v3.14)"><em>OrderedDict</em></a>) – The modules to add to the FLC, where some may have parameters disabled.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.controller.FuzzyLogicController.split_granules_by_type">
+<span class="sig-name descname"><span class="pre">split_granules_by_type</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/controller.html#FuzzyLogicController.split_granules_by_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.controller.FuzzyLogicController.split_granules_by_type" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the granules at a given layer (e.g., premises, consequences) from the Fuzzy Logic
+Controller. Specifically, this operation takes the granulation layer (a more computationally
+efficient representation) and converts the premises back to a list of granules format.
+For example, rather than using a single Gaussian object to represent all Gaussian membership
+functions in the layer space, this function will convert that to a list of Gaussian objects,
+where each Gaussian function is defined and restricted to a single dimension in that layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A nested list of FuzzySet objects, where the length is equal to the number
+of layer’s dimensions. Within each element of the outer list, is another list that
+contains all the definitions for FuzzySet within that dimension. For
+example, if the 0’th index has a list equal to [Gaussian(), Trapezoid()], then this
+means in the 0’th dimension there are both membership functions defined using the
+Gaussian formula and the Trapezoid formula.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/collections.html#collections.OrderedDict" title="(in Python v3.14)"><em>OrderedDict</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a>[<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><em>FuzzySet</em></a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.controller.FuzzyLogicController.linguistic_variables">
+<span class="sig-name descname"><span class="pre">linguistic_variables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/controller.html#FuzzyLogicController.linguistic_variables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.controller.FuzzyLogicController.linguistic_variables" title="Link to this definition"></a></dt>
+<dd><p>Extract the linguistic variables from the FLC. This is useful for extracting the linguistic
+variables for the input and output spaces. This is useful for visualizing the linguistic
+variables in the FLC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of FuzzySet objects that represent the linguistic variables in the
+given layer.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="fuzzy.logic.html#fuzzy.logic.variables.LinguisticVariables" title="fuzzy.logic.variables.LinguisticVariables"><em>LinguisticVariables</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.controller.FuzzyLogicController.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/controller.html#FuzzyLogicController.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.controller.FuzzyLogicController.forward" title="Link to this definition"></a></dt>
+<dd><p>Forward pass for the FLC. This is the main method that will be called when the FLC is used
+in a forward pass. This method will perform the fuzzy inference process, which includes
+fuzzification, rule evaluation, and defuzzification.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to perform the fuzzy inference on.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The defuzzified output of the FLC.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.logic.control.defuzzification">
+<span id="fuzzy-logic-control-defuzzification-module"></span><h2>fuzzy.logic.control.defuzzification module<a class="headerlink" href="#module-fuzzy.logic.control.defuzzification" title="Link to this heading"></a></h2>
+<p>Implements the various versions of the defuzzification process within a fuzzy inference engine.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.Defuzzification">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.logic.control.defuzzification.</span></span><span class="sig-name descname"><span class="pre">Defuzzification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rule_base</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#Defuzzification"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.Defuzzification" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.utils.html#fuzzy.utils.classes.TorchJitModule" title="fuzzy.utils.classes.TorchJitModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchJitModule</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+<p>Implements the defuzzification process for a fuzzy inference engine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shape</strong> (<a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape" title="fuzzy.logic.control.configurations.data.Shape"><em>Shape</em></a>)</p></li>
+<li><p><strong>source</strong> (<em>None</em><em> | </em><em>ndarray</em><em> | </em><a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.modules.container.Sequential.html#torch.nn.modules.container.Sequential" title="(in PyTorch v2.13)"><em>Sequential</em></a><em> | </em><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.group.FuzzySetGroup" title="fuzzy.sets.group.FuzzySetGroup"><em>FuzzySetGroup</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>rule_base</strong> (<em>None</em><em> | </em><a class="reference internal" href="fuzzy.logic.html#fuzzy.logic.rulebase.RuleBase" title="fuzzy.logic.rulebase.RuleBase"><em>RuleBase</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.Defuzzification.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#Defuzzification.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.Defuzzification.load" title="Link to this definition"></a></dt>
+<dd><p>Load the fuzzy set from a file and put it on the specified device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet">FuzzySet</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.Defuzzification.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#Defuzzification.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.Defuzzification.to" title="Link to this definition"></a></dt>
+<dd><p>Move the defuzzification process to a device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>) – The device to move the defuzzification process to.</p></li>
+<li><p><strong>*args</strong> – Optional positional arguments.</p></li>
+<li><p><strong>**kwargs</strong> – Optional keyword arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The defuzzification process.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.logic.control.defuzzification.Defuzzification" title="fuzzy.logic.control.defuzzification.Defuzzification"><em>Defuzzification</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.Defuzzification.forward">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rule_activations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#Defuzzification.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.Defuzzification.forward" title="Link to this definition"></a></dt>
+<dd><p>Given the activations of the fuzzy logic rules, calculate the output of the
+fuzzy logic controller.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rule_activations</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The rule activations, or firing levels.</p></li>
+<li><p><strong>observations</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations that activated the rules (does nothing here).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The defuzzified output of the fuzzy logic controller.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.ZeroOrder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.logic.control.defuzzification.</span></span><span class="sig-name descname"><span class="pre">ZeroOrder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">ConsequenceInitEnum.XAVIER_NORMAL</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#ZeroOrder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.ZeroOrder" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.logic.control.defuzzification.Defuzzification" title="fuzzy.logic.control.defuzzification.Defuzzification"><code class="xref py py-class docutils literal notranslate"><span class="pre">Defuzzification</span></code></a></p>
+<p>Implements the zero-order (TSK) fuzzy inference; this is also Mamdani fuzzy inference too
+but with fuzzy singleton values as the consequences.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shape</strong> (<a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape" title="fuzzy.logic.control.configurations.data.Shape"><em>Shape</em></a>)</p></li>
+<li><p><strong>source</strong> (<em>None</em><em> | </em><em>ndarray</em><em> | </em><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.group.FuzzySetGroup" title="fuzzy.sets.group.FuzzySetGroup"><em>FuzzySetGroup</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>init_method</strong> (<a class="reference internal" href="fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum" title="fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum"><em>ConsequenceInitEnum</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.ZeroOrder.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#ZeroOrder.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.ZeroOrder.save" title="Link to this definition"></a></dt>
+<dd><p>Save the defuzzification process to a directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The directory path to save the defuzzification process to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The state dictionary of the defuzzification process that was saved.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping" title="(in Python v3.14)"><em>MutableMapping</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.ZeroOrder.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#ZeroOrder.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.ZeroOrder.to" title="Link to this definition"></a></dt>
+<dd><p>Move the defuzzification process to a device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>) – The device to move the defuzzification process to.</p></li>
+<li><p><strong>*args</strong> – Optional positional arguments.</p></li>
+<li><p><strong>**kwargs</strong> – Optional keyword arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The defuzzification process.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.logic.control.defuzzification.ZeroOrder" title="fuzzy.logic.control.defuzzification.ZeroOrder"><em>ZeroOrder</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.ZeroOrder.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rule_activations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#ZeroOrder.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.ZeroOrder.forward" title="Link to this definition"></a></dt>
+<dd><p>Given the activations of the fuzzy logic rules, calculate the output of the
+fuzzy logic controller.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rule_activations</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The rule activations, or firing levels.</p></li>
+<li><p><strong>observations</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations that activated the rules (does nothing here).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The defuzzified output of the fuzzy logic controller.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.NormalizedZeroOrder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.logic.control.defuzzification.</span></span><span class="sig-name descname"><span class="pre">NormalizedZeroOrder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">ConsequenceInitEnum.XAVIER_NORMAL</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#NormalizedZeroOrder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.NormalizedZeroOrder" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.logic.control.defuzzification.ZeroOrder" title="fuzzy.logic.control.defuzzification.ZeroOrder"><code class="xref py py-class docutils literal notranslate"><span class="pre">ZeroOrder</span></code></a></p>
+<p>Implements the normalized zero-order (TSK) fuzzy inference; this is also Mamdani fuzzy inference
+but with fuzzy singleton values as the consequences, and the output is normalized by the sum of
+the rule activations.</p>
+<p>This is useful for cases where the sum of the rule activations is not equal to
+one, and we want to ensure that the output is normalized.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shape</strong> (<a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape" title="fuzzy.logic.control.configurations.data.Shape"><em>Shape</em></a>)</p></li>
+<li><p><strong>source</strong> (<em>None</em><em> | </em><em>ndarray</em><em> | </em><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.group.FuzzySetGroup" title="fuzzy.sets.group.FuzzySetGroup"><em>FuzzySetGroup</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>init_method</strong> (<a class="reference internal" href="fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum" title="fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum"><em>ConsequenceInitEnum</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.NormalizedZeroOrder.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rule_activations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#NormalizedZeroOrder.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.NormalizedZeroOrder.forward" title="Link to this definition"></a></dt>
+<dd><p>Given the activations of the fuzzy logic rules, calculate the output of the
+fuzzy logic controller.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rule_activations</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The rule activations, or firing levels.</p></li>
+<li><p><strong>observations</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations that activated the rules (does nothing here).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The defuzzified output of the fuzzy logic controller.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.TSK">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.logic.control.defuzzification.</span></span><span class="sig-name descname"><span class="pre">TSK</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#TSK"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.TSK" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.logic.control.defuzzification.Defuzzification" title="fuzzy.logic.control.defuzzification.Defuzzification"><code class="xref py py-class docutils literal notranslate"><span class="pre">Defuzzification</span></code></a></p>
+<p>Implements the TSK fuzzy inference (where inputs influence the consequence calculation).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shape</strong> (<a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape" title="fuzzy.logic.control.configurations.data.Shape"><em>Shape</em></a>)</p></li>
+<li><p><strong>source</strong> (<em>None</em><em> | </em><em>ndarray</em>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.TSK.consequences">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">consequences</span></span><a class="headerlink" href="#fuzzy.logic.control.defuzzification.TSK.consequences" title="Link to this definition"></a></dt>
+<dd><p>Obtain the consequences of the fuzzy logic controller, which for this particular type of
+defuzzification, include both biases and weights.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The biases and weights of the fuzzy logic controller’s decisions.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.TSK.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#TSK.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.TSK.save" title="Link to this definition"></a></dt>
+<dd><p>Save the defuzzification process to a directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The directory path to save the defuzzification process to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The state dictionary of the defuzzification process that was saved.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping" title="(in Python v3.14)"><em>MutableMapping</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.TSK.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#TSK.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.TSK.to" title="Link to this definition"></a></dt>
+<dd><p>Move the defuzzification process to a device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>) – The device to move the defuzzification process to.</p></li>
+<li><p><strong>*args</strong> – Optional positional arguments.</p></li>
+<li><p><strong>**kwargs</strong> – Optional keyword arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The defuzzification process.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.logic.control.defuzzification.TSK" title="fuzzy.logic.control.defuzzification.TSK"><em>TSK</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.TSK.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rule_activations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#TSK.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.TSK.forward" title="Link to this definition"></a></dt>
+<dd><p>Given the activations of the fuzzy logic rules, calculate the output of the
+fuzzy logic controller.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rule_activations</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The rule activations, or firing levels.</p></li>
+<li><p><strong>observations</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations that activated the rules (required).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The defuzzified output of the fuzzy logic controller.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.Mamdani">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.logic.control.defuzzification.</span></span><span class="sig-name descname"><span class="pre">Mamdani</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rule_base</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#Mamdani"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.Mamdani" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.logic.control.defuzzification.Defuzzification" title="fuzzy.logic.control.defuzzification.Defuzzification"><code class="xref py py-class docutils literal notranslate"><span class="pre">Defuzzification</span></code></a></p>
+<p>Implements Mamdani fuzzy inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shape</strong> (<a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape" title="fuzzy.logic.control.configurations.data.Shape"><em>Shape</em></a>)</p></li>
+<li><p><strong>source</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.group.FuzzySetGroup" title="fuzzy.sets.group.FuzzySetGroup"><em>FuzzySetGroup</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>rule_base</strong> (<a class="reference internal" href="fuzzy.logic.html#fuzzy.logic.rulebase.RuleBase" title="fuzzy.logic.rulebase.RuleBase"><em>RuleBase</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.Mamdani.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#Mamdani.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.Mamdani.save" title="Link to this definition"></a></dt>
+<dd><p>Save the defuzzification process to a directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The directory path to save the defuzzification process to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The state dictionary of the defuzzification process that was saved.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping" title="(in Python v3.14)"><em>MutableMapping</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.Mamdani.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#Mamdani.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.Mamdani.to" title="Link to this definition"></a></dt>
+<dd><p>Move the defuzzification process to a device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>) – The device to move the defuzzification process to.</p></li>
+<li><p><strong>*args</strong> – Optional positional arguments.</p></li>
+<li><p><strong>**kwargs</strong> – Optional keyword arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The defuzzification process.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.logic.control.defuzzification.Mamdani" title="fuzzy.logic.control.defuzzification.Mamdani"><em>Mamdani</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.control.defuzzification.Mamdani.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rule_activations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/control/defuzzification.html#Mamdani.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.control.defuzzification.Mamdani.forward" title="Link to this definition"></a></dt>
+<dd><p>Given the activations of the fuzzy logic rules, calculate the output of the Mamdani FLC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rule_activations</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The rule activations, or firing levels.</p></li>
+<li><p><strong>observations</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations that activated the rules (does nothing here).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The defuzzified output of a Mamdani FLC.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.logic.control">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-fuzzy.logic.control" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="fuzzy.logic.html" class="btn btn-neutral float-left" title="fuzzy.logic package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fuzzy.logic.control.configurations.html" class="btn btn-neutral float-right" title="fuzzy.logic.control.configurations package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

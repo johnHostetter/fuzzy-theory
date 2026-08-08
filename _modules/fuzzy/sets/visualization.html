@@ -1,0 +1,420 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.sets.visualization &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.sets.visualization</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.sets.visualization</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Plotting support for FuzzySet, kept separate from fuzzy.sets.abstract so that FuzzySet</span>
+<span class="sd">itself (the model) does not need matplotlib/scienceplots as a dependency.</span>
+
+<span class="sd">FuzzySetPlot is a Model/ViewModel/View arrangement collapsed into a single class,</span>
+<span class="sd">since the ViewModel (data preparation) and View (matplotlib rendering) halves each</span>
+<span class="sd">have too few public responsibilities on their own to justify being separate classes:</span>
+
+<span class="sd">    - Model: a FuzzySet instance (see fuzzy.sets.abstract) - untouched by this module.</span>
+<span class="sd">    - ViewModel: FuzzySetPlot.build() turns a FuzzySet&#39;s parameters and membership</span>
+<span class="sd">      curves into plain data (VariablePlot/TermCurve).</span>
+<span class="sd">    - View: FuzzySetPlot.render()/.render_formula() take that data (or the fuzzy set</span>
+<span class="sd">      class itself, for the formula) and render/save it via matplotlib.</span>
+
+<span class="sd">FuzzySet.plot() is a thin convenience wrapper around FuzzySetPlot, kept for backward</span>
+<span class="sd">compatibility with existing callers.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mpl</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># import scienceplots is used via plt.style.context([&quot;science&quot;, &quot;no-latex&quot;,</span>
+<span class="c1"># &quot;high-contrast&quot;])</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scienceplots</span>  <span class="c1"># noqa # pylint: disable=unused-import</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sympy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.axes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Axes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.figure</span><span class="w"> </span><span class="kn">import</span> <span class="n">Figure</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="c1"># avoids a real circular import (fuzzy.sets.abstract imports this module to</span>
+    <span class="c1"># implement FuzzySet.plot()) - only needed for the type hint below, never at</span>
+    <span class="c1"># runtime</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.sets.abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySet</span>
+
+
+<div class="viewcode-block" id="TermCurve">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.visualization.TermCurve">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TermCurve</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plotting data for a single fuzzy term&#39;s membership curve within one variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">term_idx</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">y_values</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">selected</span><span class="p">:</span> <span class="nb">bool</span></div>
+
+
+
+<div class="viewcode-block" id="VariablePlot">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.visualization.VariablePlot">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VariablePlot</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plotting data for one variable&#39;s full set of term curves.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">variable_idx</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">x_values</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">terms</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">TermCurve</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">legend_ncol</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+
+
+<div class="viewcode-block" id="FuzzySetPlot">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.visualization.FuzzySetPlot">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FuzzySetPlot</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prepares plotting data for a FuzzySet&#39;s membership functions and renders it via</span>
+<span class="sd">    matplotlib, saving the result to disk.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fuzzy_set</span><span class="p">:</span> <span class="s2">&quot;FuzzySet&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fuzzy_set</span> <span class="o">=</span> <span class="n">fuzzy_set</span>
+
+<div class="viewcode-block" id="FuzzySetPlot.render_formula">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.visualization.FuzzySetPlot.render_formula">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_formula</span><span class="p">(</span>
+        <span class="n">fuzzy_set_cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="s2">&quot;FuzzySet&quot;</span><span class="p">],</span> <span class="n">latex</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Render a fuzzy set class&#39; membership function formula.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fuzzy_set_cls: The FuzzySet subclass whose formula should be rendered.</span>
+<span class="sd">            latex: Use False for Python Console or Jupyter Notebook. Otherwise, True</span>
+<span class="sd">                will return a LaTeX representation of the fuzzy set&#39;s membership</span>
+<span class="sd">                function.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Render of the fuzzy set&#39;s membership function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">latex</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">sympy</span><span class="o">.</span><span class="n">latex</span><span class="p">(</span><span class="n">fuzzy_set_cls</span><span class="o">.</span><span class="n">sympy_formula</span><span class="p">())</span>
+
+        <span class="n">sympy</span><span class="o">.</span><span class="n">init_printing</span><span class="p">(</span><span class="n">use_unicode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fuzzy_set_cls</span><span class="o">.</span><span class="n">sympy_formula</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="FuzzySetPlot.build">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.visualization.FuzzySetPlot.build">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">selected_terms</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">VariablePlot</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build the per-variable plotting data for this fuzzy set: which terms are</span>
+<span class="sd">        real (per the mask), the x-range to sample each variable over, and the</span>
+<span class="sd">        resulting membership curves.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            selected_terms: The (variable_idx, term_idx) terms to highlight.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            One VariablePlot per input variable.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">selected_terms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">selected_terms</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">fuzzy_set</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fuzzy_set</span>
+        <span class="n">centers</span> <span class="o">=</span> <span class="n">fuzzy_set</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span>
+        <span class="n">widths</span> <span class="o">=</span> <span class="n">fuzzy_set</span><span class="o">.</span><span class="n">get_widths</span><span class="p">()</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">fuzzy_set</span><span class="o">.</span><span class="n">get_mask</span><span class="p">()</span>
+
+        <span class="n">variable_plots</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">VariablePlot</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">variable_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">centers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">real_centers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">centers</span><span class="p">[</span><span class="n">variable_idx</span><span class="p">,</span> <span class="n">term_idx</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">term_idx</span><span class="p">,</span> <span class="n">mask_value</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">mask</span><span class="p">[</span><span class="n">variable_idx</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">mask_value</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="p">]</span>
+            <span class="n">real_widths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">widths</span><span class="p">[</span><span class="n">variable_idx</span><span class="p">,</span> <span class="n">term_idx</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">term_idx</span><span class="p">,</span> <span class="n">mask_value</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">mask</span><span class="p">[</span><span class="n">variable_idx</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">mask_value</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="p">]</span>
+            <span class="n">x_values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+                <span class="nb">min</span><span class="p">(</span><span class="n">real_centers</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">real_widths</span><span class="p">),</span>
+                <span class="nb">max</span><span class="p">(</span><span class="n">real_centers</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">real_widths</span><span class="p">),</span>
+                <span class="n">steps</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">fuzzy_set</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">centers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">centers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">x_values</span> <span class="o">=</span> <span class="n">x_values</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">centers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">centers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">x_values</span> <span class="o">=</span> <span class="n">x_values</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+
+            <span class="n">memberships</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">fuzzy_set</span><span class="o">.</span><span class="n">calculate_membership</span><span class="p">(</span><span class="n">x_values</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">memberships</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">memberships</span> <span class="o">=</span> <span class="n">memberships</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+                <span class="p">)</span>  <span class="c1"># add a temporary dimension for the variable</span>
+
+            <span class="n">memberships</span> <span class="o">=</span> <span class="n">memberships</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">x_values_np</span> <span class="o">=</span> <span class="n">x_values</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+            <span class="n">terms</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">TermCurve</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">term_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">memberships</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="n">mask</span><span class="p">[</span><span class="n">variable_idx</span><span class="p">,</span> <span class="n">term_idx</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">continue</span>  <span class="c1"># not a real fuzzy set</span>
+                <span class="n">terms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">TermCurve</span><span class="p">(</span>
+                        <span class="n">term_idx</span><span class="o">=</span><span class="n">term_idx</span><span class="p">,</span>
+                        <span class="n">y_values</span><span class="o">=</span><span class="n">memberships</span><span class="p">[:,</span> <span class="n">variable_idx</span><span class="p">,</span> <span class="n">term_idx</span><span class="p">],</span>
+                        <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;$\mu_{&quot;</span>
+                        <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">variable_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="o">+</span> <span class="s2">&quot;,&quot;</span>
+                        <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">term_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="o">+</span> <span class="s2">&quot;}$&quot;</span><span class="p">,</span>
+                        <span class="n">selected</span><span class="o">=</span><span class="p">(</span><span class="n">variable_idx</span><span class="p">,</span> <span class="n">term_idx</span><span class="p">)</span> <span class="ow">in</span> <span class="n">selected_terms</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="n">variable_plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">VariablePlot</span><span class="p">(</span>
+                    <span class="n">variable_idx</span><span class="o">=</span><span class="n">variable_idx</span><span class="p">,</span>
+                    <span class="n">x_values</span><span class="o">=</span><span class="n">x_values_np</span><span class="p">,</span>
+                    <span class="n">terms</span><span class="o">=</span><span class="n">terms</span><span class="p">,</span>
+                    <span class="n">legend_ncol</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">real_centers</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">variable_plots</span></div>
+
+
+<div class="viewcode-block" id="FuzzySetPlot.render">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.visualization.FuzzySetPlot.render">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">variable_plots</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">VariablePlot</span><span class="p">],</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="n">Axes</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Render the given per-variable plotting data to a combined figure (saved as</span>
+<span class="sd">        &quot;mu.png&quot;) and, per variable, individually cropped figures.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            variable_plots: The data to plot, one entry per input variable.</span>
+<span class="sd">            output_dir: The directory to save the plot(s) to.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A 2-tuple containing the figures and axes of the plot for each variable.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">figures</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;figure.figsize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;figure.dpi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;savefig.dpi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;font.size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">24</span>
+        <span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;legend.fontsize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;medium&quot;</span>
+        <span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;figure.titlesize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;medium&quot;</span>
+        <span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;lines.linewidth&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">with</span> <span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">context</span><span class="p">([</span><span class="s2">&quot;science&quot;</span><span class="p">,</span> <span class="s2">&quot;no-latex&quot;</span><span class="p">,</span> <span class="s2">&quot;high-contrast&quot;</span><span class="p">]):</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">28</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">variable_plot</span> <span class="ow">in</span> <span class="n">variable_plots</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_render_variable</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">variable_plot</span><span class="p">)</span>
+                <span class="n">output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;mu.png&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_individual_plots</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">fig</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">variable_plots</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">figures</span><span class="p">,</span> <span class="n">axes</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_render_variable</span><span class="p">(</span>
+        <span class="n">axes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Axes</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">variable_plot</span><span class="p">:</span> <span class="n">VariablePlot</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Draw one variable&#39;s term curves onto its axis.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            axes: The axes shared across all variables being plotted.</span>
+<span class="sd">            variable_plot: The data to plot for this variable.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">variable_idx</span> <span class="o">=</span> <span class="n">variable_plot</span><span class="o">.</span><span class="n">variable_idx</span>
+        <span class="n">axes</span><span class="p">[</span><span class="n">variable_idx</span><span class="p">]</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">variable_plot</span><span class="o">.</span><span class="n">terms</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">term</span><span class="o">.</span><span class="n">selected</span><span class="p">:</span>
+                <span class="n">axes</span><span class="p">[</span><span class="n">variable_idx</span><span class="p">]</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span>
+                    <span class="n">variable_plot</span><span class="o">.</span><span class="n">x_values</span><span class="p">,</span>
+                    <span class="n">term</span><span class="o">.</span><span class="n">y_values</span><span class="p">,</span>
+                    <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+                    <span class="n">hatch</span><span class="o">=</span><span class="s2">&quot;///&quot;</span><span class="p">,</span>
+                    <span class="n">label</span><span class="o">=</span><span class="n">term</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">axes</span><span class="p">[</span><span class="n">variable_idx</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                    <span class="n">variable_plot</span><span class="o">.</span><span class="n">x_values</span><span class="p">,</span> <span class="n">term</span><span class="o">.</span><span class="n">y_values</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">term</span><span class="o">.</span><span class="n">label</span>
+                <span class="p">)</span>
+        <span class="n">axes</span><span class="p">[</span><span class="n">variable_idx</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span>
+            <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.2</span><span class="p">),</span>
+            <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper center&quot;</span><span class="p">,</span>
+            <span class="n">ncol</span><span class="o">=</span><span class="n">variable_plot</span><span class="o">.</span><span class="n">legend_ncol</span><span class="p">,</span>
+            <span class="n">handletextpad</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+            <span class="c1"># reduce spacing b/w legend markers &amp; label (default=0.8)</span>
+            <span class="n">columnspacing</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>  <span class="c1"># reduce spacing b/w legend entries</span>
+            <span class="n">borderaxespad</span><span class="o">=-</span><span class="mf">0.5</span><span class="p">,</span>  <span class="c1"># reduce the spacing b/w the legend and the plot</span>
+        <span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">bottom</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">wspace</span><span class="o">=</span><span class="mf">0.33</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_save_individual_plots</span><span class="p">(</span>
+        <span class="n">axes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Axes</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">fig</span><span class="p">:</span> <span class="n">Figure</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">n_variables</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save just the portion _inside_ each variable&#39;s axis boundaries. Why do it</span>
+<span class="sd">        this way? Because the axis is not always the same size if each plot is</span>
+<span class="sd">        different. So, the area inside the axis&#39;s boundaries is saved, and then it</span>
+<span class="sd">        can be padded to make it look nice in papers.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            axes: The axes to use for the plots.</span>
+<span class="sd">            fig: The figure to continue referencing when plotting.</span>
+<span class="sd">            output_dir: The directory to save the figure(s).</span>
+<span class="sd">            n_variables: The number of variables that were plotted.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">variable_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_variables</span><span class="p">):</span>
+            <span class="n">extent</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">axes</span><span class="p">[</span><span class="n">variable_idx</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">get_window_extent</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">transformed</span><span class="p">(</span><span class="n">fig</span><span class="o">.</span><span class="n">dpi_scale_trans</span><span class="o">.</span><span class="n">inverted</span><span class="p">())</span>
+            <span class="p">)</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+                <span class="n">output_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;mu_</span><span class="si">{</span><span class="n">variable_idx</span><span class="si">}</span><span class="s2">.png&quot;</span><span class="p">,</span>
+                <span class="n">bbox_inches</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Pad the saved area by 20% in the x-direction and 10% in the</span>
+            <span class="c1"># y-direction</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+                <span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;ax2_figure_expanded.png&quot;</span><span class="p">,</span>
+                <span class="n">bbox_inches</span><span class="o">=</span><span class="n">extent</span><span class="o">.</span><span class="n">expanded</span><span class="p">(</span><span class="mf">1.2</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">expanded_bbox</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">transforms</span><span class="o">.</span><span class="n">Bbox</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">(</span><span class="n">extent</span><span class="o">.</span><span class="n">x0</span> <span class="o">-</span> <span class="mf">0.15</span> <span class="o">*</span> <span class="n">extent</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="n">extent</span><span class="o">.</span><span class="n">y0</span> <span class="o">-</span> <span class="mf">0.35</span> <span class="o">*</span> <span class="n">extent</span><span class="o">.</span><span class="n">height</span><span class="p">),</span>
+                    <span class="p">(</span><span class="n">extent</span><span class="o">.</span><span class="n">x1</span> <span class="o">+</span> <span class="mf">0.15</span> <span class="o">*</span> <span class="n">extent</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="n">extent</span><span class="o">.</span><span class="n">y1</span> <span class="o">+</span> <span class="mf">0.05</span> <span class="o">*</span> <span class="n">extent</span><span class="o">.</span><span class="n">height</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+                <span class="n">output_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;mu_</span><span class="si">{</span><span class="n">variable_idx</span><span class="si">}</span><span class="s2">_expanded.png&quot;</span><span class="p">,</span>
+                <span class="n">bbox_inches</span><span class="o">=</span><span class="n">expanded_bbox</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

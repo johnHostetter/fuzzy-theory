@@ -1,0 +1,462 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.logic.control.controller &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.logic.control.controller</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.logic.control.controller</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Contains various classes necessary for Fuzzy Logic Controllers (FLCs) to function properly,</span>
+<span class="sd">as well as the Fuzzy Logic Controller (FLC) itself.</span>
+
+<span class="sd">This Python module also contains functions for extracting information from a knowledge base</span>
+<span class="sd">(to avoid circular dependency). The functions are used to extract premise terms, consequence terms,</span>
+<span class="sd">and fuzzy logic rule matrices. These components may then be used to create a fuzzy inference system.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.utils.checkpoint</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.logic.variables</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinguisticVariables</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.sets.abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySet</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">...relations.n_ary</span><span class="w"> </span><span class="kn">import</span> <span class="n">NAryRelation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">...relations.t_norm</span><span class="w"> </span><span class="kn">import</span> <span class="n">TNorm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">...sets</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySetGroup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.configurations.abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySystem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.configurations.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExecutionOptions</span><span class="p">,</span> <span class="n">GranulationLayers</span><span class="p">,</span> <span class="n">Shape</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.configurations.impl</span><span class="w"> </span><span class="kn">import</span> <span class="n">Defined</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.defuzzification</span><span class="w"> </span><span class="kn">import</span> <span class="n">TSK</span><span class="p">,</span> <span class="n">Defuzzification</span>
+
+
+<div class="viewcode-block" id="FuzzyLogicController">
+<a class="viewcode-back" href="../../../../_source/fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FuzzyLogicController</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract implementation of the Multiple-Input-Multiple-Output (MIMO)</span>
+<span class="sd">    Fuzzy Logic Controller (FLC).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">:</span> <span class="n">FuzzySystem</span><span class="p">,</span>
+        <span class="n">inference</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Defuzzification</span><span class="p">],</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">execution</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ExecutionOptions</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="p">[],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">execution</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">execution</span> <span class="o">=</span> <span class="n">ExecutionOptions</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disabled_parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">execution</span><span class="o">.</span><span class="n">disabled_parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_batch_chunk</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">execution</span><span class="o">.</span><span class="n">max_batch_chunk</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gradient_checkpointing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">execution</span><span class="o">.</span><span class="n">gradient_checkpointing</span>
+
+        <span class="c1"># A = torch.ones((self.source.configuration[&quot;algorithm&quot;].learning.batch.selection,</span>
+        <span class="c1">#                 self.shape.n_outputs),</span>
+        <span class="c1">#                device=self.device)</span>
+        <span class="c1"># self.A = torch.nn.Parameter(A, requires_grad=True)</span>
+
+        <span class="c1"># self.net = torch.nn.Sequential(</span>
+        <span class="c1">#     torch.nn.Linear(self.shape.n_inputs, 512),</span>
+        <span class="c1">#     getattr(torch.nn, &quot;ReLU&quot;)(),</span>
+        <span class="c1">#     torch.nn.Linear(512, self.shape.n_outputs),</span>
+        <span class="c1"># )</span>
+
+        <span class="c1"># build or extract the necessary components for the FLC from the source</span>
+        <span class="n">granulation_layers</span><span class="p">:</span> <span class="n">GranulationLayers</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">granulation_layers</span>
+        <span class="n">engine</span><span class="p">:</span> <span class="n">TNorm</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">engine</span>
+        <span class="n">defuzzification</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">defuzzification</span><span class="p">(</span><span class="n">inference</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># check that the size of the components are compatible</span>
+        <span class="n">input_granulation_size</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span> <span class="o">=</span> <span class="n">granulation_layers</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">engine_size</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span>
+            <span class="p">:</span><span class="o">-</span><span class="mi">1</span>
+        <span class="p">]</span>  <span class="c1"># drop the last dimension (# of rules)</span>
+        <span class="k">if</span> <span class="n">input_granulation_size</span> <span class="o">!=</span> <span class="n">engine_size</span><span class="p">:</span>
+            <span class="c1"># raise ValueError(</span>
+            <span class="c1">#     f&quot;The input granulation layer size {input_granulation_size} &quot;</span>
+            <span class="c1">#     f&quot;does not match the engine size {engine_size}.&quot;</span>
+            <span class="c1"># )</span>
+            <span class="k">pass</span>
+
+        <span class="c1"># disables certain parameters &amp; prepare fuzzy inference process</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disable_parameters_and_build</span><span class="p">(</span>
+            <span class="n">modules</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;input_granulation&quot;</span><span class="p">,</span> <span class="n">granulation_layers</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]),</span>
+                    <span class="p">(</span><span class="s2">&quot;engine&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;defuzzification&quot;</span><span class="p">,</span> <span class="n">defuzzification</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># bind the correct defuzzification call to avoid try/except on every</span>
+        <span class="c1"># forward</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">defuzzification</span><span class="p">,</span> <span class="n">TSK</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_defuzzify</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_defuzzify_tsk</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_defuzzify</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_defuzzify_standard</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Shape</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Shortcut to the shape of the FLC.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The shape of the FLC.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span>
+
+<div class="viewcode-block" id="FuzzyLogicController.save">
+<a class="viewcode-back" href="../../../../_source/fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the FLC to a directory. This is a custom process to ensure that all the necessary</span>
+<span class="sd">        components are saved properly.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The directory path to save the FLC to.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># each component is given its own directory to save to for easier access</span>
+        <span class="c1"># and to avoid the risk of overwriting files</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+        <span class="c1"># cast to tuple for serialization</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="c1"># save the FLC state dictionary</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;flc.pt&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_granulation</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+            <span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;input&quot;</span>
+        <span class="p">)</span>  <span class="c1"># save the input granulation layer (drop the extension)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;engine&quot;</span><span class="p">)</span>  <span class="c1"># save the inference engine</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">defuzzification</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+            <span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;defuzzification&quot;</span>
+        <span class="p">)</span>  <span class="c1"># save the defuzzification method</span></div>
+
+
+<div class="viewcode-block" id="FuzzyLogicController.load">
+<a class="viewcode-back" href="../../../../_source/fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.load">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;FuzzyLogicController&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load the FLC from a directory. This is a custom process to ensure that all the necessary</span>
+<span class="sd">        components are loaded properly.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The directory path to load the FLC from.</span>
+<span class="sd">            device: The device to load the FLC to.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The FLC object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># load the components from their respective directories. NAryRelation.load()</span>
+        <span class="c1"># dispatches to the correct concrete engine subclass itself (it reads the</span>
+        <span class="c1"># class name back out of the saved state dict via get_subclass() - see</span>
+        <span class="c1"># NAryRelation.save()/._state_dict()), so the caller does not need to know</span>
+        <span class="c1"># the engine&#39;s concrete type ahead of time.</span>
+        <span class="n">input_granules</span> <span class="o">=</span> <span class="n">FuzzySetGroup</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">engine</span><span class="p">:</span> <span class="n">NAryRelation</span> <span class="o">=</span> <span class="n">NAryRelation</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;engine&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">engine</span><span class="p">,</span> <span class="n">TNorm</span>
+        <span class="p">),</span> <span class="s2">&quot;The loaded engine must be an instance of TNorm.&quot;</span>
+        <span class="n">defuzzification</span> <span class="o">=</span> <span class="n">Defuzzification</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;defuzzification&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># load the FLC state dictionary for the remaining components</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;flc.pt&quot;</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="n">shape</span><span class="p">:</span> <span class="n">Shape</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">(</span><span class="o">*</span><span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;shape&quot;</span><span class="p">))</span>
+
+        <span class="n">defined_fuzzy_system</span> <span class="o">=</span> <span class="n">Defined</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
+            <span class="n">granulation</span><span class="o">=</span><span class="n">GranulationLayers</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">input_granules</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span>
+            <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span>
+            <span class="n">defuzzification</span><span class="o">=</span><span class="n">defuzzification</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">FuzzyLogicController</span><span class="p">(</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">defined_fuzzy_system</span><span class="p">,</span>
+            <span class="n">inference</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">defuzzification</span><span class="p">),</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FuzzyLogicController.to">
+<a class="viewcode-back" href="../../../../_source/fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Move the FLC to a different device. This is an override of the &#39;to&#39; method in the</span>
+<span class="sd">        &#39;torch.nn.Module&#39; class. This exists as some modules within the FLC may not be moved</span>
+<span class="sd">        properly using the &#39;to&#39; method. For example, modules that have tensors that are not</span>
+<span class="sd">        torch.nn.Parameters, but are important for fuzzy inference.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            *args: The positional arguments.</span>
+<span class="sd">            **kwargs: The keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Call the parent class&#39;s `to` method to handle parameters and</span>
+        <span class="c1"># submodules</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># special handling for the modules with non-parameter tensors, such as</span>
+        <span class="c1"># mask or links</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;to&quot;</span><span class="p">):</span>
+                <span class="n">module</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">device</span>  <span class="c1"># assuming torch.nn.Sequential is non-empty</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="FuzzyLogicController.disable_parameters_and_build">
+<a class="viewcode-back" href="../../../../_source/fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.disable_parameters_and_build">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">disable_parameters_and_build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modules</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Disable any selected parameters across the modules (e.g., granulation layers). This is</span>
+<span class="sd">        useful for stability and convergence. It is also useful for preventing the learning of</span>
+<span class="sd">        certain parameters. Adds the modules to the FLC.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            *modules: The modules to add to the FLC, where some may have parameters disabled.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">module_name</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">modules</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># ignore the name</span>
+            <span class="k">if</span> <span class="n">module</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># for param_name, param in module.named_parameters():</span>
+                <span class="c1">#     if &quot;mask&quot; not in param_name and hasattr(param, &quot;requires_grad&quot;):</span>
+                <span class="c1">#         # ignore attribute with &quot;mask&quot; in it; assume it&#39;s a non-learnable</span>
+                <span class="c1">#         # parameter, or cannot enable this parameter; this is by design</span>
+                <span class="c1">#         # - do not raise an error examples of such a case are</span>
+                <span class="c1">#         # mask parameters, links, and offsets</span>
+                <span class="c1">#         param.requires_grad = param_name not in self.disabled_parameters</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FuzzyLogicController.split_granules_by_type">
+<a class="viewcode-back" href="../../../../_source/fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.split_granules_by_type">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">split_granules_by_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">FuzzySet</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieves the granules at a given layer (e.g., premises, consequences) from the Fuzzy Logic</span>
+<span class="sd">        Controller. Specifically, this operation takes the granulation layer (a more computationally</span>
+<span class="sd">        efficient representation) and converts the premises back to a list of granules format.</span>
+<span class="sd">        For example, rather than using a single Gaussian object to represent all Gaussian membership</span>
+<span class="sd">        functions in the layer space, this function will convert that to a list of Gaussian objects,</span>
+<span class="sd">        where each Gaussian function is defined and restricted to a single dimension in that layer.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A nested list of FuzzySet objects, where the length is equal to the number</span>
+<span class="sd">            of layer&#39;s dimensions. Within each element of the outer list, is another list that</span>
+<span class="sd">            contains all the definitions for FuzzySet within that dimension. For</span>
+<span class="sd">            example, if the 0&#39;th index has a list equal to [Gaussian(), Trapezoid()], then this</span>
+<span class="sd">            means in the 0&#39;th dimension there are both membership functions defined using the</span>
+<span class="sd">            Gaussian formula and the Trapezoid formula.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">results</span><span class="p">:</span> <span class="p">{</span><span class="nb">str</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">FuzzySet</span><span class="p">]}</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="c1"># at each variable index, it is possible to have more than 1 type of</span>
+        <span class="c1"># module</span>
+        <span class="k">for</span> <span class="n">module_name</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">named_modules</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;split_by_variables&quot;</span><span class="p">):</span>
+                <span class="n">results</span><span class="p">[</span><span class="n">module_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">split_by_variables</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">results</span></div>
+
+
+<div class="viewcode-block" id="FuzzyLogicController.linguistic_variables">
+<a class="viewcode-back" href="../../../../_source/fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.linguistic_variables">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">linguistic_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LinguisticVariables</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract the linguistic variables from the FLC. This is useful for extracting the linguistic</span>
+<span class="sd">        variables for the input and output spaces. This is useful for visualizing the linguistic</span>
+<span class="sd">        variables in the FLC.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of FuzzySet objects that represent the linguistic variables in the</span>
+<span class="sd">            given layer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">results</span><span class="p">:</span> <span class="n">OrderedDict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_granules_by_type</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="mi">2</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Expected 1 or 2 granulation layers, but received </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">results_lst</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">FuzzySet</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">variables</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">variables</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">]</span>  <span class="c1"># discard the name of where the variables are from</span>
+        <span class="k">return</span> <span class="n">LinguisticVariables</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="n">results_lst</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">targets</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">results_lst</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">results_lst</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_defuzzify_tsk</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">rule_strengths</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">defuzzification</span><span class="p">(</span>
+            <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span> <span class="n">rule_activations</span><span class="o">=</span><span class="n">rule_strengths</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_defuzzify_standard</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">_observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">rule_strengths</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="c1"># _observations is intentionally unused here (this is the Mamdani/&quot;standard&quot;</span>
+        <span class="c1"># path - see Defuzzification.forward&#39;s docstring); the parameter exists so</span>
+        <span class="c1"># this and _defuzzify_tsk share an identical, interchangeable signature (see</span>
+        <span class="c1"># the self._defuzzify binding below)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">defuzzification</span><span class="p">(</span><span class="n">rule_strengths</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_forward_impl</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>  <span class="c1"># pylint: disable=redefined-builtin</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Core forward pass implementing the fuzzy inference pipeline:</span>
+<span class="sd">        fuzzification, rule evaluation, and defuzzification.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">granulated_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_granulation</span><span class="p">(</span><span class="n">observations</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient_checkpointing</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="n">rule_strengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">checkpoint</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">granulated_input</span><span class="p">,</span> <span class="n">use_reentrant</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rule_strengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">(</span><span class="n">granulated_input</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_defuzzify</span><span class="p">(</span><span class="n">observations</span><span class="p">,</span> <span class="n">rule_strengths</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FuzzyLogicController.forward">
+<a class="viewcode-back" href="../../../../_source/fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>  <span class="c1"># pylint: disable=arguments-renamed</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>  <span class="c1"># pylint: disable=redefined-builtin</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward pass for the FLC. This is the main method that will be called when the FLC is used</span>
+<span class="sd">        in a forward pass. This method will perform the fuzzy inference process, which includes</span>
+<span class="sd">        fuzzification, rule evaluation, and defuzzification.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to perform the fuzzy inference on.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The defuzzified output of the FLC.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_batch_chunk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="n">observations</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_batch_chunk</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_forward_impl</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">observations</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_batch_chunk</span><span class="p">)</span>
+                <span class="p">],</span>
+                <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_impl</span><span class="p">(</span><span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

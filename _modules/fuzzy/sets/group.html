@@ -1,0 +1,466 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.sets.group &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.sets.group</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.sets.group</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module contains the FuzzySetGroup class, which is a generic and abstract torch.nn.Module</span>
+<span class="sd">class that contains a torch.nn.ModuleList of FuzzySet objects. The expectation here is</span>
+<span class="sd">that each FuzzySet may define fuzzy sets of different conventions, such as Gaussian,</span>
+<span class="sd">Triangular, Trapezoidal, etc. Then, subsequent inference engines can handle these heterogeneously</span>
+<span class="sd">defined fuzzy sets with no difficulty. Further, this class was specifically designed to incorporate</span>
+<span class="sd">dynamic addition of new fuzzy sets in the construction of neuro-fuzzy networks via network morphism.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">NestedTorchJitModule</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.classes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Loggable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterSignature</span><span class="p">,</span> <span class="n">signature_of</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">MembershipCache</span>
+
+<span class="c1"># from ..utils.functions import log_method</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.membership</span><span class="w"> </span><span class="kn">import</span> <span class="n">Membership</span>
+
+
+<div class="viewcode-block" id="FuzzySetGroup">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.group.FuzzySetGroup">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FuzzySetGroup</span><span class="p">(</span><span class="n">NestedTorchJitModule</span><span class="p">,</span> <span class="n">Loggable</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A generic and abstract torch.nn.Module class that contains a torch.nn.ModuleList</span>
+<span class="sd">    of FuzzySet objects. The expectation here is that each FuzzySet may define fuzzy sets of</span>
+<span class="sd">    different conventions, such as Gaussian, Triangular, Trapezoidal, etc.</span>
+<span class="sd">    Then, subsequent inference engines can handle these heterogeneously defined fuzzy sets</span>
+<span class="sd">    with no difficulty. Further, this class was specifically designed to incorporate dynamic</span>
+<span class="sd">    addition of new fuzzy sets in the construction of neuro-fuzzy networks via network morphism.</span>
+
+<span class="sd">    However, this class does *not* carry out any functionality that is necessarily tied to fuzzy</span>
+<span class="sd">    sets, it is simply named so as this was its intended purpose - grouping fuzzy sets. In other</span>
+<span class="sd">    words, the same &quot;trick&quot; of using a torch.nn.ModuleList of torch.nn.Module objects applies to</span>
+<span class="sd">    any kind of torch.nn.Module object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">modules_list</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">cache_membership</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">membership_cache_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the FuzzySetGroup object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            *args: Optional positional arguments.</span>
+<span class="sd">            modules_list: A list of torch.nn.Module objects.</span>
+<span class="sd">            device: The device to move the FuzzySetGroup object to; if None, the device is</span>
+<span class="sd">            inferred from the modules_list.</span>
+<span class="sd">            cache_membership: Whether to memoize this group&#39;s forward pass; see</span>
+<span class="sd">            fuzzy.sets.cache for the conditions under which a memoized result is re-used.</span>
+<span class="sd">            membership_cache_size: How many distinct observation tensors to memoize at once.</span>
+<span class="sd">            **kwargs: Optional keyword arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">modules_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">modules_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># self.create_logger(self.__class__.__name__, debug=False)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">modules_list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="c1"># stored as plain (non-underscore-prefixed) attributes, rather than being</span>
+        <span class="c1"># consumed only by the cache below, so that get_object_attributes() picks</span>
+        <span class="c1"># them up and NestedTorchJitModule.save()/load() round-trips them (they are</span>
+        <span class="c1"># also constructor parameter names, so load() passes them back into __init__</span>
+        <span class="c1"># instead of silently reverting to the defaults above)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_membership</span> <span class="o">=</span> <span class="n">cache_membership</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">membership_cache_size</span> <span class="o">=</span> <span class="n">membership_cache_size</span>
+        <span class="c1"># memoizes this group&#39;s forward pass (the concatenation of every module&#39;s response);</span>
+        <span class="c1"># see fuzzy.sets.cache for when a result is re-used</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_membership_cache</span> <span class="o">=</span> <span class="n">MembershipCache</span><span class="p">(</span>
+            <span class="n">maxsize</span><span class="o">=</span><span class="n">membership_cache_size</span><span class="p">,</span> <span class="n">enabled</span><span class="o">=</span><span class="n">cache_membership</span>
+        <span class="p">)</span>
+        <span class="c1"># memoizes the centers/widths/mask concatenation built in __getattribute__ below,</span>
+        <span class="c1"># keyed per attribute on the (id, version) signature of the tensors it was built from;</span>
+        <span class="c1"># left untyped (rather than Dict[str, Tuple[...]]) since torch.jit.script warns about</span>
+        <span class="c1"># instance-level generic annotations on an empty container assigned in</span>
+        <span class="c1"># __init__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_attribute_cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="FuzzySetGroup.clear_membership_cache">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.group.FuzzySetGroup.clear_membership_cache">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear_membership_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Discard any memoized forward-pass result and any memoized centers/widths/mask</span>
+<span class="sd">        concatenation, forcing the next access of either to be recalculated.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cache</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">MembershipCache</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_membership_cache&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cache</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="n">attribute_cache</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_attribute_cache&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">attribute_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">attribute_cache</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_group_parameter_signature</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterSignature</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Summarize the parameters that every module in this group depends upon, so the</span>
+<span class="sd">        membership cache can tell when a memoized result has been outdated by a parameter</span>
+<span class="sd">        changing.</span>
+
+<span class="sd">        Each module&#39;s own parameter_signature() is preferred over hardcoding</span>
+<span class="sd">        get_centers()/get_widths()/get_mask() here, since a module may depend on additional</span>
+<span class="sd">        parameters of its own (e.g. Trapezoidal&#39;s plateaus). Hardcoding the trio would let</span>
+<span class="sd">        such a parameter change go unnoticed, silently serving a stale group-level result even</span>
+<span class="sd">        though the module&#39;s own individual cache would have correctly recomputed it.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A signature of every module&#39;s parameters, or None if some module exposes neither</span>
+<span class="sd">            parameter_signature() nor the get_centers/get_widths/get_mask trio that fuzzy sets</span>
+<span class="sd">            are expected to (in which case there is nothing to safely key a memoized result on,</span>
+<span class="sd">            and caching is skipped).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">signature</span><span class="p">:</span> <span class="n">ParameterSignature</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_modules&quot;</span><span class="p">][</span><span class="s2">&quot;modules_list&quot;</span><span class="p">]:</span>
+            <span class="n">get_own_signature</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;parameter_signature&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">get_own_signature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">signature</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">get_own_signature</span><span class="p">())</span>
+                <span class="k">continue</span>
+            <span class="n">get_centers</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;get_centers&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">get_widths</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;get_widths&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">get_mask</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;get_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">get_centers</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">get_widths</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">get_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="n">signature</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">signature_of</span><span class="p">([</span><span class="n">get_centers</span><span class="p">(),</span> <span class="n">get_widths</span><span class="p">(),</span> <span class="n">get_mask</span><span class="p">()]))</span>
+        <span class="k">return</span> <span class="n">signature</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_lookup_group_membership</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Membership</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve a memoized group-level membership for the given observations, if valid.</span>
+
+<span class="sd">        Looked up defensively so a torch.jit.script&#39;ed copy of this module - which does not</span>
+<span class="sd">        carry the cache over - simply calculates the memberships instead of failing.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations that membership degrees are wanted for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The memoized Membership, or None if it has to be (re)calculated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cache</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">MembershipCache</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_membership_cache&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">signature</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterSignature</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_parameter_signature</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">signature</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">cache</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">observations</span><span class="p">,</span> <span class="n">signature</span><span class="p">)</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_store_group_membership</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Memoize the group-level membership calculated for the given observations.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations the membership degrees were calculated for.</span>
+<span class="sd">            membership: The calculated (concatenated) membership degrees and mask.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cache</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">MembershipCache</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_membership_cache&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">signature</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterSignature</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_parameter_signature</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">signature</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">observations</span><span class="p">,</span> <span class="n">signature</span><span class="p">,</span> <span class="n">membership</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_concatenated_module_attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Concatenate the given attribute across every module in this group, memoizing</span>
+<span class="sd">        the result until the underlying tensors change. Backs the centers/widths/mask</span>
+<span class="sd">        properties below, which are implemented as ordinary @property methods (rather</span>
+<span class="sd">        than a __getattribute__ override, as this used to be) because torch.compile&#39;s</span>
+<span class="sd">        Dynamo tracer refuses to trace into any torch.nn.Module that defines a custom</span>
+<span class="sd">        __getattribute__ at all, unconditionally graph-breaking on it - a plain</span>
+<span class="sd">        @property is traceable.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            item: One of &quot;centers&quot;, &quot;widths&quot;, or &quot;mask&quot;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The single module&#39;s tensor directly if there is only one (nothing to</span>
+<span class="sd">            concatenate or memoize); otherwise the memoized concatenation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">modules_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_modules&quot;</span><span class="p">][</span><span class="s2">&quot;modules_list&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">modules_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The torch.nn.ModuleList of FuzzySetGroup is empty.&quot;</span><span class="p">)</span>
+        <span class="n">module_attributes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;get_</span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)()</span> <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">modules_list</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">module_attributes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">module_attributes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">signature</span><span class="p">:</span> <span class="n">ParameterSignature</span> <span class="o">=</span> <span class="n">signature_of</span><span class="p">(</span><span class="n">module_attributes</span><span class="p">)</span>
+        <span class="n">attribute_cache</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">&quot;_attribute_cache&quot;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">attribute_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cached</span> <span class="o">=</span> <span class="n">attribute_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cached</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">signature</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">cached</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">concatenated</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">module_attributes</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">attribute_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">attribute_cache</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">signature</span><span class="p">,</span> <span class="n">concatenated</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">concatenated</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">unused</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">centers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Every module&#39;s centers, concatenated along the last dimension.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_concatenated_module_attribute</span><span class="p">(</span><span class="s2">&quot;centers&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">unused</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">widths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Every module&#39;s widths, concatenated along the last dimension.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_concatenated_module_attribute</span><span class="p">(</span><span class="s2">&quot;widths&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">unused</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mask</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Every module&#39;s mask, concatenated along the last dimension.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_concatenated_module_attribute</span><span class="p">(</span><span class="s2">&quot;mask&quot;</span><span class="p">)</span>
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">_hash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">:</span>
+            <span class="n">_hash</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">hash</span><span class="p">(</span><span class="n">module</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">_hash</span><span class="p">)</span>
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">FuzzySetGroup</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">modules_list</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">self_module</span><span class="p">,</span> <span class="n">other_module</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">modules_list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">self_module</span> <span class="o">==</span> <span class="n">other_module</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySetGroup.to">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.group.FuzzySetGroup.to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;FuzzySetGroup&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Move the FuzzySetGroup to a different device.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            device: The device to move the FuzzySetGroup object to.</span>
+<span class="sd">            *args: Optional positional arguments.</span>
+<span class="sd">            **kwargs: Optional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The FuzzySetGroup object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># .to() also accepts a dtype-only call (e.g. .to(torch.float64)); in that case</span>
+        <span class="c1"># &#39;device&#39; here is actually a dtype, and self.device must be left alone rather than</span>
+        <span class="c1"># corrupted with it. Deliberately not resolved through a probe tensor here (unlike</span>
+        <span class="c1"># DynamicParameterList.to()): that would canonicalize an unindexed device like</span>
+        <span class="c1"># torch.device(&quot;cuda&quot;) into an indexed torch.device(&quot;cuda&quot;, 0), which no longer</span>
+        <span class="c1"># compares equal to what the caller actually passed.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">:</span>
+            <span class="n">module</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="c1"># each module already cleared its own membership cache, but this group&#39;s own caches</span>
+        <span class="c1"># (keyed on those modules&#39; tensor identities/versions) were not, and moving a module</span>
+        <span class="c1"># can replace its parameters&#39; data without bumping a version counter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_membership_cache</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySetGroup.forward">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.group.FuzzySetGroup.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Membership</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the responses from the modules in the torch.nn.ModuleList of FuzzySetGroup.</span>
+<span class="sd">        Expand the FuzzySetGroup if necessary.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The torch.nn.ModuleList of FuzzySetGroup is empty.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># modules&#39; responses are membership degrees when modules are FuzzySet</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># for computational efficiency, return the response from the only</span>
+            <span class="c1"># module</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">observations</span><span class="p">)</span>
+
+        <span class="c1"># the group-level concatenation is memoized the same way a single fuzzy set&#39;s</span>
+        <span class="c1"># membership is: a hit requires the same observations object and every module&#39;s</span>
+        <span class="c1"># parameters to be unchanged, so it is safe across an optimizer step (see</span>
+        <span class="c1"># fuzzy.sets.cache). A miss still lets each module serve its own cache.</span>
+        <span class="n">cached</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Membership</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_group_membership</span><span class="p">(</span><span class="n">observations</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
+
+        <span class="c1"># this can be computationally expensive, but it is necessary to calculate the responses</span>
+        <span class="c1"># from all the modules in the torch.nn.ModuleList of FuzzySetGroup</span>
+        <span class="c1"># ideally this should be done in parallel, but it is not possible with the current</span>
+        <span class="c1"># implementation; only use this if the torch.nn.Module objects are</span>
+        <span class="c1"># different</span>
+        <span class="n">module_memberships</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[]</span>
+        <span class="p">)</span>  <span class="c1"># the primary response from the module</span>
+        <span class="n">module_masks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[]</span>
+        <span class="p">)</span>  <span class="c1"># the secondary response denoting module filter</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">:</span>
+            <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="n">observations</span><span class="p">)</span>
+            <span class="n">module_memberships</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">membership</span><span class="o">.</span><span class="n">degrees</span><span class="p">)</span>
+            <span class="n">module_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">membership</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">degrees</span><span class="o">.</span><span class="n">is_sparse</span> <span class="k">for</span> <span class="n">degrees</span> <span class="ow">in</span> <span class="n">module_memberships</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="n">degrees</span><span class="o">.</span><span class="n">is_sparse</span> <span class="k">for</span> <span class="n">degrees</span> <span class="ow">in</span> <span class="n">module_memberships</span>
+        <span class="p">):</span>
+            <span class="c1"># torch.cat cannot mix sparse and dense layouts; this happens whenever the</span>
+            <span class="c1"># group holds fuzzy sets with different use_sparse_tensor settings (a legitimate</span>
+            <span class="c1"># per-variable memory choice, e.g. a high-cardinality variable set sparse next to</span>
+            <span class="c1"># a low-cardinality one left dense). Densify only the sparse ones so every module</span>
+            <span class="c1"># keeps its own choice up until this point, and only pay the conversion cost when</span>
+            <span class="c1"># a mix actually occurs.</span>
+            <span class="n">module_memberships</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">degrees</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span> <span class="k">if</span> <span class="n">degrees</span><span class="o">.</span><span class="n">is_sparse</span> <span class="k">else</span> <span class="n">degrees</span>
+                <span class="k">for</span> <span class="n">degrees</span> <span class="ow">in</span> <span class="n">module_memberships</span>
+            <span class="p">]</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">Membership</span><span class="p">(</span>
+            <span class="n">degrees</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">module_memberships</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">module_masks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_store_group_membership</span><span class="p">(</span><span class="n">observations</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

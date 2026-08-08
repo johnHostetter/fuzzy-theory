@@ -1,0 +1,21 @@
+fuzzy package
+=============
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   fuzzy.logic
+   fuzzy.relations
+   fuzzy.sets
+   fuzzy.utils
+
+Module contents
+---------------
+
+.. automodule:: fuzzy
+   :members:
+   :undoc-members:
+   :show-inheritance:

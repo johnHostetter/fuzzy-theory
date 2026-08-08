@@ -1,0 +1,37 @@
+fuzzy.logic.control package
+===========================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   fuzzy.logic.control.configurations
+
+Submodules
+----------
+
+fuzzy.logic.control.controller module
+-------------------------------------
+
+.. automodule:: fuzzy.logic.control.controller
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.logic.control.defuzzification module
+------------------------------------------
+
+.. automodule:: fuzzy.logic.control.defuzzification
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: fuzzy.logic.control
+   :members:
+   :undoc-members:
+   :show-inheritance:

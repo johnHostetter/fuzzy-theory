@@ -1,0 +1,1108 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.sets.abstract &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.sets.abstract</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.sets.abstract</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Implements an abstract class called FuzzySet using PyTorch. All fuzzy sets defined over</span>
+<span class="sd">a continuous domain are derived from this class. Further, the Membership class is defined within,</span>
+<span class="sd">which contains a helpful interface understanding membership degrees.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">abc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+
+<span class="c1"># import logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">NoReturn</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sympy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torchquad</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ndarray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy._typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">_64Bit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchquad.utils.set_up_backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">set_up_backend</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">TorchJitModule</span><span class="p">,</span> <span class="n">check_path_to_save_torch_module</span>
+
+<span class="c1"># DynamicParameterList re-exported here for backward compatibility (it used to be</span>
+<span class="c1"># defined in this module)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.classes</span><span class="w"> </span><span class="kn">import</span> <span class="n">DynamicParameterList</span><span class="p">,</span> <span class="n">Loggable</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterSignature</span><span class="p">,</span> <span class="n">signature_of</span>
+
+<span class="c1"># from ..utils.functions import log_classmethod, log_func, log_method</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">MembershipCache</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.membership</span><span class="w"> </span><span class="kn">import</span> <span class="n">Membership</span>
+
+<span class="c1"># FuzzySetShape/FuzzySetInitResult/FuzzySetInitMethod re-exported here for backward</span>
+<span class="c1"># compatibility (they used to be defined in this module)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.shape</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySetInitResult</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.shape</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySetInitMethod</span><span class="p">,</span> <span class="n">FuzzySetShape</span><span class="p">,</span> <span class="n">MembershipConfig</span>
+
+
+<span class="c1"># pylint: disable-next=too-few-public-methods,abstract-method</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_FuzzySetParameters</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Bundles a FuzzySet&#39;s centers, widths, and mask DynamicParameterLists into a single</span>
+<span class="sd">    submodule, so FuzzySet itself holds one attribute for its raw parameter storage</span>
+<span class="sd">    instead of three. Private to this module - FuzzySet&#39;s public accessors</span>
+<span class="sd">    (get_centers()/get_widths()/get_mask()) are unaffected by this internal grouping,</span>
+<span class="sd">    and nothing outside FuzzySet should reference this class directly.</span>
+
+<span class="sd">    A torch.nn.Module (not a plain container) so centers/widths/mask remain properly</span>
+<span class="sd">    registered submodules of the surrounding FuzzySet - required for torch.jit.script,</span>
+<span class="sd">    which supports nested submodule attribute access natively but cannot represent an</span>
+<span class="sd">    arbitrary Python object (e.g. a dataclass) as an attribute type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">:</span> <span class="n">DynamicParameterList</span><span class="p">,</span>
+        <span class="n">widths</span><span class="p">:</span> <span class="n">DynamicParameterList</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">DynamicParameterList</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">centers</span> <span class="o">=</span> <span class="n">centers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">widths</span> <span class="o">=</span> <span class="n">widths</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Move centers, widths, and mask to a new device/dtype.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># each DynamicParameterList.to() does its own device/dtype bookkeeping and</span>
+        <span class="c1"># cache invalidation beyond what torch.nn.Module.to()&#39;s default recursive</span>
+        <span class="c1"># _apply() performs - see DynamicParameterList.to()&#39;s own docstring</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">centers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">centers</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">widths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">widths</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+
+<div class="viewcode-block" id="FuzzySet">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FuzzySet</span><span class="p">(</span><span class="n">TorchJitModule</span><span class="p">,</span> <span class="n">Loggable</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A generic and abstract torch.nn.Module class that implements continuous fuzzy sets.</span>
+
+<span class="sd">    This is the most important Python class regarding fuzzy sets within this Soft Computing library.</span>
+
+<span class="sd">    Defined here are most of the common methods made available to all fuzzy sets. Fuzzy sets that</span>
+<span class="sd">    will later be used in other features such as neuro-fuzzy networks are expected to abide by the</span>
+<span class="sd">    conventions outlined within. For example, parameters &#39;centers&#39; and &#39;widths&#39; are often expected,</span>
+<span class="sd">    but inference engines (should) only rely on the fuzzy set membership degrees.</span>
+
+<span class="sd">    However, for convenience, some aspects of the SelfOrganize code may search for vertices that</span>
+<span class="sd">    have attributes of type &#39;FuzzySet&#39;. Thus, if it is pertinent that a vertex within</span>
+<span class="sd">    the KnowledgeBase is recognized as a fuzzy set, it is very likely one might be interested in</span>
+<span class="sd">    inheriting or extending from FuzzySet.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Subclasses may set this to True to check the calculated membership degrees for NaN and</span>
+    <span class="c1"># infinite values; this costs a synchronization per call, so it is off by</span>
+    <span class="c1"># default.</span>
+    <span class="n">_validate_degrees</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># See NAryRelation&#39;s GATHER_APPLY_MASK_SYNC_THRESHOLD_NUMEL (module-level there,</span>
+    <span class="c1"># since NAryRelation is not currently torch.jit.script-compatible) for the</span>
+    <span class="c1"># underlying calibration this mirrors: on a CUDA tensor, a sync to ask &quot;is there</span>
+    <span class="c1"># any NaN at all?&quot; (~400-750us in practice, dominated by the reduction kernel and</span>
+    <span class="c1"># blocking scalar readback, not the sync primitive itself) costs more than just</span>
+    <span class="c1"># always doing the NaN-safe substitution below this many (estimated) elements in</span>
+    <span class="c1"># the resulting degrees tensor, and less above it. A class attribute (not a module</span>
+    <span class="c1"># global) because torch.jit.script rejects references to arbitrary Python module</span>
+    <span class="c1"># globals from a scripted method; it accepts instance attributes assigned in</span>
+    <span class="c1"># __init__ instead (see _validate_degrees just above). Threshold is an</span>
+    <span class="c1"># empirically-calibrated heuristic (measured on one GPU), not a theoretically</span>
+    <span class="c1"># derived constant.</span>
+    <span class="n">_nan_safe_sync_threshold_numel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5_000_000</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">[</span><span class="n">_64Bit</span><span class="p">]]]],</span>
+        <span class="n">widths</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">[</span><span class="n">_64Bit</span><span class="p">]]]],</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">membership_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MembershipConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="c1"># debug: bool = False,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__check_args</span><span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">widths</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="c1"># self.create_logger(self.__class__.__name__, debug=debug)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">membership_config</span><span class="p">:</span>
+            <span class="n">membership_config</span> <span class="o">=</span> <span class="n">MembershipConfig</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">membership_config</span> <span class="o">=</span> <span class="n">membership_config</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__alloc_members</span><span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">widths</span><span class="p">)</span>
+        <span class="c1"># memoizes membership calculations; see fuzzy.sets.cache for when a</span>
+        <span class="c1"># result is re-used</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_membership_cache</span> <span class="o">=</span> <span class="n">MembershipCache</span><span class="p">(</span>
+            <span class="n">maxsize</span><span class="o">=</span><span class="n">membership_config</span><span class="o">.</span><span class="n">membership_cache_size</span><span class="p">,</span>
+            <span class="n">enabled</span><span class="o">=</span><span class="n">membership_config</span><span class="o">.</span><span class="n">cache_membership</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># torch.jit.script only picks up attributes assigned in __init__, so the class-level</span>
+        <span class="c1"># default declared above is re-assigned here as an instance attribute; this also lets</span>
+        <span class="c1"># a subclass such as Lorentzian&#39;s class-level override take effect</span>
+        <span class="c1"># under scripting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_degrees</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_degrees</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nan_safe_sync_threshold_numel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nan_safe_sync_threshold_numel</span>
+
+        <span class="c1"># forward() (a scripted method) cannot reference self.membership_config.enable_sparse</span>
+        <span class="c1"># directly: TorchScript&#39;s attribute-type checker cannot represent an arbitrary</span>
+        <span class="c1"># dataclass (MembershipConfig) as a scriptable type, even though the dataclass</span>
+        <span class="c1"># itself is harmless as an attribute that no scripted method touches. Pulling out</span>
+        <span class="c1"># just the one field forward() needs, as a plain bool, keeps membership_config</span>
+        <span class="c1"># itself available for everything else (save/load, __init__, etc.) without breaking</span>
+        <span class="c1"># torch.jit.script(fuzzy_set).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enable_sparse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">membership_config</span><span class="o">.</span><span class="n">enable_sparse</span>
+
+    <span class="c1"># @log_method</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__check_args</span><span class="p">(</span>
+        <span class="n">centers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">[</span><span class="n">_64Bit</span><span class="p">]]]],</span>
+        <span class="n">widths</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">[</span><span class="n">_64Bit</span><span class="p">]]]],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check that the provided argument values are accepted variable types and that their</span>
+<span class="sd">        dimensionality is correct. This function will raise a ValueError if the argument values</span>
+<span class="sd">        are not compatible with FuzzySet.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            centers: The data describing the centers of the fuzzy sets.</span>
+<span class="sd">            widths: The data describing the widths of the fuzzy sets.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="c1"># ensure that the centers are a numpy array (done for consistency)</span>
+            <span class="c1"># specifically, we want to internally control the dtype and device</span>
+            <span class="c1"># of the centers</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The centers of a FuzzySet must be a numpy array, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">centers</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">widths</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="c1"># ensure that the widths are a numpy array (done for consistency)</span>
+            <span class="c1"># specifically, we want to internally control the dtype and device</span>
+            <span class="c1"># of the widths</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The widths of a FuzzySet must be a numpy array, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">widths</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">centers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="n">widths</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The number of dimensions for the centers (</span><span class="si">{</span><span class="n">centers</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">) and widths &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">widths</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">) must be the same.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">centers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">widths</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The centers and widths of a FuzzySet must have at least one dimension. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Centers has </span><span class="si">{</span><span class="n">centers</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2"> dimensions and widths has </span><span class="si">{</span><span class="n">widths</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2"> dimensions.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__alloc_members</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">[</span><span class="n">_64Bit</span><span class="p">]]]],</span>
+        <span class="n">widths</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">[</span><span class="n">_64Bit</span><span class="p">]]]],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FuzzySetParameters</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">centers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">widths</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># assuming that the array is a single linguistic variable</span>
+            <span class="n">centers</span><span class="p">,</span> <span class="n">widths</span> <span class="o">=</span> <span class="n">centers</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">widths</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="c1"># avoid allocating new memory for the centers and widths</span>
+        <span class="c1"># use torch.float32 to save memory and speed up computations</span>
+        <span class="k">return</span> <span class="n">_FuzzySetParameters</span><span class="p">(</span>
+            <span class="n">centers</span><span class="o">=</span><span class="n">DynamicParameterList</span><span class="p">(</span>
+                <span class="n">init_params</span><span class="o">=</span><span class="p">[</span><span class="n">centers</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">),</span>
+            <span class="n">widths</span><span class="o">=</span><span class="n">DynamicParameterList</span><span class="p">(</span>
+                <span class="n">init_params</span><span class="o">=</span><span class="p">[</span><span class="n">widths</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">),</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">DynamicParameterList</span><span class="p">(</span>
+                <span class="n">init_params</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">make_mask</span><span class="p">(</span><span class="n">widths</span><span class="p">)],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySet.to">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Move the FuzzySet to a new device.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Call the parent class&#39;s `to` method to handle parameters and</span>
+        <span class="c1"># submodules</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># special handling for DynamicParameterList (see</span>
+        <span class="c1"># _FuzzySetParameters.to())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span>
+        <span class="c1"># memberships were calculated on the previous device, and moving parameters replaces</span>
+        <span class="c1"># their data without bumping a version counter, so the memo cannot be</span>
+        <span class="c1"># trusted</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_membership_cache</span><span class="p">()</span>
+        <span class="c1"># self.logger.debug(f&quot;Moved {self.__class__.__name__} to {self.device} device&quot;)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySet.make_parameter">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.make_parameter">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">make_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameter</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a torch.nn.Parameter from a numpy array, with the appropriate dtype and device.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            parameter: The numpy array to convert to a torch.nn.Parameter (e.g., centers or widths).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A torch.nn.Parameter object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">parameter</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="c1"># requires_grad=True,  # explicitly set to True</span>
+        <span class="p">)</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySet.make_mask">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.make_mask">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">make_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">widths</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a mask for the fuzzy set, where the mask is used to filter out fuzzy sets that are</span>
+<span class="sd">        not real. This is particularly useful when the fuzzy set is not fully defined, and some</span>
+<span class="sd">        fuzzy sets are missing. The mask is a binary tensor that is used to filter out fuzzy sets</span>
+<span class="sd">        that are not real. If the mask is 0, then the fuzzy set is not real; otherwise, it is real.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            widths: The widths of the fuzzy set.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A torch.Tensor object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">widths</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+
+        <span class="c1"># return torch.nn.Parameter(</span>
+        <span class="c1">#     torch.as_tensor(widths &gt; 0.0, dtype=torch.int8, device=self.device),</span>
+        <span class="c1">#     requires_grad=False,  # explicitly set to False (mask is not trainable)</span>
+        <span class="c1"># )</span>
+
+<div class="viewcode-block" id="FuzzySet.create">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.create">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="c1"># @log_classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">shape</span><span class="p">:</span> <span class="n">FuzzySetShape</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">FuzzySetInitMethod</span><span class="p">,</span>
+        <span class="n">init_width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">NoReturn</span><span class="p">,</span> <span class="s2">&quot;FuzzySet&quot;</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a fuzzy set with the given number of variables and terms, where each variable</span>
+<span class="sd">        has the same number of terms. For example, if we have two variables, then we might have</span>
+<span class="sd">        three terms for each variable, such as &quot;low&quot;, &quot;medium&quot;, and &quot;high&quot;. This would result in</span>
+<span class="sd">        a total of nine fuzzy sets. The centers and widths are initialized randomly.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            shape: The shape of these fuzzy sets.</span>
+<span class="sd">            device: The device to use.</span>
+<span class="sd">            method: The method to use for creating the fuzzy set (e.g., &quot;random&quot; or &quot;linear&quot;).</span>
+<span class="sd">            init_width: The initial width of the fuzzy set (for &quot;linear&quot; method).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A FuzzySet object, or a NotImplementedError if the method is not implemented.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isabstract</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+            <span class="c1"># this error is thrown if the class is abstract, such as FuzzySet, but</span>
+            <span class="c1"># the method is not implemented (e.g., self.calculate_membership)</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;The FuzzySet has no defined membership function. Please create a class &quot;</span>
+                <span class="s2">&quot;and inherit from FuzzySet, or use a predefined class, such as Gaussian.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">init_result</span><span class="p">:</span> <span class="n">FuzzySetInitResult</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
+            <span class="n">init_width</span><span class="o">=</span><span class="n">init_width</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">fuzzy_sets</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">centers</span><span class="o">=</span><span class="n">init_result</span><span class="o">.</span><span class="n">centers</span><span class="p">,</span>
+            <span class="n">widths</span><span class="o">=</span><span class="n">init_result</span><span class="o">.</span><span class="n">widths</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># logging.debug(f&quot;New fuzzy set(s) created with the %s method.&quot;, method)</span>
+        <span class="k">return</span> <span class="n">fuzzy_sets</span></div>
+
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Hash the fuzzy set.</span>
+
+<span class="sd">        This must agree with __eq__, which compares centers/widths by *value* (torch.equal).</span>
+<span class="sd">        Hashing the tensors themselves would hash by identity instead (torch.Tensor keeps</span>
+<span class="sd">        the default id()-based __hash__), so two separately constructed but value-equal fuzzy</span>
+<span class="sd">        sets would violate Python&#39;s hash contract - equal objects reporting different hashes -</span>
+<span class="sd">        which breaks their use as dict keys or set members. Hashing the flattened values (as</span>
+<span class="sd">        plain Python numbers, not tensors) keeps this consistent with __eq__.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The hash of the fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the fuzzy set is equal to another fuzzy set.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other: The other fuzzy set to compare to.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            True if the fuzzy sets are equal, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+            <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">get_centers</span><span class="p">())</span>
+            <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">get_widths</span><span class="p">())</span>
+        <span class="p">)</span>
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySet.get_centers">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.get_centers">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_centers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the concatenated centers of the fuzzy set from its corresponding ParameterList.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The concatenated centers of the fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">centers</span><span class="o">.</span><span class="n">tensor</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySet.get_widths">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.get_widths">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_widths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the concatenated widths of the fuzzy set from its corresponding ParameterList.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The concatenated widths of the fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">widths</span><span class="o">.</span><span class="n">tensor</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySet.get_mask">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.get_mask">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the concatenated mask of the fuzzy set from its corresponding ParameterList.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The concatenated mask of the fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">tensor</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extra_save_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Hook for subclasses with additional learnable parameters beyond centers/widths</span>
+<span class="sd">        (e.g. Trapezoidal&#39;s plateaus) to contribute extra entries to the state_dict that</span>
+<span class="sd">        save() builds - avoiding the need to re-implement save() just to add one</span>
+<span class="sd">        more field.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Additional entries to merge into the state_dict save() builds. Empty by</span>
+<span class="sd">            default (no extra parameters).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extra_load_kwargs</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">_state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Hook for subclasses to pop() their extra _extra_save_state() entries back out of</span>
+<span class="sd">        the loaded state_dict and turn them into constructor kwargs - the counterpart to</span>
+<span class="sd">        _extra_save_state(), avoiding the need to re-implement load() just to</span>
+<span class="sd">        restore one more field.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            state_dict: The loaded state_dict, after &quot;centers&quot;/&quot;widths&quot;/&quot;class_name&quot;</span>
+<span class="sd">                have already been popped by load(). Subclasses should pop() their own</span>
+<span class="sd">                extra keys from this (mutating it) rather than merely reading them.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Additional keyword arguments to pass to the subclass&#39; constructor. Empty by</span>
+<span class="sd">            default (no extra parameters).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySet.save">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the fuzzy set to a file.</span>
+
+<span class="sd">        Note: This does not preserve the ParameterList structure, but rather concatenates the</span>
+<span class="sd">        parameters into a single tensor, which is then saved to a file.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary containing the state of the fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">check_path_to_save_torch_module</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;class_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;centers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span>  <span class="c1"># concatenate the centers</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;widths&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">()</span>  <span class="c1"># concatenate the widths</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_mask</span><span class="p">()</span>  <span class="c1"># currently not used</span>
+        <span class="n">state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_extra_save_state</span><span class="p">())</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">state_dict</span></div>
+
+
+<div class="viewcode-block" id="FuzzySet.load">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.load">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="c1"># @log_classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;FuzzySet&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load the fuzzy set from a file and put it on the specified device.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">centers</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;centers&quot;</span><span class="p">)</span>
+        <span class="n">widths</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;widths&quot;</span><span class="p">)</span>
+        <span class="n">class_name</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;class_name&quot;</span><span class="p">)</span>
+        <span class="n">subclass</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_subclass</span><span class="p">(</span><span class="n">class_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">subclass</span><span class="p">(</span>
+            <span class="n">centers</span><span class="o">=</span><span class="n">centers</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+            <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">subclass</span><span class="o">.</span><span class="n">_extra_load_kwargs</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
+                <span class="n">state_dict</span>
+            <span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySet.extend">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.extend">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">centers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">widths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Given additional parameters, centers and widths, extend the existing self.centers and</span>
+<span class="sd">        self.widths, respectively. Additionally, update the necessary backend logic.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            centers: The centers of new fuzzy sets.</span>
+<span class="sd">            widths: The widths of new fuzzy sets.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;vertical&quot;</span><span class="p">:</span>
+            <span class="n">method_of_extension</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;horizontal&quot;</span><span class="p">:</span>
+            <span class="n">method_of_extension</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hstack</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The mode must be either &#39;horizontal&#39; or &#39;vertical&#39;, but got &#39;</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+                <span class="n">method_of_extension</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">centers</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">widths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+                <span class="n">method_of_extension</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">widths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">widths</span><span class="p">])</span>
+            <span class="p">)</span>
+        <span class="c1"># the fuzzy set now describes more terms, so previously calculated membership degrees</span>
+        <span class="c1"># no longer have the right shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_membership_cache</span><span class="p">()</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySet.area">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.area">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the area beneath the fuzzy curve (i.e., membership function) using torchquad.</span>
+
+<span class="sd">        This is a slightly expensive operation, but it is used for approximating the Mamdani fuzzy</span>
+<span class="sd">        inference with arbitrary continuous fuzzy sets.</span>
+
+<span class="sd">        Typically, the results will be cached somewhere, so that the area value can be reused.</span>
+
+<span class="sd">        Splits the fuzzy set (if representing a fuzzy variable) into individual fuzzy sets (the</span>
+<span class="sd">        fuzzy variable&#39;s possible fuzzy terms), and does so recursively until the base case is</span>
+<span class="sd">        reached. Once the base case is reached (i.e., a single fuzzy set), the area under its</span>
+<span class="sd">        curve within the integration_domain is calculated.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">all_areas</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">variable_params</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">()):</span>
+            <span class="n">variable_centers</span><span class="p">,</span> <span class="n">variable_widths</span> <span class="o">=</span> <span class="n">variable_params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">variable_params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">variable_areas</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">term_params</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">variable_centers</span><span class="p">,</span> <span class="n">variable_widths</span><span class="p">):</span>
+                <span class="n">centers</span><span class="p">,</span> <span class="n">widths</span> <span class="o">=</span> <span class="n">term_params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">term_params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="c1"># has to be &quot;cpu&quot; device for torchquad.Simpson to work</span>
+                <span class="n">fuzzy_set</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+                    <span class="n">centers</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">centers</span><span class="p">]),</span>
+                    <span class="n">widths</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">widths</span><span class="p">]),</span>
+                    <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Enable GPU support if available and set the floating point</span>
+                <span class="c1"># precision</span>
+                <span class="n">set_up_backend</span><span class="p">(</span><span class="s2">&quot;torch&quot;</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">)</span>
+
+                <span class="n">simpson_method</span> <span class="o">=</span> <span class="n">torchquad</span><span class="o">.</span><span class="n">Simpson</span><span class="p">()</span>
+                <span class="n">area</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">simpson_method</span><span class="o">.</span><span class="n">integrate</span><span class="p">(</span>
+                    <span class="n">fuzzy_set</span><span class="o">.</span><span class="n">calculate_membership</span><span class="p">,</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">N</span><span class="o">=</span><span class="mi">101</span><span class="p">,</span>
+                    <span class="n">integration_domain</span><span class="o">=</span><span class="p">[</span>
+                        <span class="p">[</span>
+                            <span class="n">fuzzy_set</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                            <span class="o">-</span> <span class="n">fuzzy_set</span><span class="o">.</span><span class="n">get_widths</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+                            <span class="n">fuzzy_set</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                            <span class="o">+</span> <span class="n">fuzzy_set</span><span class="o">.</span><span class="n">get_widths</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+                        <span class="p">]</span>
+                    <span class="p">],</span>
+                    <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;torch&quot;</span><span class="p">,</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">fuzzy_set</span><span class="o">.</span><span class="n">get_widths</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">area</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
+                    <span class="c1"># if the width of a fuzzy set is negative or zero, it is a special flag that</span>
+                    <span class="c1"># the fuzzy set does not exist; thus, the calculated area of a fuzzy set w/ a</span>
+                    <span class="c1"># width &lt;= 0 should be zero. However, in the case this does not occur,</span>
+                    <span class="c1"># a zero will substitute to be sure that this issue does</span>
+                    <span class="c1"># not affect results</span>
+                    <span class="n">area</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">variable_areas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">area</span><span class="p">)</span>
+            <span class="n">all_areas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variable_areas</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">all_areas</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySet.split_by_variables">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.split_by_variables">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">split_by_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="s2">&quot;FuzzySet&quot;</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This operation takes the FuzzySet and converts it to a list of FuzzySet</span>
+<span class="sd">        objects, if applicable. For example, rather than using a single Gaussian object to represent</span>
+<span class="sd">        all Gaussian membership functions in the input space, this function will convert that to a</span>
+<span class="sd">        list of Gaussian objects, where each Gaussian function is defined and restricted to a single</span>
+<span class="sd">        input dimension. This is particularly helpful when modifying along a specific dimension.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of FuzzySet objects, where the length is equal to the number</span>
+<span class="sd">            of input dimensions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">variables</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">centers</span><span class="p">,</span> <span class="n">widths</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">()):</span>
+            <span class="n">centers</span> <span class="o">=</span> <span class="n">centers</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">widths</span> <span class="o">=</span> <span class="n">widths</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+            <span class="c1"># the centers and widths must be trimmed to remove missing fuzzy</span>
+            <span class="c1"># set placeholders</span>
+            <span class="n">trimmed_centers</span><span class="p">,</span> <span class="n">trimmed_widths</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">center</span><span class="p">,</span> <span class="n">width</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">widths</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">width</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># if an input dimension has less fuzzy sets than another,</span>
+                    <span class="c1"># then it is possible for the width entry to have &#39;-1&#39; as a</span>
+                    <span class="c1"># placeholder indicating so</span>
+                    <span class="n">trimmed_centers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">center</span><span class="p">)</span>
+                    <span class="n">trimmed_widths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">width</span><span class="p">)</span>
+
+            <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+                    <span class="n">centers</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">trimmed_centers</span><span class="p">),</span>
+                    <span class="n">widths</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">trimmed_widths</span><span class="p">),</span>
+                    <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">variables</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySet.plot">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.plot">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">selected_terms</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the fuzzy set.</span>
+
+<span class="sd">        A thin convenience wrapper: data preparation and matplotlib rendering live in</span>
+<span class="sd">        fuzzy.sets.visualization.FuzzySetPlot - imported lazily here so that importing</span>
+<span class="sd">        this module (and therefore FuzzySet itself) does not require</span>
+<span class="sd">        matplotlib/scienceplots unless plotting is actually used.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            output_dir: The path to the directory where to save the plot(s).</span>
+<span class="sd">            selected_terms: The terms to highlight in the plot.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A 2-tuple containing the figures and axes of the plot for each variable (e.g., 0th</span>
+<span class="sd">            index contains the figure and axes for the 0th variable).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># pylint: disable-next=import-outside-toplevel</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.visualization</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySetPlot</span>
+
+        <span class="n">plot</span> <span class="o">=</span> <span class="n">FuzzySetPlot</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">variable_plots</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">selected_terms</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">plot</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">variable_plots</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FuzzySet.count_granule_terms">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.count_granule_terms">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="c1"># @log_func</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">count_granule_terms</span><span class="p">(</span><span class="n">granules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s2">&quot;FuzzySet&quot;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Count the number of granules that occur in each dimension.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            granules: A list of granules, where each granule is a FuzzySet object.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A Numpy array with shape (len(granules), ) and the data type is integer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span>
+                    <span class="n">params</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                    <span class="k">else</span> <span class="mi">0</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">granules</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FuzzySet.stack">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.stack">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="c1"># @log_func</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stack</span><span class="p">(</span>
+        <span class="n">granules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s2">&quot;FuzzySet&quot;</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;FuzzySet&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a condensed and stacked representation of the given granules.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            granules: A list of granules, where each granule is a FuzzySet object.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A FuzzySet object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">list</span><span class="p">(</span><span class="n">granules</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="n">missing_center</span><span class="p">,</span> <span class="n">missing_width</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">missing_center</span> <span class="o">=</span> <span class="n">missing_width</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="n">centers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                        <span class="n">params</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span>
+                        <span class="n">pad</span><span class="o">=</span><span class="p">(</span>
+                            <span class="mi">0</span><span class="p">,</span>
+                            <span class="n">FuzzySet</span><span class="o">.</span><span class="n">count_granule_terms</span><span class="p">(</span><span class="n">granules</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                            <span class="o">-</span> <span class="n">params</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="p">),</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+                        <span class="n">value</span><span class="o">=</span><span class="n">missing_center</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                    <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">missing_center</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+                        <span class="n">FuzzySet</span><span class="o">.</span><span class="n">count_granule_terms</span><span class="p">(</span><span class="n">granules</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">granules</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">widths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                        <span class="n">params</span><span class="o">.</span><span class="n">get_widths</span><span class="p">(),</span>
+                        <span class="n">pad</span><span class="o">=</span><span class="p">(</span>
+                            <span class="mi">0</span><span class="p">,</span>
+                            <span class="n">FuzzySet</span><span class="o">.</span><span class="n">count_granule_terms</span><span class="p">(</span><span class="n">granules</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                            <span class="o">-</span> <span class="n">params</span><span class="o">.</span><span class="n">get_widths</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="p">),</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+                        <span class="n">value</span><span class="o">=</span><span class="n">missing_width</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                    <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">missing_center</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+                        <span class="n">FuzzySet</span><span class="o">.</span><span class="n">count_granule_terms</span><span class="p">(</span><span class="n">granules</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">granules</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># prepare a condensed and stacked representation of the granules</span>
+        <span class="n">mf_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">granules</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">mf_type</span><span class="p">(</span>
+            <span class="n">centers</span><span class="o">=</span><span class="n">centers</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+            <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">centers</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FuzzySet.sympy_formula">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.sympy_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="c1"># @log_classmethod</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sympy_formula</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The abstract method that defines the membership function of the fuzzy set using sympy.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A sympy.Expr object that represents the membership function of the fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="FuzzySet.calculate_membership">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.calculate_membership">[docs]</a>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_membership</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership degrees of the observations for this fuzzy set.</span>
+
+<span class="sd">        Implementations are expected to be a pure function of the observations and this fuzzy</span>
+<span class="sd">        set&#39;s parameters, as the result may be memoized (see fuzzy.sets.cache).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership degrees for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for this fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="FuzzySet.parameter_signature">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.parameter_signature">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parameter_signature</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParameterSignature</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Summarize the parameters that a membership calculation depends upon, so that the</span>
+<span class="sd">        membership cache can tell when a memoized result has been outdated by a parameter</span>
+<span class="sd">        changing (as happens on every optimizer step).</span>
+
+<span class="sd">        Subclasses with additional parameters of their own should extend this; otherwise their</span>
+<span class="sd">        memberships would be re-used after those parameters were updated.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A signature of this fuzzy set&#39;s parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">signature_of</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_mask</span><span class="p">()])</span></div>
+
+
+<div class="viewcode-block" id="FuzzySet.clear_membership_cache">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.clear_membership_cache">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear_membership_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Discard any memoized membership degrees, forcing the next call to recalculate them.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cache</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">MembershipCache</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_membership_cache&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cache</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">disable</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_lookup_membership</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Membership</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve memoized membership degrees for the given observations, if they are still valid.</span>
+
+<span class="sd">        The cache is looked up defensively so that a torch.jit.script&#39;ed copy of this module -</span>
+<span class="sd">        which does not carry the cache over - simply calculates the membership degrees instead</span>
+<span class="sd">        of failing.</span>
+
+<span class="sd">        @torch.compiler.disable mirrors the @torch.jit.ignore above, for the same reason:</span>
+<span class="sd">        this method&#39;s parameter_signature() call (see below) reads id(tensor), which</span>
+<span class="sd">        torch.compile&#39;s Dynamo tracer cannot trace through (identity is not a</span>
+<span class="sd">        graph-representable concept) - telling Dynamo not to trace into this method at</span>
+<span class="sd">        all, running it eagerly instead, is both correct (the cache is a pure Python-side</span>
+<span class="sd">        optimization, redundant once the surrounding model is already compiled) and</span>
+<span class="sd">        necessary (without it, Dynamo hits the untraceable id() call and breaks the</span>
+<span class="sd">        graph anyway, just less predictably).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations that membership degrees are wanted for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The memoized Membership, or None if it has to be calculated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cache</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">MembershipCache</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_membership_cache&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">cache</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+            <span class="c1"># skip computing parameter_signature() (which reads id(tensor) per</span>
+            <span class="c1"># parameter) when there is no cache to serve the lookup anyway or it is</span>
+            <span class="c1"># disabled - cache.lookup() would discard the signature unused, but as a</span>
+            <span class="c1"># function-call argument it would already have been computed by the time</span>
+            <span class="c1"># cache.lookup() runs to discard it</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">cache</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_signature</span><span class="p">())</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">disable</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_store_membership</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Memoize the membership degrees calculated for the given observations.</span>
+
+<span class="sd">        See _lookup_membership&#39;s docstring for why this is also marked</span>
+<span class="sd">        @torch.compiler.disable and skips parameter_signature() when there is nothing</span>
+<span class="sd">        to store it into.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations the membership degrees were calculated for.</span>
+<span class="sd">            membership: The calculated membership degrees and mask.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cache</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">MembershipCache</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_membership_cache&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cache</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+            <span class="n">cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_signature</span><span class="p">(),</span> <span class="n">membership</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_membership_nan_safe</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate membership degrees without letting a NaN observation (representing a</span>
+<span class="sd">        missing value - see e.g. NAryRelation&#39;s nan_replacement) corrupt the gradient of</span>
+<span class="sd">        this fuzzy set&#39;s parameters for every OTHER, valid observation that shares them.</span>
+
+<span class="sd">        A membership formula such as Gaussian&#39;s exp(-((x-c)^2)/(2w^2)) has a local</span>
+<span class="sd">        derivative with respect to its parameters that is itself NaN whenever x is NaN,</span>
+<span class="sd">        regardless of what the downstream loss actually needs from that observation.</span>
+<span class="sd">        Since centers/widths are shared across the whole batch, PyTorch&#39;s chain rule</span>
+<span class="sd">        would otherwise multiply that NaN local derivative through - 0 * NaN = NaN under</span>
+<span class="sd">        IEEE754 - silently corrupting the gradient for the entire training step, not just</span>
+<span class="sd">        the one missing observation. Calculating on a NaN-free substitute, then</span>
+<span class="sd">        re-injecting NaN into the *output* via a constant (gradient-disconnected)</span>
+<span class="sd">        substitution, keeps the &quot;NaN observation -&gt; NaN degree&quot; contract callers already</span>
+<span class="sd">        rely on, while torch.where&#39;s backward pass correctly contributes zero gradient at</span>
+<span class="sd">        exactly those positions instead of NaN.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The (already-prepared) observations to calculate membership for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees, identical in value to calculate_membership(observations),</span>
+<span class="sd">            but safe to backpropagate through even when some observations are NaN.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nan_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">observations</span><span class="p">)</span>
+        <span class="c1"># a free (no GPU sync), crude estimate of what the resulting degrees tensor&#39;s</span>
+        <span class="c1"># size will be, used only to decide whether syncing to ask &quot;is there any NaN</span>
+        <span class="c1"># at all?&quot; is worth its cost - see _nan_safe_sync_threshold_numel</span>
+        <span class="n">estimated_degrees_numel</span> <span class="o">=</span> <span class="n">observations</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">estimated_degrees_numel</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nan_safe_sync_threshold_numel</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span>
+            <span class="n">nan_mask</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_membership</span><span class="p">(</span><span class="n">observations</span><span class="p">)</span>
+
+        <span class="n">safe_observations</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">nan_mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">observations</span><span class="p">),</span> <span class="n">observations</span>
+        <span class="p">)</span>
+        <span class="n">degrees</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_membership</span><span class="p">(</span><span class="n">safe_observations</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">nan_mask</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">degrees</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">degrees</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)),</span> <span class="n">degrees</span>
+        <span class="p">)</span>
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="FuzzySet.forward">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Membership</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward pass of the function. Applies the function to the input elementwise.</span>
+
+<span class="sd">        The membership degrees are memoized; calling this again with the same observations, while</span>
+<span class="sd">        this fuzzy set&#39;s parameters are unchanged, returns the very same result rather than</span>
+<span class="sd">        recalculating it. Gradients are unaffected, as the returned tensor carries the autograd</span>
+<span class="sd">        graph it was originally built with. Note that a repeated call therefore hands back the</span>
+<span class="sd">        same tensor object, which must not be modified in place. Memoization can be turned off</span>
+<span class="sd">        per fuzzy set with cache_membership=False, or reset with clear_membership_cache().</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: Two-dimensional matrix of observations, where a row is a single</span>
+<span class="sd">            observation and each column is related to an attribute measured during that observation.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for this fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">is_compiling</span><span class="p">():</span>
+            <span class="c1"># guarded so torch.compile(fullgraph=True) never traces into the</span>
+            <span class="c1"># @torch.compiler.disable&#39;d cache methods below - Dynamo specializes</span>
+            <span class="c1"># is_compiling() to a compile-time constant, so this branch is pruned</span>
+            <span class="c1"># entirely (not merely skipped) while tracing, avoiding the graph break</span>
+            <span class="c1"># that calling a disabled function would otherwise force</span>
+            <span class="n">cached</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Membership</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_membership</span><span class="p">(</span><span class="n">observations</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">cached</span>
+
+        <span class="n">original_observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">observations</span>
+        <span class="k">if</span> <span class="n">observations</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">degrees</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_membership_nan_safe</span><span class="p">(</span><span class="n">observations</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_degrees</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="n">degrees</span><span class="o">.</span><span class="n">isnan</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+            <span class="p">),</span> <span class="s2">&quot;NaN values detected in the membership degrees.&quot;</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="n">degrees</span><span class="o">.</span><span class="n">isinf</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+            <span class="p">),</span> <span class="s2">&quot;Infinite values detected in the membership degrees.&quot;</span>
+
+        <span class="n">membership</span> <span class="o">=</span> <span class="n">Membership</span><span class="p">(</span>
+            <span class="n">degrees</span><span class="o">=</span><span class="n">degrees</span><span class="o">.</span><span class="n">to_sparse</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_sparse</span> <span class="k">else</span> <span class="n">degrees</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_mask</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">is_compiling</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_store_membership</span><span class="p">(</span><span class="n">original_observations</span><span class="p">,</span> <span class="n">membership</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">membership</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

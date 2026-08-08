@@ -1,0 +1,612 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.logic.knowledge_base &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.logic.knowledge_base</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.logic.knowledge_base</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Implements the vital KnowledgeBase class.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">ast</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">importlib.util</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">igraph</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ig</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rough.decisions</span><span class="w"> </span><span class="kn">import</span> <span class="n">RoughDecisions</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.logic.control.configurations.abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySystem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.logic.control.configurations.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">GranulationLayers</span><span class="p">,</span> <span class="n">Shape</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.logic.rule</span><span class="w"> </span><span class="kn">import</span> <span class="n">Rule</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.logic.rulebase</span><span class="w"> </span><span class="kn">import</span> <span class="n">RuleBase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.logic.variables</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinguisticVariables</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.relations.n_ary</span><span class="w"> </span><span class="kn">import</span> <span class="n">NAryRelation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.relations.t_norm</span><span class="w"> </span><span class="kn">import</span> <span class="n">TNorm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.sets.abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.sets.group</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySetGroup</span>
+
+
+<div class="viewcode-block" id="KnowledgeBase">
+<a class="viewcode-back" href="../../../_source/fuzzy.logic.html#fuzzy.logic.knowledge_base.KnowledgeBase">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">KnowledgeBase</span><span class="p">(</span><span class="n">RoughDecisions</span><span class="p">,</span> <span class="n">FuzzySystem</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The KnowledgeBase class is a significant component to this Soft Computing library.</span>
+
+<span class="sd">    As the name suggests, it implements the concept of a Knowledge Base in the</span>
+<span class="sd">    field of Artificial Intelligence.</span>
+
+<span class="sd">    Its implementation is abstract and generic, using a graph structure (i.e., self.graph)</span>
+<span class="sd">    to store facts, data, functions, implications, relations, etc. in the form</span>
+<span class="sd">    of vertices or edges, whichever is most appropriate.</span>
+
+<span class="sd">    Typically, facts, data, and functions are vertices, whereas implications and</span>
+<span class="sd">    relations are implemented with edges in the graph structure.</span>
+
+<span class="sd">    The distinction between what each vertex represents is made by the</span>
+<span class="sd">    vertex&#39;s attributes, such as &#39;tags&#39;.</span>
+
+<span class="sd">    The same can be said for edges.</span>
+
+<span class="sd">    For example, fuzzy sets may exist in the KnowledgeBase&#39;s graph (i.e., self.graph)</span>
+<span class="sd">    as vertices, and how those fuzzy sets are used is represented with an edge. At the time of</span>
+<span class="sd">    writing (4/14/2023), these fuzzy sets are connected to another vertex representing the t-norm</span>
+<span class="sd">    in which they are aggregated together (e.g., hot weather and cold soup) to offer flexibility</span>
+<span class="sd">    in the choice of t-norm. In other words, it is possible to construct a KnowledgeBase where</span>
+<span class="sd">    each fuzzy logic rule has its own independent t-norm definition. Then, this vertex representing</span>
+<span class="sd">    the compound relation between the fuzzy sets can be interpreted as an antecedent,</span>
+<span class="sd">    if a directed edge is connected from this compound relation to another compound relation</span>
+<span class="sd">    such that (source_vertex, target_vertex) represent antecedents and consequences, respectively.</span>
+
+<span class="sd">    Naturally, this allows for fuzzy sets to be dynamically added or removed from fuzzy rules,</span>
+<span class="sd">    or fuzzy rules to be dynamically added or removed. Allowing for the process of</span>
+<span class="sd">    self-organizing with various methods (e.g., genetic algorithms, unsupervised learning,</span>
+<span class="sd">    rough set theory) to be somewhat easily incorporated.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Shape</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule_base</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">granulation_layers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GranulationLayers</span><span class="p">:</span>
+        <span class="n">layers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;premise&quot;</span><span class="p">,</span> <span class="s2">&quot;consequence&quot;</span><span class="p">]):</span>
+            <span class="n">group_vertices</span><span class="p">:</span> <span class="n">ig</span><span class="o">.</span><span class="n">VertexSeq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_by_tags</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="n">layer</span><span class="p">,</span> <span class="s2">&quot;group&quot;</span><span class="p">})</span>
+            <span class="c1"># default to None if no granules</span>
+            <span class="n">layer</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">FuzzySetGroup</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">group_vertices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">layer</span><span class="p">:</span> <span class="n">FuzzySetGroup</span> <span class="o">=</span> <span class="n">group_vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;item&quot;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">group_vertices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Ambiguous selection of </span><span class="si">{</span><span class="n">layer</span><span class="si">}</span><span class="s2"> group.&quot;</span><span class="p">)</span>
+
+            <span class="n">layers</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">layer</span>
+
+        <span class="k">return</span> <span class="n">GranulationLayers</span><span class="p">(</span><span class="o">**</span><span class="n">layers</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TNorm</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fetch the fuzzy logic inference engine from the KnowledgeBase.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The fuzzy logic inference engine.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule_base</span><span class="o">.</span><span class="n">premises</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rules</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Rule</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of fuzzy logic rules, where each element in the list is a Rule object.</span>
+
+<span class="sd">        Note: This retrieves the rules from the KnowledgeBase&#39;s graph, as opposed to simply</span>
+<span class="sd">        retrieving the rules from an attribute. This is because the KnowledgeBase&#39;s graph</span>
+<span class="sd">        can be analyzed, modified, and used to create new rules.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of fuzzy logic rules (as instances of Rule), ordered by their creation</span>
+<span class="sd">            (i.e., rule&#39;s id attribute).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rule_vertices</span><span class="p">:</span> <span class="n">ig</span><span class="o">.</span><span class="n">VertexSeq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_by_tags</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="s2">&quot;rule&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">rule</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">rule_vertices</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">rule</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">id</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rule_base</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleBase</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the RuleBase object from the KnowledgeBase; automatically determine the device.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A RuleBase object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">RuleBase</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+<div class="viewcode-block" id="KnowledgeBase.get_granules">
+<a class="viewcode-back" href="../../../_source/fuzzy.logic.html#fuzzy.logic.knowledge_base.KnowledgeBase.get_granules">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_granules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">ig</span><span class="o">.</span><span class="n">VertexSeq</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Given a set of tags, find the granules in the KnowledgeBase.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            tags: The tags to filter the granules by.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The granules in the KnowledgeBase (their vertex sequence).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">tags</span> <span class="o">=</span> <span class="p">{</span><span class="n">tags</span><span class="p">}</span>
+        <span class="n">all_matching_vertices</span><span class="p">:</span> <span class="n">ig</span><span class="o">.</span><span class="n">VertexSeq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_by_tags</span><span class="p">(</span>
+            <span class="n">tags</span><span class="o">=</span><span class="n">tags</span> <span class="o">|</span> <span class="p">{</span><span class="s2">&quot;granule&quot;</span><span class="p">}</span>
+        <span class="p">)</span>
+        <span class="c1"># drop the FuzzySetGroup, as they are not part of the granules</span>
+        <span class="k">return</span> <span class="n">all_matching_vertices</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">vertex</span><span class="p">:</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vertex</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">],</span> <span class="n">FuzzySetGroup</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KnowledgeBase.intra_dimensions">
+<a class="viewcode-back" href="../../../_source/fuzzy.logic.html#fuzzy.logic.knowledge_base.KnowledgeBase.intra_dimensions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">intra_dimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the dimensionality within dimensions. For example, calculate the</span>
+<span class="sd">        number of linguistic terms available for the first input variable, and the</span>
+<span class="sd">        second input variable, and so on. The result is a calculation for each variable,</span>
+<span class="sd">        stored as a 1-dimensional Numpy array.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            tags: A string or a set of strings that are used to filter the vertices</span>
+<span class="sd">            in the graph to find the granules.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A 1-dimensional Numpy array where each element is a count of</span>
+<span class="sd">            the possible terms for their respective dimension</span>
+<span class="sd">            (e.g., the 0th element may say 3, meaning that</span>
+<span class="sd">            there are 3 possible terms/sets within the first dimension).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># fetch the created vertex by stack_granules, get its input vertices, and finally its names</span>
+        <span class="c1"># granules = self.graph.vs.find(source_eq=add_stacked_granule.__name__)[&#39;input&#39;][&#39;type&#39;]</span>
+        <span class="n">granule_vertices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_granules</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span>
+                    <span class="n">params</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                    <span class="k">else</span> <span class="mi">0</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">granule_vertices</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">]</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KnowledgeBase.attributes">
+<a class="viewcode-back" href="../../../_source/fuzzy.logic.html#fuzzy.logic.knowledge_base.KnowledgeBase.attributes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">element</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fetch the attributes and their values for the given element.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            element: An element or object in the universe of discourse.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary where each key is the attribute type (or relation)</span>
+<span class="sd">            and the value associated with the key is the value of that attribute</span>
+<span class="sd">            (or unique auto-generated id for relations).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">equivalence_classes</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">element</span><span class="p">]</span>
+        <span class="c1"># dictionary to store the attribute (key) to its value (values) for</span>
+        <span class="c1"># element</span>
+        <span class="n">attributes_values</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">attribute_name</span><span class="p">,</span> <span class="n">equivalences</span> <span class="ow">in</span> <span class="n">equivalence_classes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">attributes_values</span><span class="p">[</span><span class="n">attribute_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribute_table</span><span class="p">[</span>
+                <span class="nb">frozenset</span><span class="p">({</span><span class="n">attribute_name</span><span class="p">,</span> <span class="n">equivalences</span><span class="p">})</span>
+            <span class="p">]</span>
+        <span class="k">return</span> <span class="n">attributes_values</span></div>
+
+
+<div class="viewcode-block" id="KnowledgeBase.save">
+<a class="viewcode-back" href="../../../_source/fuzzy.logic.html#fuzzy.logic.knowledge_base.KnowledgeBase.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save this Knowledgebase object for later use.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The path to the directory that this KnowledgeBase should be saved at.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># save the attribute table</span>
+        <span class="n">path_to_attribute_table</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;attribute_table.pickle&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path_to_attribute_table</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attribute_table</span><span class="p">,</span> <span class="n">handle</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="n">pickle</span><span class="o">.</span><span class="n">HIGHEST_PROTOCOL</span><span class="p">)</span>
+
+        <span class="c1"># backup the graph&#39;s attributes</span>
+        <span class="n">deepcopy_graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># save the FuzzySet objects</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_granules</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">FuzzySet</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
+        <span class="c1"># save the FuzzySetGroup objects (hypercubes)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_granules</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">FuzzySetGroup</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="c1"># save the Rule objects</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_granules</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">Rule</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="c1"># save the NAryRelation objects</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_granules</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">NAryRelation</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
+
+        <span class="n">path_to_graph</span> <span class="o">=</span> <span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;graph&quot;</span>
+        <span class="n">path_to_graph</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># save the graph vertices and edges</span>
+        <span class="n">vertices_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">get_vertex_dataframe</span><span class="p">()</span>
+        <span class="n">vertices_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path_to_graph</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">&#39;vertices&#39;</span><span class="si">}</span><span class="s2">.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">edges_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">get_edge_dataframe</span><span class="p">()</span>
+        <span class="n">edges_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path_to_graph</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">&#39;edges&#39;</span><span class="si">}</span><span class="s2">.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path_to_graph</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">&#39;network&#39;</span><span class="si">}</span><span class="s2">.graphml&quot;</span><span class="p">)</span>
+
+        <span class="c1"># restore the graph&#39;s attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">deepcopy_graph</span></div>
+
+
+<div class="viewcode-block" id="KnowledgeBase.save_granules">
+<a class="viewcode-back" href="../../../_source/fuzzy.logic.html#fuzzy.logic.knowledge_base.KnowledgeBase.save_granules">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_granules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">class_type</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">extension</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the granules to the given path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The path to the directory that the granules should be saved at.</span>
+<span class="sd">            class_type: The type of the granules.</span>
+<span class="sd">            extension: The file extension to save the granules as.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># find any granules that are instances of the class type</span>
+        <span class="n">matched_objects</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ig</span><span class="o">.</span><span class="n">Vertex</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">vertex</span> <span class="k">for</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">vs</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vertex</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">],</span> <span class="n">class_type</span><span class="p">)</span>
+        <span class="p">]</span>  <span class="c1"># the index refers to the KnowledgeBase&#39;s graph&#39;s index of the vertex</span>
+
+        <span class="c1"># save the granules</span>
+        <span class="k">for</span> <span class="n">granule_vertex</span> <span class="ow">in</span> <span class="n">matched_objects</span><span class="p">:</span>
+            <span class="n">granule</span> <span class="o">=</span> <span class="n">granule_vertex</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">]</span>  <span class="c1"># granule is the object instance</span>
+            <span class="c1"># create the directory to save the granule in</span>
+            <span class="n">subdirectory</span> <span class="o">=</span> <span class="n">path</span> <span class="o">/</span> <span class="n">class_type</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">/</span> <span class="nb">str</span><span class="p">(</span><span class="n">granule_vertex</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+            <span class="n">subdirectory</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">actual_path</span> <span class="o">=</span> <span class="n">subdirectory</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">granule</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">granule</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">actual_path</span><span class="p">)</span>  <span class="c1"># ignore the return value</span>
+            <span class="n">granule_vertex</span><span class="p">[</span><span class="s2">&quot;file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">actual_path</span>  <span class="c1"># store the path to the granule to load from</span>
+            <span class="p">)</span>
+            <span class="c1"># remove object instance from the graph</span>
+            <span class="n">granule_vertex</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">granule</span><span class="o">.</span><span class="vm">__module__</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">granule</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="KnowledgeBase.add_hypercube">
+<a class="viewcode-back" href="../../../_source/fuzzy.logic.html#fuzzy.logic.knowledge_base.KnowledgeBase.add_hypercube">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_hypercube</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">ig</span><span class="o">.</span><span class="n">Vertex</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructs the granules for this mapping in a format that will be compatible with the</span>
+<span class="sd">        expected functionality. Also, modifies a Knowledgebase such that the condensed</span>
+<span class="sd">        (i.e., stacked) version of the granules is readily available.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            tags: The tags that indicate which granules to stack.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A single membership function that combines all the granules for faster computation; if</span>
+<span class="sd">            there is an uneven number of granules in each dimension, then the values (e.g.,</span>
+<span class="sd">            centers, widths) have been padded with torch.nan (if not trainable) or 0 for centers</span>
+<span class="sd">            and -1 for widths (if trainable).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">tags</span> <span class="o">=</span> <span class="p">{</span><span class="n">tags</span><span class="p">}</span>
+        <span class="c1"># get the granules from the KnowledgeBase</span>
+        <span class="n">granule_vertices</span><span class="p">:</span> <span class="n">ig</span><span class="o">.</span><span class="n">seq</span><span class="o">.</span><span class="n">VertexSeq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_by_tags</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">granule_vertices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># from the igraph.VertexSeq object, extract the granules, stored in</span>
+            <span class="c1"># the &quot;type&quot; attribute</span>
+            <span class="n">granules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">FuzzySet</span><span class="p">]</span> <span class="o">=</span> <span class="n">granule_vertices</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">]</span>
+            <span class="c1"># create the efficient granule module</span>
+            <span class="n">stacked_granules</span><span class="p">:</span> <span class="n">FuzzySet</span> <span class="o">=</span> <span class="n">FuzzySet</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">granules</span><span class="p">)</span>
+            <span class="n">hypercube</span><span class="p">:</span> <span class="n">FuzzySetGroup</span> <span class="o">=</span> <span class="n">FuzzySetGroup</span><span class="p">(</span><span class="n">modules_list</span><span class="o">=</span><span class="p">[</span><span class="n">stacked_granules</span><span class="p">])</span>
+            <span class="c1"># store the efficient granule module in the KnowledgeBase</span>
+            <span class="n">target_vertex</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">ig</span><span class="o">.</span><span class="n">Vertex</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">add_vertex</span><span class="p">(</span>
+                <span class="c1"># source=add_stacked_granule,</span>
+                <span class="n">item</span><span class="o">=</span><span class="n">hypercube</span><span class="p">,</span>
+                <span class="n">tags</span><span class="o">=</span><span class="n">tags</span> <span class="o">|</span> <span class="p">{</span><span class="s2">&quot;group&quot;</span><span class="p">},</span>
+                <span class="c1"># add the same tags as the granules w/ &quot;group&quot;</span>
+                <span class="c1"># input=list(granule_vertices.indices),  # store the vertex</span>
+                <span class="c1"># indices</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">target_vertex</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># add edges that point from the granules to the stacked granule</span>
+                <span class="c1"># representation</span>
+                <span class="n">edges</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">granule</span> <span class="ow">in</span> <span class="n">granule_vertices</span><span class="p">:</span>
+                    <span class="n">edges</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">granule</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">target_vertex</span><span class="o">.</span><span class="n">index</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">add_edges</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">target_vertex</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="KnowledgeBase.create">
+<a class="viewcode-back" href="../../../_source/fuzzy.logic.html#fuzzy.logic.knowledge_base.KnowledgeBase.create">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span>
+        <span class="n">linguistic_variables</span><span class="p">:</span> <span class="n">LinguisticVariables</span><span class="p">,</span>
+        <span class="n">rules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Rule</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;KnowledgeBase&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A convenient helper method for the expert-design procedure of a Knowledge Base.</span>
+<span class="sd">        The linguistic variable&#39;s inputs member contains the premises and the targets</span>
+<span class="sd">        member contains the consequences.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            linguistic_variables: The linguistic variables involved and their terms.</span>
+<span class="sd">            rules: The fuzzy logic rules; must be non-empty.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A KnowledgeBase object, with the linguistic_variables (i.e., antecedents, consequents),</span>
+<span class="sd">            and fuzzy logic rules added.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rules</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;No fuzzy logic rules were provided.&quot;</span><span class="p">)</span>
+        <span class="c1"># gather the premises&#39; graphs</span>
+        <span class="n">rule_graphs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ig</span><span class="o">.</span><span class="n">Graph</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">rules</span><span class="p">:</span>
+            <span class="n">rule_graph</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ig</span><span class="o">.</span><span class="n">Graph</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;premise&quot;</span><span class="p">,</span> <span class="s2">&quot;consequence&quot;</span><span class="p">]:</span>
+                <span class="n">rule_component</span><span class="p">:</span> <span class="n">NAryRelation</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span>
+                <span class="n">rule_component</span><span class="o">.</span><span class="n">create_igraph</span><span class="p">()</span>  <span class="c1"># re-create the graph to prevent malformed names</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;The rule&#39;s </span><span class="si">{</span><span class="n">component</span><span class="si">}</span><span class="s2"> must be a single relation.&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;relation&quot;</span><span class="p">,</span> <span class="s2">&quot;anchor&quot;</span><span class="p">]:</span>
+                    <span class="c1"># add the premise tag to the matched vertices</span>
+                    <span class="n">rule_component</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">vs</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">tags_eq</span><span class="o">=</span><span class="p">{</span><span class="n">tag</span><span class="p">})[</span><span class="s2">&quot;tags&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="n">component</span><span class="p">,</span>
+                        <span class="n">tag</span><span class="p">,</span>
+                    <span class="p">}</span>
+                <span class="c1"># avoid duplicate names in the graph to prevent igraph from</span>
+                <span class="c1"># merging vertices</span>
+                <span class="n">rule_component</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">vs</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">component</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">rule_component</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">vs</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+                <span class="p">]</span>
+                <span class="n">rule_graph</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rule_component</span><span class="o">.</span><span class="n">graph</span><span class="p">)</span>
+            <span class="n">rule_graphs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ig</span><span class="o">.</span><span class="n">disjoint_union</span><span class="p">(</span><span class="n">rule_graph</span><span class="p">))</span>
+
+            <span class="n">premise_relation_vertex</span> <span class="o">=</span> <span class="n">rule_graphs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">vs</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
+                <span class="n">tags_eq</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;premise&quot;</span><span class="p">,</span> <span class="s2">&quot;relation&quot;</span><span class="p">}</span>
+            <span class="p">)</span>
+            <span class="n">consequence_relation_vertex</span> <span class="o">=</span> <span class="n">rule_graphs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">vs</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
+                <span class="n">tags_eq</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;consequence&quot;</span><span class="p">,</span> <span class="s2">&quot;relation&quot;</span><span class="p">}</span>
+            <span class="p">)</span>
+            <span class="n">rule_vertex</span> <span class="o">=</span> <span class="n">rule_graphs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">add_vertex</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">hash</span><span class="p">(</span><span class="n">rule</span><span class="p">)),</span>
+                <span class="n">item</span><span class="o">=</span><span class="n">rule</span><span class="p">,</span>
+                <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;rule&quot;</span><span class="p">},</span>
+            <span class="p">)</span>
+            <span class="c1"># point the premise relation to the rule node</span>
+            <span class="n">rule_graphs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">premise_relation_vertex</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">rule_vertex</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+            <span class="c1"># point the consequence relation to the rule node</span>
+            <span class="n">rule_graphs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span>
+                <span class="n">rule_vertex</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">consequence_relation_vertex</span><span class="o">.</span><span class="n">index</span>
+            <span class="p">)</span>
+
+        <span class="n">knowledge_base</span> <span class="o">=</span> <span class="n">KnowledgeBase</span><span class="p">()</span>
+        <span class="c1"># add premises&#39; graphs to KnowledgeBase (order matters, must occur</span>
+        <span class="c1"># before .set_granules())</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rule_graphs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">knowledge_base</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">ig</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">rule_graphs</span><span class="p">,</span> <span class="n">byname</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1"># drop the name attribute to avoid malformed name identifiers</span>
+            <span class="k">del</span> <span class="n">knowledge_base</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">vs</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">attribute</span><span class="p">,</span> <span class="n">granule_layer</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="p">[</span><span class="s2">&quot;inputs&quot;</span><span class="p">,</span> <span class="s2">&quot;targets&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;premise&quot;</span><span class="p">,</span> <span class="s2">&quot;consequence&quot;</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="n">knowledge_base</span><span class="o">.</span><span class="n">set_granules</span><span class="p">(</span>
+                <span class="n">items</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">linguistic_variables</span><span class="p">,</span> <span class="n">attribute</span><span class="p">),</span>
+                <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="n">granule_layer</span><span class="p">,</span> <span class="s2">&quot;granule&quot;</span><span class="p">},</span>
+            <span class="p">)</span>
+            <span class="n">knowledge_base</span><span class="o">.</span><span class="n">add_hypercube</span><span class="p">(</span>
+                <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="n">granule_layer</span><span class="p">,</span> <span class="s2">&quot;granule&quot;</span><span class="p">}</span>
+            <span class="p">)</span>  <span class="c1"># merge this layer&#39;s granules for efficiency</span>
+
+        <span class="k">return</span> <span class="n">knowledge_base</span></div>
+
+
+<div class="viewcode-block" id="KnowledgeBase.load">
+<a class="viewcode-back" href="../../../_source/fuzzy.logic.html#fuzzy.logic.knowledge_base.KnowledgeBase.load">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;KnowledgeBase&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Given a path to a directory, load the saved KnowledgeBase object at that location.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The path to the directory that the KnowledgeBase was saved at.</span>
+<span class="sd">            device: The device to use.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            KnowledgeBase</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># the path_to_graph stores the directory that contains the graph + additional files</span>
+        <span class="c1"># Note: path_to_graph / &#39;network&#39; stores the actual graph file, but is</span>
+        <span class="c1"># not required here</span>
+        <span class="n">path_to_graph</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;graph&quot;</span>
+
+        <span class="n">vertices_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path_to_graph</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">&#39;vertices&#39;</span><span class="si">}</span><span class="s2">.csv&quot;</span><span class="p">)</span>
+        <span class="n">vertices_df</span><span class="o">.</span><span class="n">replace</span><span class="p">({</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">:</span> <span class="kc">None</span><span class="p">},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># convert np.nan to Nan</span>
+
+        <span class="n">KnowledgeBase</span><span class="o">.</span><span class="n">parse_vertex_attributes</span><span class="p">(</span><span class="n">vertices_df</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">knowledge_base</span> <span class="o">=</span> <span class="n">KnowledgeBase</span><span class="p">()</span>
+
+        <span class="c1"># load the attribute table</span>
+        <span class="n">path_to_attribute_table</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;attribute_table.pickle&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path_to_attribute_table</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+            <span class="n">knowledge_base</span><span class="o">.</span><span class="n">attribute_table</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+
+        <span class="n">vertices_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">=</span> <span class="n">vertices_df</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="p">)</span>  <span class="c1"># undo temporary -1</span>
+        <span class="c1"># remove the &#39;file&#39; column from the DataFrame</span>
+        <span class="n">vertices_df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;file&quot;</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">knowledge_base</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">ig</span><span class="o">.</span><span class="n">Graph</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="c1"># convert np.nan to None since igraph uses None and return the</span>
+            <span class="c1"># DataFrame</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path_to_graph</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">&#39;edges&#39;</span><span class="si">}</span><span class="s2">.csv&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">directed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">vertices</span><span class="o">=</span><span class="n">vertices_df</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">knowledge_base</span></div>
+
+
+<div class="viewcode-block" id="KnowledgeBase.parse_vertex_attributes">
+<a class="viewcode-back" href="../../../_source/fuzzy.logic.html#fuzzy.logic.knowledge_base.KnowledgeBase.parse_vertex_attributes">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse_vertex_attributes</span><span class="p">(</span>
+        <span class="n">vertices_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parse the vertex attributes from the vertices_df and modify them in-place.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            vertices_df: The DataFrame containing the vertex attributes.</span>
+<span class="sd">            device: The device to use.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vertices_df</span><span class="o">.</span><span class="n">replace</span><span class="p">({</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">:</span> <span class="kc">None</span><span class="p">},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">vertex_row</span> <span class="ow">in</span> <span class="n">vertices_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>  <span class="c1"># ignore row index</span>
+            <span class="k">if</span> <span class="n">vertex_row</span><span class="p">[</span><span class="s2">&quot;file&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">tokens</span> <span class="o">=</span> <span class="n">vertex_row</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+                <span class="n">module_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tokens</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># e.g., fuzzy.sets.impl</span>
+                <span class="n">class_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># e.g., Gaussian</span>
+                <span class="n">module</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module_path</span><span class="p">),</span> <span class="n">class_name</span><span class="p">)</span>
+                <span class="c1"># load the vertex &#39;type&#39; information from the file</span>
+                <span class="c1"># must be passed Path for module&#39;s that require Path.iterdir()</span>
+                <span class="n">vertex_row</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">Path</span><span class="p">(</span><span class="n">vertex_row</span><span class="p">[</span><span class="s2">&quot;file&quot;</span><span class="p">]),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+                <span class="p">)</span>
+            <span class="k">for</span> <span class="n">attribute</span> <span class="ow">in</span> <span class="n">vertices_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">attribute</span> <span class="o">==</span> <span class="s2">&quot;file&quot;</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="c1"># convert the string representation of the attribute to the actual attribute</span>
+                <span class="c1"># e.g., &#39;(0, 1)&#39; to (0, 1)</span>
+                <span class="n">attr_val</span> <span class="o">=</span> <span class="n">vertex_row</span><span class="p">[</span><span class="n">attribute</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">attr_val</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">vertex_row</span><span class="p">[</span><span class="n">attribute</span><span class="p">]</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">attr_val</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="c1"># unrecognized value - malformed node or string (e.g.,</span>
+                        <span class="c1"># &#39;A0&#39;)</span>
+                        <span class="k">continue</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

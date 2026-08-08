@@ -1,0 +1,174 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.logic.control.configurations.data &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.logic.control.configurations.data</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.logic.control.configurations.data</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module contains the data structures used to define the shape of a Fuzzy Logic Controller (FLC)</span>
+<span class="sd">and the granulation layers used in the FLC.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">NamedTuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypedDict</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.sets.group</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySetGroup</span>
+
+
+<div class="viewcode-block" id="Shape">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Shape</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The shape that a Fuzzy Logic Controller (FLC) or Neuro-Fuzzy Network (NFN) should follow in</span>
+<span class="sd">    their calculations. This is a named tuple that contains the (number of input variables, number</span>
+<span class="sd">    of input variable terms, number of fuzzy logic rules, number of output variable, number of</span>
+<span class="sd">    output variable terms) in that exact order.</span>
+
+<span class="sd">    This is used to ensure that the FLC or NFN is built correctly and that the KnowledgeBase</span>
+<span class="sd">    contains the correct number of fuzzy sets. The choice to put variables first and then terms</span>
+<span class="sd">    comes from this is how fuzzy sets operate in the library, so this applies even for the output</span>
+<span class="sd">    variable, though it might be more accurate for the output term layer to occur before the output</span>
+<span class="sd">    variable layer.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">    ```</span>
+<span class="sd">    shape = Shape(2, 3, 100, 1, 5)</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    This shape represents a FLC with 2 input variables, each with 3 terms, 100 rules, 1 output</span>
+<span class="sd">    variable with 5 terms.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n_inputs</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">n_input_terms</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">n_rules</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">n_outputs</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">n_output_terms</span><span class="p">:</span> <span class="nb">int</span></div>
+
+
+
+<div class="viewcode-block" id="GranulationLayers">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.GranulationLayers">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GranulationLayers</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A dictionary that contains the input and output granulation layers. The input granulation</span>
+<span class="sd">    layer is a FuzzySetGroup object that contains the input granules. The output granulation</span>
+<span class="sd">    layer is a FuzzySetGroup object that contains the output granules. If the layer is None,</span>
+<span class="sd">    then it is not defined and will be created during the construction of the FLC by searching</span>
+<span class="sd">    the KnowledgeBase for the appropriate granules.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nb">input</span><span class="p">:</span> <span class="n">FuzzySetGroup</span>
+    <span class="n">output</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">FuzzySetGroup</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="ExecutionOptions">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.ExecutionOptions">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExecutionOptions</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Runtime/training execution behavior for a Fuzzy Logic Controller (FLC) - as opposed to</span>
+<span class="sd">    &#39;source&#39;, &#39;inference&#39;, and &#39;device&#39;, which describe what the FLC *is*, these describe how</span>
+<span class="sd">    it should *run* (e.g., for memory/compute trade-offs during training).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">disabled_parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">max_batch_chunk</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">gradient_checkpointing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

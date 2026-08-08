@@ -1,0 +1,37 @@
+fuzzy.logic.control.configurations package
+==========================================
+
+Submodules
+----------
+
+fuzzy.logic.control.configurations.abstract module
+--------------------------------------------------
+
+.. automodule:: fuzzy.logic.control.configurations.abstract
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.logic.control.configurations.data module
+----------------------------------------------
+
+.. automodule:: fuzzy.logic.control.configurations.data
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.logic.control.configurations.impl module
+----------------------------------------------
+
+.. automodule:: fuzzy.logic.control.configurations.impl
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: fuzzy.logic.control.configurations
+   :members:
+   :undoc-members:
+   :show-inheritance:

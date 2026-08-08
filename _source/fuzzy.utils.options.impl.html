@@ -1,0 +1,1173 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.utils.options.impl package &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="fuzzy.utils.options.abstract package" href="fuzzy.utils.options.abstract.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">src</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="fuzzy.html">fuzzy package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="fuzzy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.html">fuzzy.logic package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.relations.html">fuzzy.relations package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.html">fuzzy.sets package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="fuzzy.utils.html">fuzzy.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.html#module-fuzzy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">src</a></li>
+          <li class="breadcrumb-item"><a href="fuzzy.html">fuzzy package</a></li>
+          <li class="breadcrumb-item"><a href="fuzzy.utils.html">fuzzy.utils package</a></li>
+          <li class="breadcrumb-item"><a href="fuzzy.utils.options.html">fuzzy.utils.options package</a></li>
+      <li class="breadcrumb-item active">fuzzy.utils.options.impl package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_source/fuzzy.utils.options.impl.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fuzzy-utils-options-impl-package">
+<h1>fuzzy.utils.options.impl package<a class="headerlink" href="#fuzzy-utils-options-impl-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-fuzzy.utils.options.impl.impl_enums">
+<span id="fuzzy-utils-options-impl-impl-enums-module"></span><h2>fuzzy.utils.options.impl.impl_enums module<a class="headerlink" href="#module-fuzzy.utils.options.impl.impl_enums" title="Link to this heading"></a></h2>
+<p>This script contain classes that inherit from str as well as Enum to outline the different names
+of various design options for their accompanying neural architecture. These are ideal for a
+consistent interface to reference the selection of a particular feature inside a neural
+architecture. If interested in selecting from these options, see design_options.py</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DimensionEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_enums.</span></span><span class="sig-name descname"><span class="pre">DimensionEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_enums.html#DimensionEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DimensionEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Provides consistent access to frequently used dimensions and their associated names.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DimensionEnum.BATCH">
+<span class="sig-name descname"><span class="pre">BATCH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'batch'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DimensionEnum.BATCH" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DimensionEnum.SEQ">
+<span class="sig-name descname"><span class="pre">SEQ</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'seq'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DimensionEnum.SEQ" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DimensionEnum.CHANNEL">
+<span class="sig-name descname"><span class="pre">CHANNEL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'channel'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DimensionEnum.CHANNEL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DimensionEnum.VARIABLE">
+<span class="sig-name descname"><span class="pre">VARIABLE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'variable'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DimensionEnum.VARIABLE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DimensionEnum.TERM">
+<span class="sig-name descname"><span class="pre">TERM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'term'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DimensionEnum.TERM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DimensionEnum.INPUT_VARIABLE">
+<span class="sig-name descname"><span class="pre">INPUT_VARIABLE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'input_variable'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DimensionEnum.INPUT_VARIABLE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DimensionEnum.INPUT_TERM">
+<span class="sig-name descname"><span class="pre">INPUT_TERM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'input_term'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DimensionEnum.INPUT_TERM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DimensionEnum.RULE">
+<span class="sig-name descname"><span class="pre">RULE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'rule'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DimensionEnum.RULE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DimensionEnum.OUT_TERM">
+<span class="sig-name descname"><span class="pre">OUT_TERM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'output_term'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DimensionEnum.OUT_TERM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DimensionEnum.OUT_VARIABLE">
+<span class="sig-name descname"><span class="pre">OUT_VARIABLE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'output_variable'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DimensionEnum.OUT_VARIABLE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_enums.</span></span><span class="sig-name descname"><span class="pre">PremiseAggregationEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_enums.html#PremiseAggregationEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>The aggregation method for premise activations.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum.SUM">
+<span class="sig-name descname"><span class="pre">SUM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'sum'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum.SUM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum.MEAN">
+<span class="sig-name descname"><span class="pre">MEAN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'mean'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum.MEAN" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.PremiseEliminationEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_enums.</span></span><span class="sig-name descname"><span class="pre">PremiseEliminationEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_enums.html#PremiseEliminationEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.PremiseEliminationEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Elimination, or drop out, of premise terms from fuzzy logic rules.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.PremiseEliminationEnum.NONE">
+<span class="sig-name descname"><span class="pre">NONE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'none'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.PremiseEliminationEnum.NONE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_enums.</span></span><span class="sig-name descname"><span class="pre">BoundAlphaEntmaxEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_enums.html#BoundAlphaEntmaxEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>What technique we should use to keep the alpha within (1, 2) when using entmax_bisect.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum.SIGMOID">
+<span class="sig-name descname"><span class="pre">SIGMOID</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'sigmoid_reparameterization'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum.SIGMOID" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum.TANH">
+<span class="sig-name descname"><span class="pre">TANH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'scaled_tanh'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum.TANH" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum.HARD_TANH">
+<span class="sig-name descname"><span class="pre">HARD_TANH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'hard_tanh'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum.HARD_TANH" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum.SOFTPLUS">
+<span class="sig-name descname"><span class="pre">SOFTPLUS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'softplus_add_shift'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum.SOFTPLUS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_enums.</span></span><span class="sig-name descname"><span class="pre">PremiseActivationEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_enums.html#PremiseActivationEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Completes calculating the membership degrees of each premise term assuming Gaussian functions
+were used without their exp.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum.SOFTMAX">
+<span class="sig-name descname"><span class="pre">SOFTMAX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'softmax'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum.SOFTMAX" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum.ENTMAX15">
+<span class="sig-name descname"><span class="pre">ENTMAX15</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'entmax15'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum.ENTMAX15" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum.ENTMAX_BISECT">
+<span class="sig-name descname"><span class="pre">ENTMAX_BISECT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'entmax_bisect'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum.ENTMAX_BISECT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.NeurogenesisEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_enums.</span></span><span class="sig-name descname"><span class="pre">NeurogenesisEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_enums.html#NeurogenesisEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.NeurogenesisEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>How to create and add new fuzzy sets to the neuro-fuzzy network.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.NeurogenesisEnum.NONE">
+<span class="sig-name descname"><span class="pre">NONE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'none'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.NeurogenesisEnum.NONE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.NeurogenesisEnum.MODIFIED_DELAYED_WELFORD">
+<span class="sig-name descname"><span class="pre">MODIFIED_DELAYED_WELFORD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'modified_delayed_welford'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.NeurogenesisEnum.MODIFIED_DELAYED_WELFORD" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.SamplingEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_enums.</span></span><span class="sig-name descname"><span class="pre">SamplingEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_enums.html#SamplingEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.SamplingEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>How to complete the one-hot differentiable sampling of a discrete stochastic process.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.SamplingEnum.ST_GUMBEL_SOFTMAX">
+<span class="sig-name descname"><span class="pre">ST_GUMBEL_SOFTMAX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'straight_through_gumbel_softmax'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.SamplingEnum.ST_GUMBEL_SOFTMAX" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.RuleWeightsEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_enums.</span></span><span class="sig-name descname"><span class="pre">RuleWeightsEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_enums.html#RuleWeightsEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.RuleWeightsEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>This allows for the disabling/enabling of rule weights (e.g., certainty factors).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.RuleWeightsEnum.NONE">
+<span class="sig-name descname"><span class="pre">NONE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'none'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.RuleWeightsEnum.NONE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.RuleWeightsEnum.CERTAINTY_FACTORS">
+<span class="sig-name descname"><span class="pre">CERTAINTY_FACTORS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'certainty_factors'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.RuleWeightsEnum.CERTAINTY_FACTORS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.RuleEliminationEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_enums.</span></span><span class="sig-name descname"><span class="pre">RuleEliminationEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_enums.html#RuleEliminationEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.RuleEliminationEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>This allows for the disabling/enabling of rule elimination in an attempt to improve
+interpretability of fuzzy inference.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.RuleEliminationEnum.NONE">
+<span class="sig-name descname"><span class="pre">NONE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'none'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.RuleEliminationEnum.NONE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.RuleElevationEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_enums.</span></span><span class="sig-name descname"><span class="pre">RuleElevationEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_enums.html#RuleElevationEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.RuleElevationEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>This allows for the disabling/enabling of layer normalization in an attempt to alleviate the
+curse of dimensionality’s impact on fuzzy logic rule activation. In essence, it elevates the
+firing strengths as well as preserves the overall shape of the firing levels.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.RuleElevationEnum.NONE">
+<span class="sig-name descname"><span class="pre">NONE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'none'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.RuleElevationEnum.NONE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.RuleElevationEnum.LAYER_NORMALIZATION">
+<span class="sig-name descname"><span class="pre">LAYER_NORMALIZATION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'layer_normalization'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.RuleElevationEnum.LAYER_NORMALIZATION" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_enums.</span></span><span class="sig-name descname"><span class="pre">ConsequenceInitEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_enums.html#ConsequenceInitEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Initialization method for consequence parameters when no source data is provided.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.XAVIER_NORMAL">
+<span class="sig-name descname"><span class="pre">XAVIER_NORMAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'xavier_normal'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.XAVIER_NORMAL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.XAVIER_UNIFORM">
+<span class="sig-name descname"><span class="pre">XAVIER_UNIFORM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'xavier_uniform'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.XAVIER_UNIFORM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.KAIMING_NORMAL">
+<span class="sig-name descname"><span class="pre">KAIMING_NORMAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'kaiming_normal'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.KAIMING_NORMAL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.KAIMING_UNIFORM">
+<span class="sig-name descname"><span class="pre">KAIMING_UNIFORM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'kaiming_uniform'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.KAIMING_UNIFORM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.ZEROS">
+<span class="sig-name descname"><span class="pre">ZEROS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'zeros'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.ZEROS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.NORMAL">
+<span class="sig-name descname"><span class="pre">NORMAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'normal'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.NORMAL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.UNIFORM">
+<span class="sig-name descname"><span class="pre">UNIFORM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'uniform'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum.UNIFORM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_enums.</span></span><span class="sig-name descname"><span class="pre">DefuzzificationMethodEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_enums.html#DefuzzificationMethodEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>This allows for the selection of various implemented defuzzification methods in fuzzy inference.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum.TSK">
+<span class="sig-name descname"><span class="pre">TSK</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'tsk'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum.TSK" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum.ZERO_ORDER_TSK">
+<span class="sig-name descname"><span class="pre">ZERO_ORDER_TSK</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'zero_order_tsk'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum.ZERO_ORDER_TSK" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum.MAMDANI">
+<span class="sig-name descname"><span class="pre">MAMDANI</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'mamdani'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum.MAMDANI" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum.CP_DECOMPOSED_TSK">
+<span class="sig-name descname"><span class="pre">CP_DECOMPOSED_TSK</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'cp_decomposed_tsk'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum.CP_DECOMPOSED_TSK" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.utils.options.impl.impl_options">
+<span id="fuzzy-utils-options-impl-impl-options-module"></span><h2>fuzzy.utils.options.impl.impl_options module<a class="headerlink" href="#module-fuzzy.utils.options.impl.impl_options" title="Link to this heading"></a></h2>
+<p>This script contains the design options that are available. It extends from Enum classes which
+outline the names of each option by allowing a selection to coincide along all possible options.
+This functionality is ideal for outlining what is permitted for the neural architecture, while
+allowing the end-user (or optuna) to select (and store) their selection alongside those.
+Furthermore, some of these classes will also store the accompanying function for cohesion (e.g.,
+they inherit from torch.nn.Module and can be used accordingly).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.Range">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">Range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">low</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#Range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.Range" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A range of possible values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>low</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+<li><p><strong>high</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+<li><p><strong>log</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
+<li><p><strong>step</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.Range.low">
+<span class="sig-name descname"><span class="pre">low</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.Range.low" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.Range.high">
+<span class="sig-name descname"><span class="pre">high</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.Range.high" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.Range.log">
+<span class="sig-name descname"><span class="pre">log</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.Range.log" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.Range.step">
+<span class="sig-name descname"><span class="pre">step</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.Range.step" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.Range.to_scipy">
+<span class="sig-name descname"><span class="pre">to_scipy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#Range.to_scipy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.Range.to_scipy" title="Link to this definition"></a></dt>
+<dd><p>Conveniently translate this range instance to scipy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A scipy.stats.range instance.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)">object</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.Range.to_optuna">
+<span class="sig-name descname"><span class="pre">to_optuna</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trial</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#Range.to_optuna"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.Range.to_optuna" title="Link to this definition"></a></dt>
+<dd><p>Conveniently translate this range instance to Optuna for hyperparameter search.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>trial</strong> – The instance of Trial.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The reference name.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.Range.contains">
+<span class="sig-name descname"><span class="pre">contains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#Range.contains"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.Range.contains" title="Link to this definition"></a></dt>
+<dd><p>A method to check if a value is in the range.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>val</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The value of interest.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Whether the value is in the range.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.Range.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#Range.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.Range.to_dict" title="Link to this definition"></a></dt>
+<dd><p>Convert the instance of Range to a dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The dictionary representing the Range object.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.Range.from_dict">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entry</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#Range.from_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.Range.from_dict" title="Link to this definition"></a></dt>
+<dd><p>An implementation that allows the conversion of a dictionary entry to an instance of Range.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>entry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – The dictionary entry.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of Range.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.Range" title="fuzzy.utils.options.impl.impl_options.Range"><em>Range</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseAggregation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">PremiseAggregation</span></span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#PremiseAggregation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseAggregation" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.utils.options.abstract.html#fuzzy.utils.options.abstract.primitive.CategoricalOptions" title="fuzzy.utils.options.abstract.primitive.CategoricalOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">CategoricalOptions</span></code></a>, <a class="reference internal" href="fuzzy.utils.options.abstract.html#fuzzy.utils.options.abstract.meta.EnumPromoter" title="fuzzy.utils.options.abstract.meta.EnumPromoter"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnumPromoter</span></code></a></p>
+<p>Outlines the available premise aggregation strategies and their implementations.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseAggregation.SUM">
+<span class="sig-name descname"><span class="pre">SUM</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum" title="fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum"><span class="pre">PremiseAggregationEnum</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'sum'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseAggregation.SUM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseAggregation.MEAN">
+<span class="sig-name descname"><span class="pre">MEAN</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum" title="fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum"><span class="pre">PremiseAggregationEnum</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'mean'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseAggregation.MEAN" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseAggregation.func">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">selection</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#PremiseAggregation.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseAggregation.func" title="Link to this definition"></a></dt>
+<dd><p>Obtain the appropriate premise aggregation function based on the stored selection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>selection</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum" title="fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum"><em>PremiseAggregationEnum</em></a>) – A selection made from the set of options in PremiseAggregationEnum.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A callable function that expects a torch.Tensor and will return a torch.Tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>[[<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>], <a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseAggregation.options">
+<span class="sig-name descname"><span class="pre">options</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Any</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('sum',</span> <span class="pre">'mean')</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseAggregation.options" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.BoundAlphaEntmax">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">BoundAlphaEntmax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bounding_strategy</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#BoundAlphaEntmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.BoundAlphaEntmax" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<p>Outlines the available strategies for bounding the alpha value used in the entmax_bisect and
+their implementations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bounding_strategy</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum" title="fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum"><em>BoundAlphaEntmaxEnum</em></a>)</p></li>
+<li><p><strong>dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+<li><p><strong>alpha</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.BoundAlphaEntmax.bound_alpha">
+<span class="sig-name descname"><span class="pre">bound_alpha</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#BoundAlphaEntmax.bound_alpha"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.BoundAlphaEntmax.bound_alpha" title="Link to this definition"></a></dt>
+<dd><p>Bound the alpha parameter to abide by the constraint that it must exist within (1, 2) so it
+does not devolve to softmax or sparsemax, respectively.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The bounded alpha within the appropriate range according to the selected bounding
+strategy outlined in the configuration settings.</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>alpha</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.BoundAlphaEntmax.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#BoundAlphaEntmax.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.BoundAlphaEntmax.forward" title="Link to this definition"></a></dt>
+<dd><p>Apply entmax_bisect to the given tensor using the bounded alpha parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The tensor to apply entmax_bisect to.</p></li>
+<li><p><strong>dim</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – The dimension to apply entmax_bisect along; defaults to the
+dimension given at construction (self.dim) if not provided.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The result of entmax_bisect applied to the tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseActivation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">PremiseActivation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#PremiseActivation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseActivation" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.utils.options.abstract.html#fuzzy.utils.options.abstract.primitive.CategoricalOptions" title="fuzzy.utils.options.abstract.primitive.CategoricalOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">CategoricalOptions</span></code></a>, <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a>, <a class="reference internal" href="fuzzy.utils.options.abstract.html#fuzzy.utils.options.abstract.meta.EnumPromoter" title="fuzzy.utils.options.abstract.meta.EnumPromoter"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnumPromoter</span></code></a></p>
+<p>Outlines the available premise activation strategies and their implementations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseActivation.func">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bound</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#PremiseActivation.func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseActivation.func" title="Link to this definition"></a></dt>
+<dd><p>Obtain the appropriate premise activation function based on the selected transform.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>transform</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum" title="fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum"><em>PremiseActivationEnum</em></a>) – A selected transform from the set of options in PremiseActivationEnum.</p></li>
+<li><p><strong>bound</strong> (<em>None</em><em> | </em><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum" title="fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum"><em>BoundAlphaEntmaxEnum</em></a>) – A selected bounding strategy from the set of options in BoundAlphaEntmaxEnum;</p></li>
+<li><p><strong>PremiseActivationEnum.ENTMAX_BISECT.</strong> (<em>ignored if transform is NOT</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A callable function that expects a torch.Tensor and will return a torch.Tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>[[<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>], <a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseActivation.ENTMAX15">
+<span class="sig-name descname"><span class="pre">ENTMAX15</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'entmax15'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseActivation.ENTMAX15" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseActivation.ENTMAX_BISECT">
+<span class="sig-name descname"><span class="pre">ENTMAX_BISECT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'entmax_bisect'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseActivation.ENTMAX_BISECT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseActivation.SOFTMAX">
+<span class="sig-name descname"><span class="pre">SOFTMAX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'softmax'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseActivation.SOFTMAX" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseActivation.options">
+<span class="sig-name descname"><span class="pre">options</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Any</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('softmax',</span> <span class="pre">'entmax15',</span> <span class="pre">'entmax_bisect')</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseActivation.options" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.YAMLConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">YAMLConfig</span></span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#YAMLConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Allows a convenient interface to save and load dataclass configurations with pydantic.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.YAMLConfig.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#YAMLConfig.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig.save" title="Link to this definition"></a></dt>
+<dd><p>Save the current configuration to a <a href="#id1"><span class="problematic" id="id2">*</span></a>.yaml file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The path to use. It must end with a <a href="#id3"><span class="problematic" id="id4">*</span></a>.yaml extension.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.YAMLConfig.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#YAMLConfig.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig.load" title="Link to this definition"></a></dt>
+<dd><p>Load the dataclass configuration from a <a href="#id5"><span class="problematic" id="id6">*</span></a>.yaml file and instantiate its appropriate class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The path to use. It must end with a <a href="#id7"><span class="problematic" id="id8">*</span></a>.yaml extension.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of YAMLConfig class.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><em>YAMLConfig</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">PremiseConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">PremiseAggregationEnum.SUM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elimination</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">PremiseEliminationEnum.NONE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">PremiseActivationEnum.SOFTMAX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">BoundAlphaEntmaxEnum.SIGMOID</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#PremiseConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>How to set up the premise terms, whether we should use standard implementation (e.g.,
+sum and softmax) or try something more experimental (e.g., mean and 1.5-entmax), as well as
+whether to eliminate any premise terms. Default is SUM for aggregation (standard), NONE for
+elimination, and SOFTMAX for activation (standard if Gaussian fuzzy sets are used, but no exp
+has been applied to them yet).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>aggregation</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum" title="fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum"><em>PremiseAggregationEnum</em></a>)</p></li>
+<li><p><strong>elimination</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.PremiseEliminationEnum" title="fuzzy.utils.options.impl.impl_enums.PremiseEliminationEnum"><em>PremiseEliminationEnum</em></a>)</p></li>
+<li><p><strong>activation</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum" title="fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum"><em>PremiseActivationEnum</em></a>)</p></li>
+<li><p><strong>bound</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum" title="fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum"><em>BoundAlphaEntmaxEnum</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseConfig.aggregation">
+<span class="sig-name descname"><span class="pre">aggregation</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum" title="fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum"><span class="pre">PremiseAggregationEnum</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'sum'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseConfig.aggregation" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseConfig.elimination">
+<span class="sig-name descname"><span class="pre">elimination</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.PremiseEliminationEnum" title="fuzzy.utils.options.impl.impl_enums.PremiseEliminationEnum"><span class="pre">PremiseEliminationEnum</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'none'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseConfig.elimination" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseConfig.activation">
+<span class="sig-name descname"><span class="pre">activation</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum" title="fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum"><span class="pre">PremiseActivationEnum</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'softmax'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseConfig.activation" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.PremiseConfig.bound">
+<span class="sig-name descname"><span class="pre">bound</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum" title="fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum"><span class="pre">BoundAlphaEntmaxEnum</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'sigmoid_reparameterization'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.PremiseConfig.bound" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.RuleConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">RuleConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">RuleWeightsEnum.NONE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elimination</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">RuleEliminationEnum.NONE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elevation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">RuleElevationEnum.NONE</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#RuleConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.RuleConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>How to set up the fuzzy logic rules, whether they should be weighed (e.g., certainty factors),
+whether to eliminate any, and/or whether to elevate their firing levels. Default is NONE for
+all.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>weights</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.RuleWeightsEnum" title="fuzzy.utils.options.impl.impl_enums.RuleWeightsEnum"><em>RuleWeightsEnum</em></a>)</p></li>
+<li><p><strong>elimination</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.RuleEliminationEnum" title="fuzzy.utils.options.impl.impl_enums.RuleEliminationEnum"><em>RuleEliminationEnum</em></a>)</p></li>
+<li><p><strong>elevation</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.RuleElevationEnum" title="fuzzy.utils.options.impl.impl_enums.RuleElevationEnum"><em>RuleElevationEnum</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.RuleConfig.weights">
+<span class="sig-name descname"><span class="pre">weights</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.RuleWeightsEnum" title="fuzzy.utils.options.impl.impl_enums.RuleWeightsEnum"><span class="pre">RuleWeightsEnum</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'none'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.RuleConfig.weights" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.RuleConfig.elimination">
+<span class="sig-name descname"><span class="pre">elimination</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.RuleEliminationEnum" title="fuzzy.utils.options.impl.impl_enums.RuleEliminationEnum"><span class="pre">RuleEliminationEnum</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'none'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.RuleConfig.elimination" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.RuleConfig.elevation">
+<span class="sig-name descname"><span class="pre">elevation</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.RuleElevationEnum" title="fuzzy.utils.options.impl.impl_enums.RuleElevationEnum"><span class="pre">RuleElevationEnum</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'none'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.RuleConfig.elevation" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.DefuzzificationConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">DefuzzificationConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">DefuzzificationMethodEnum.TSK</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_latent_space_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#DefuzzificationConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.DefuzzificationConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>How to conduct defuzzification after the fuzzy logic rules are activated given the stimuli. For
+instance, whether to use zero-order TSK, TSK, Mamdani, or other experimental methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum" title="fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum"><em>DefuzzificationMethodEnum</em></a>)</p></li>
+<li><p><strong>n_latent_space_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.DefuzzificationConfig.method">
+<span class="sig-name descname"><span class="pre">method</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum" title="fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum"><span class="pre">DefuzzificationMethodEnum</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'tsk'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.DefuzzificationConfig.method" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.DefuzzificationConfig.n_latent_space_dim">
+<span class="sig-name descname"><span class="pre">n_latent_space_dim</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">32</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.DefuzzificationConfig.n_latent_space_dim" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.InferenceConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">InferenceConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">premise=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rule=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defuzzification=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#InferenceConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.InferenceConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>A configuration for fuzzy logic rule inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>premise</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.PremiseConfig" title="fuzzy.utils.options.impl.impl_options.PremiseConfig"><em>PremiseConfig</em></a>)</p></li>
+<li><p><strong>rule</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.RuleConfig" title="fuzzy.utils.options.impl.impl_options.RuleConfig"><em>RuleConfig</em></a>)</p></li>
+<li><p><strong>defuzzification</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.DefuzzificationConfig" title="fuzzy.utils.options.impl.impl_options.DefuzzificationConfig"><em>DefuzzificationConfig</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.InferenceConfig.premise">
+<span class="sig-name descname"><span class="pre">premise</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.PremiseConfig" title="fuzzy.utils.options.impl.impl_options.PremiseConfig"><span class="pre">PremiseConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.InferenceConfig.premise" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.InferenceConfig.rule">
+<span class="sig-name descname"><span class="pre">rule</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.RuleConfig" title="fuzzy.utils.options.impl.impl_options.RuleConfig"><span class="pre">RuleConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.InferenceConfig.rule" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.InferenceConfig.defuzzification">
+<span class="sig-name descname"><span class="pre">defuzzification</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.DefuzzificationConfig" title="fuzzy.utils.options.impl.impl_options.DefuzzificationConfig"><span class="pre">DefuzzificationConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.InferenceConfig.defuzzification" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.GumbelConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">GumbelConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sampling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">SamplingEnum.ST_GUMBEL_SOFTMAX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon_filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#GumbelConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.GumbelConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>How to set up the Gumbel Softmax, whether it should be constrained, how long to delay
+resampling the Gumbel noise, and what temperature to use for the Gumbel distribution.
+Default options and values replicate those explored in Hostetter’s dissertation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sampling</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.SamplingEnum" title="fuzzy.utils.options.impl.impl_enums.SamplingEnum"><em>SamplingEnum</em></a>)</p></li>
+<li><p><strong>temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>epsilon_filter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>noise_delay</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.GumbelConfig.sampling">
+<span class="sig-name descname"><span class="pre">sampling</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.SamplingEnum" title="fuzzy.utils.options.impl.impl_enums.SamplingEnum"><span class="pre">SamplingEnum</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'straight_through_gumbel_softmax'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.GumbelConfig.sampling" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.GumbelConfig.temperature">
+<span class="sig-name descname"><span class="pre">temperature</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.0</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.GumbelConfig.temperature" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.GumbelConfig.epsilon_filter">
+<span class="sig-name descname"><span class="pre">epsilon_filter</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.GumbelConfig.epsilon_filter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.GumbelConfig.noise_delay">
+<span class="sig-name descname"><span class="pre">noise_delay</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.GumbelConfig.noise_delay" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.NeurogenesisConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">NeurogenesisConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">neurogenesis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">NeurogenesisEnum.NONE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_premise_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#NeurogenesisConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.NeurogenesisConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>How to set up neurogenesis, such as whether it should be delayed and how it should be
+triggered. Default options and values replicate those explored in Hostetter’s dissertation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>neurogenesis</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.NeurogenesisEnum" title="fuzzy.utils.options.impl.impl_enums.NeurogenesisEnum"><em>NeurogenesisEnum</em></a>)</p></li>
+<li><p><strong>epsilon</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>add_premise_delay</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.NeurogenesisConfig.neurogenesis">
+<span class="sig-name descname"><span class="pre">neurogenesis</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_enums.NeurogenesisEnum" title="fuzzy.utils.options.impl.impl_enums.NeurogenesisEnum"><span class="pre">NeurogenesisEnum</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'none'</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.NeurogenesisConfig.neurogenesis" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.NeurogenesisConfig.epsilon">
+<span class="sig-name descname"><span class="pre">epsilon</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.5</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.NeurogenesisConfig.epsilon" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.NeurogenesisConfig.add_premise_delay">
+<span class="sig-name descname"><span class="pre">add_premise_delay</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.NeurogenesisConfig.add_premise_delay" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.EvolutionConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">EvolutionConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">premise=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rule=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#EvolutionConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.EvolutionConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>Dictates how the neuro-fuzzy network will evolve.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>premise</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.NeurogenesisConfig" title="fuzzy.utils.options.impl.impl_options.NeurogenesisConfig"><em>NeurogenesisConfig</em></a>)</p></li>
+<li><p><strong>rule</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.GumbelConfig" title="fuzzy.utils.options.impl.impl_options.GumbelConfig"><em>GumbelConfig</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.EvolutionConfig.premise">
+<span class="sig-name descname"><span class="pre">premise</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.NeurogenesisConfig" title="fuzzy.utils.options.impl.impl_options.NeurogenesisConfig"><span class="pre">NeurogenesisConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.EvolutionConfig.premise" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.EvolutionConfig.rule">
+<span class="sig-name descname"><span class="pre">rule</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.GumbelConfig" title="fuzzy.utils.options.impl.impl_options.GumbelConfig"><span class="pre">GumbelConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.EvolutionConfig.rule" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.ParameterConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">ParameterConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">premise=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rule=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">consequence=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#ParameterConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>Determines how to initialize parameters of the neuro-fuzzy network (e.g., premise, weights,
+consequences, etc.).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>premise</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.PremiseParameterConfig" title="fuzzy.utils.options.impl.impl_options.ParameterConfig.PremiseParameterConfig"><em>PremiseParameterConfig</em></a>)</p></li>
+<li><p><strong>rule</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.RuleParameterConfig" title="fuzzy.utils.options.impl.impl_options.ParameterConfig.RuleParameterConfig"><em>RuleParameterConfig</em></a>)</p></li>
+<li><p><strong>consequence</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.ConsequenceParameterConfig" title="fuzzy.utils.options.impl.impl_options.ParameterConfig.ConsequenceParameterConfig"><em>ConsequenceParameterConfig</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.ParameterConfig.PremiseParameterConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">PremiseParameterConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">init_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#ParameterConfig.PremiseParameterConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.PremiseParameterConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>Determines how to initialize parameters of the neuro-fuzzy network with respect to the
+premise layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>init_width</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.ParameterConfig.PremiseParameterConfig.init_width">
+<span class="sig-name descname"><span class="pre">init_width</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.5</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.PremiseParameterConfig.init_width" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.ParameterConfig.RuleParameterConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RuleParameterConfig</span></span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#ParameterConfig.RuleParameterConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.RuleParameterConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>Determines how to initialize parameters of the neuro-fuzzy network with respect to the
+rule layer, if applicable (i.e., assuming rule sampling is implemented).</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.ParameterConfig.ConsequenceParameterConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ConsequenceParameterConfig</span></span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#ParameterConfig.ConsequenceParameterConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.ConsequenceParameterConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>Determines how to initialize parameters of the neuro-fuzzy network with respect to the
+consequence layer.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.ParameterConfig.premise">
+<span class="sig-name descname"><span class="pre">premise</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.PremiseParameterConfig" title="fuzzy.utils.options.impl.impl_options.ParameterConfig.PremiseParameterConfig"><span class="pre">PremiseParameterConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.premise" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.ParameterConfig.rule">
+<span class="sig-name descname"><span class="pre">rule</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.RuleParameterConfig" title="fuzzy.utils.options.impl.impl_options.ParameterConfig.RuleParameterConfig"><span class="pre">RuleParameterConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.rule" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.ParameterConfig.consequence">
+<span class="sig-name descname"><span class="pre">consequence</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.ConsequenceParameterConfig" title="fuzzy.utils.options.impl.impl_options.ParameterConfig.ConsequenceParameterConfig"><span class="pre">ConsequenceParameterConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig.consequence" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.StructureConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">StructureConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">premise=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rule=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">consequence=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#StructureConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.StructureConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>Determines how to initialize structure of the neuro-fuzzy network (e.g., rule count).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>premise</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.PremiseStructureConfig" title="fuzzy.utils.options.impl.impl_options.StructureConfig.PremiseStructureConfig"><em>PremiseStructureConfig</em></a>)</p></li>
+<li><p><strong>rule</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.RuleStructureConfig" title="fuzzy.utils.options.impl.impl_options.StructureConfig.RuleStructureConfig"><em>RuleStructureConfig</em></a>)</p></li>
+<li><p><strong>consequence</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.ConsequenceStructureConfig" title="fuzzy.utils.options.impl.impl_options.StructureConfig.ConsequenceStructureConfig"><em>ConsequenceStructureConfig</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.StructureConfig.PremiseStructureConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">PremiseStructureConfig</span></span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#StructureConfig.PremiseStructureConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.PremiseStructureConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>Determines how to initialize structure of the neuro-fuzzy network with respect to the
+premise layer.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.StructureConfig.RuleStructureConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RuleStructureConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_rules</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#StructureConfig.RuleStructureConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.RuleStructureConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>Determines how to initialize structure of the neuro-fuzzy network with respect to the
+rule layer, if applicable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>n_rules</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.StructureConfig.RuleStructureConfig.n_rules">
+<span class="sig-name descname"><span class="pre">n_rules</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">128</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.RuleStructureConfig.n_rules" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.StructureConfig.ConsequenceStructureConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ConsequenceStructureConfig</span></span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#StructureConfig.ConsequenceStructureConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.ConsequenceStructureConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>Determines how to initialize structure of the neuro-fuzzy network with respect to the
+consequence layer.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.StructureConfig.premise">
+<span class="sig-name descname"><span class="pre">premise</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.PremiseStructureConfig" title="fuzzy.utils.options.impl.impl_options.StructureConfig.PremiseStructureConfig"><span class="pre">PremiseStructureConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.premise" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.StructureConfig.rule">
+<span class="sig-name descname"><span class="pre">rule</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.RuleStructureConfig" title="fuzzy.utils.options.impl.impl_options.StructureConfig.RuleStructureConfig"><span class="pre">RuleStructureConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.rule" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.StructureConfig.consequence">
+<span class="sig-name descname"><span class="pre">consequence</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.ConsequenceStructureConfig" title="fuzzy.utils.options.impl.impl_options.StructureConfig.ConsequenceStructureConfig"><span class="pre">ConsequenceStructureConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.StructureConfig.consequence" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.ApproximatorHyperparameters">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">ApproximatorHyperparameters</span></span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#ApproximatorHyperparameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.ApproximatorHyperparameters" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.YAMLConfig" title="fuzzy.utils.options.impl.impl_options.YAMLConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">YAMLConfig</span></code></a></p>
+<p>A standard data class format with attributes that are expected throughout PySoft optuna
+experiments.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.ApproximatorHyperparameters.display_name">
+<span class="sig-name descname"><span class="pre">display_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.ApproximatorHyperparameters.display_name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.ApproximatorHyperparameters.abbrev_name">
+<span class="sig-name descname"><span class="pre">abbrev_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.ApproximatorHyperparameters.abbrev_name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.utils.options.impl.impl_options.</span></span><span class="sig-name descname"><span class="pre">NeuroFuzzyNetworkHyperparameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">structure=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inference=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evolution=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/utils/options/impl/impl_options.html#NeuroFuzzyNetworkHyperparameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.ApproximatorHyperparameters" title="fuzzy.utils.options.impl.impl_options.ApproximatorHyperparameters"><code class="xref py py-class docutils literal notranslate"><span class="pre">ApproximatorHyperparameters</span></code></a></p>
+<p>An all-encompassing class for exposing all available hyperparameters or design-choices of
+neuro-fuzzy networks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>structure</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.StructureConfig" title="fuzzy.utils.options.impl.impl_options.StructureConfig"><em>StructureConfig</em></a>)</p></li>
+<li><p><strong>parameter</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig" title="fuzzy.utils.options.impl.impl_options.ParameterConfig"><em>ParameterConfig</em></a>)</p></li>
+<li><p><strong>inference</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.InferenceConfig" title="fuzzy.utils.options.impl.impl_options.InferenceConfig"><em>InferenceConfig</em></a>)</p></li>
+<li><p><strong>evolution</strong> (<a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.EvolutionConfig" title="fuzzy.utils.options.impl.impl_options.EvolutionConfig"><em>EvolutionConfig</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters.structure">
+<span class="sig-name descname"><span class="pre">structure</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.StructureConfig" title="fuzzy.utils.options.impl.impl_options.StructureConfig"><span class="pre">StructureConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters.structure" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters.parameter">
+<span class="sig-name descname"><span class="pre">parameter</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.ParameterConfig" title="fuzzy.utils.options.impl.impl_options.ParameterConfig"><span class="pre">ParameterConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters.parameter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters.inference">
+<span class="sig-name descname"><span class="pre">inference</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.InferenceConfig" title="fuzzy.utils.options.impl.impl_options.InferenceConfig"><span class="pre">InferenceConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters.inference" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters.evolution">
+<span class="sig-name descname"><span class="pre">evolution</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.utils.options.impl.impl_options.EvolutionConfig" title="fuzzy.utils.options.impl.impl_options.EvolutionConfig"><span class="pre">EvolutionConfig</span></a></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters.evolution" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters.fields">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fields</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/dataclasses.html#dataclasses.Field" title="(in Python v3.14)"><span class="pre">Field</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters.fields" title="Link to this definition"></a></dt>
+<dd><p>Return only the fields that are unique to this subclass.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of fields that are unique to this subclass.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.utils.options.impl">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-fuzzy.utils.options.impl" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="fuzzy.utils.options.abstract.html" class="btn btn-neutral float-left" title="fuzzy.utils.options.abstract package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

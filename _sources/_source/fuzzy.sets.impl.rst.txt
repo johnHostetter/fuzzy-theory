@@ -1,0 +1,29 @@
+fuzzy.sets.impl package
+=======================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   fuzzy.sets.impl.gauss_variants
+
+Submodules
+----------
+
+fuzzy.sets.impl.basic module
+----------------------------
+
+.. automodule:: fuzzy.sets.impl.basic
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: fuzzy.sets.impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

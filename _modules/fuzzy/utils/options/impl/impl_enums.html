@@ -1,0 +1,290 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.utils.options.impl.impl_enums &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.utils.options.impl.impl_enums</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.utils.options.impl.impl_enums</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This script contain classes that inherit from str as well as Enum to outline the different names</span>
+<span class="sd">of various design options for their accompanying neural architecture. These are ideal for a</span>
+<span class="sd">consistent interface to reference the selection of a particular feature inside a neural</span>
+<span class="sd">architecture. If interested in selecting from these options, see design_options.py</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+
+
+<div class="viewcode-block" id="DimensionEnum">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.DimensionEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DimensionEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Provides consistent access to frequently used dimensions and their associated names.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">BATCH</span> <span class="o">=</span> <span class="s2">&quot;batch&quot;</span>
+    <span class="n">SEQ</span> <span class="o">=</span> <span class="s2">&quot;seq&quot;</span>  <span class="c1"># use to refer to temporal dimension</span>
+    <span class="n">CHANNEL</span> <span class="o">=</span> <span class="s2">&quot;channel&quot;</span>  <span class="c1"># use to refer to image channel</span>
+    <span class="n">VARIABLE</span> <span class="o">=</span> <span class="s2">&quot;variable&quot;</span>  <span class="c1"># use when unsure of direction</span>
+    <span class="n">TERM</span> <span class="o">=</span> <span class="s2">&quot;term&quot;</span>  <span class="c1"># use when unsure of direction</span>
+    <span class="n">INPUT_VARIABLE</span> <span class="o">=</span> <span class="s2">&quot;input_variable&quot;</span>
+    <span class="n">INPUT_TERM</span> <span class="o">=</span> <span class="s2">&quot;input_term&quot;</span>
+    <span class="n">RULE</span> <span class="o">=</span> <span class="s2">&quot;rule&quot;</span>
+    <span class="n">OUT_TERM</span> <span class="o">=</span> <span class="s2">&quot;output_term&quot;</span>
+    <span class="n">OUT_VARIABLE</span> <span class="o">=</span> <span class="s2">&quot;output_variable&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="PremiseAggregationEnum">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.PremiseAggregationEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PremiseAggregationEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The aggregation method for premise activations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">SUM</span> <span class="o">=</span> <span class="s2">&quot;sum&quot;</span>
+    <span class="n">MEAN</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="PremiseEliminationEnum">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.PremiseEliminationEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PremiseEliminationEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Elimination, or drop out, of premise terms from fuzzy logic rules.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">NONE</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>  <span class="c1"># no premise elimination</span></div>
+
+    <span class="c1"># NO_OP = &quot;no_op&quot;  # use the no-op procedure where it is possible for a fake fuzzy set to be</span>
+    <span class="c1"># used that has no impact or influence (represents &quot;don&#39;t care&quot; membership</span>
+    <span class="c1"># function)</span>
+
+
+<div class="viewcode-block" id="BoundAlphaEntmaxEnum">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.BoundAlphaEntmaxEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BoundAlphaEntmaxEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    What technique we should use to keep the alpha within (1, 2) when using entmax_bisect.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># NONE = &quot;none&quot;  # only valid if no learnable alpha is used for</span>
+    <span class="c1"># alpha-entmax</span>
+    <span class="n">SIGMOID</span> <span class="o">=</span> <span class="s2">&quot;sigmoid_reparameterization&quot;</span>
+    <span class="n">TANH</span> <span class="o">=</span> <span class="s2">&quot;scaled_tanh&quot;</span>
+    <span class="n">HARD_TANH</span> <span class="o">=</span> <span class="s2">&quot;hard_tanh&quot;</span>
+    <span class="n">SOFTPLUS</span> <span class="o">=</span> <span class="s2">&quot;softplus_add_shift&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="PremiseActivationEnum">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.PremiseActivationEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PremiseActivationEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Completes calculating the membership degrees of each premise term assuming Gaussian functions</span>
+<span class="sd">    were used without their exp.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">SOFTMAX</span> <span class="o">=</span> <span class="s2">&quot;softmax&quot;</span>  <span class="c1"># (alpha=1) default -- no modification</span>
+    <span class="n">ENTMAX15</span> <span class="o">=</span> <span class="s2">&quot;entmax15&quot;</span>  <span class="c1"># (alpha=1.5) non-tunable -- some sparsity</span>
+    <span class="c1"># SPARSEMAX = &quot;sparsemax&quot;  # (alpha=2) included for completeness, but</span>
+    <span class="c1"># strongly advise against it</span>
+    <span class="n">ENTMAX_BISECT</span> <span class="o">=</span> <span class="s2">&quot;entmax_bisect&quot;</span>  <span class="c1"># differentiable w.r.t. X &amp; alpha</span></div>
+
+    <span class="c1"># SPARSEMAX_BISECT = &quot;sparsemax_bisect&quot;,  # only normalizes along last dim (not implemented)</span>
+    <span class="c1"># NORMMAX_BISECT = &quot;normmax_bisect&quot;,  # differentiable w.r.t. X (not implemented)</span>
+    <span class="c1"># BUDGET_BISECT = &quot;budget_bisect&quot;,  # differentiable w.r.t. X (not</span>
+    <span class="c1"># implemented)</span>
+
+
+<div class="viewcode-block" id="NeurogenesisEnum">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.NeurogenesisEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NeurogenesisEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    How to create and add new fuzzy sets to the neuro-fuzzy network.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">NONE</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>  <span class="c1"># static premise layer</span>
+    <span class="c1"># Hostetter&#39;s 2025 dissertation</span>
+    <span class="n">MODIFIED_DELAYED_WELFORD</span> <span class="o">=</span> <span class="s2">&quot;modified_delayed_welford&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="SamplingEnum">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.SamplingEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SamplingEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    How to complete the one-hot differentiable sampling of a discrete stochastic process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># w/ noise ~ Gumbel(0, 1)</span>
+    <span class="n">ST_GUMBEL_SOFTMAX</span> <span class="o">=</span> <span class="s2">&quot;straight_through_gumbel_softmax&quot;</span></div>
+
+    <span class="c1"># ST = &quot;straight_through&quot;  # no noise</span>
+
+
+<div class="viewcode-block" id="RuleWeightsEnum">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.RuleWeightsEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RuleWeightsEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This allows for the disabling/enabling of rule weights (e.g., certainty factors).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">NONE</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+    <span class="n">CERTAINTY_FACTORS</span> <span class="o">=</span> <span class="s2">&quot;certainty_factors&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="RuleEliminationEnum">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.RuleEliminationEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RuleEliminationEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This allows for the disabling/enabling of rule elimination in an attempt to improve</span>
+<span class="sd">    interpretability of fuzzy inference.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">NONE</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>  <span class="c1"># no rule elimination</span></div>
+
+    <span class="c1"># NO_OP = (</span>
+    <span class="c1">#     &quot;no_op&quot;  # use the no-op procedure where it is possible for a fuzzy logic rule&#39;s</span>
+    <span class="c1"># )</span>
+    <span class="c1"># consequence to be ineffective (essentially dropping it from influence)</span>
+
+
+<div class="viewcode-block" id="RuleElevationEnum">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.RuleElevationEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RuleElevationEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This allows for the disabling/enabling of layer normalization in an attempt to alleviate the</span>
+<span class="sd">    curse of dimensionality&#39;s impact on fuzzy logic rule activation. In essence, it elevates the</span>
+<span class="sd">    firing strengths as well as preserves the overall shape of the firing levels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">NONE</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+    <span class="n">LAYER_NORMALIZATION</span> <span class="o">=</span> <span class="s2">&quot;layer_normalization&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="ConsequenceInitEnum">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.ConsequenceInitEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConsequenceInitEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initialization method for consequence parameters when no source data is provided.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">XAVIER_NORMAL</span> <span class="o">=</span> <span class="s2">&quot;xavier_normal&quot;</span>
+    <span class="n">XAVIER_UNIFORM</span> <span class="o">=</span> <span class="s2">&quot;xavier_uniform&quot;</span>
+    <span class="n">KAIMING_NORMAL</span> <span class="o">=</span> <span class="s2">&quot;kaiming_normal&quot;</span>
+    <span class="n">KAIMING_UNIFORM</span> <span class="o">=</span> <span class="s2">&quot;kaiming_uniform&quot;</span>
+    <span class="n">ZEROS</span> <span class="o">=</span> <span class="s2">&quot;zeros&quot;</span>
+    <span class="n">NORMAL</span> <span class="o">=</span> <span class="s2">&quot;normal&quot;</span>
+    <span class="n">UNIFORM</span> <span class="o">=</span> <span class="s2">&quot;uniform&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="DefuzzificationMethodEnum">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_enums.DefuzzificationMethodEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DefuzzificationMethodEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This allows for the selection of various implemented defuzzification methods in fuzzy inference.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">TSK</span> <span class="o">=</span> <span class="s2">&quot;tsk&quot;</span>
+    <span class="n">ZERO_ORDER_TSK</span> <span class="o">=</span> <span class="s2">&quot;zero_order_tsk&quot;</span>
+    <span class="n">MAMDANI</span> <span class="o">=</span> <span class="s2">&quot;mamdani&quot;</span>
+    <span class="n">CP_DECOMPOSED_TSK</span> <span class="o">=</span> <span class="s2">&quot;cp_decomposed_tsk&quot;</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

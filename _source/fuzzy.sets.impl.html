@@ -1,0 +1,1174 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.sets.impl package &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="fuzzy.sets.impl.gauss_variants package" href="fuzzy.sets.impl.gauss_variants.html" />
+    <link rel="prev" title="fuzzy.sets package" href="fuzzy.sets.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">src</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="fuzzy.html">fuzzy package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="fuzzy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.html">fuzzy.logic package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.relations.html">fuzzy.relations package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="fuzzy.sets.html">fuzzy.sets package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.utils.html">fuzzy.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.html#module-fuzzy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">src</a></li>
+          <li class="breadcrumb-item"><a href="fuzzy.html">fuzzy package</a></li>
+          <li class="breadcrumb-item"><a href="fuzzy.sets.html">fuzzy.sets package</a></li>
+      <li class="breadcrumb-item active">fuzzy.sets.impl package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_source/fuzzy.sets.impl.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fuzzy-sets-impl-package">
+<h1>fuzzy.sets.impl package<a class="headerlink" href="#fuzzy-sets-impl-package" title="Link to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html">fuzzy.sets.impl.gauss_variants package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#module-fuzzy.sets.impl.gauss_variants.cmf">fuzzy.sets.impl.gauss_variants.cmf module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel"><code class="docutils literal notranslate"><span class="pre">GaussianKernel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel.width_multiplier"><code class="docutils literal notranslate"><span class="pre">GaussianKernel.width_multiplier</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel.slope_multiplier"><code class="docutils literal notranslate"><span class="pre">GaussianKernel.slope_multiplier</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian"><code class="docutils literal notranslate"><span class="pre">GeneralizedGuassian</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.get_width_multiplier"><code class="docutils literal notranslate"><span class="pre">GeneralizedGuassian.get_width_multiplier()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.get_slope_multiplier"><code class="docutils literal notranslate"><span class="pre">GeneralizedGuassian.get_slope_multiplier()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.internal_calculate_membership"><code class="docutils literal notranslate"><span class="pre">GeneralizedGuassian.internal_calculate_membership()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.sympy_formula"><code class="docutils literal notranslate"><span class="pre">GeneralizedGuassian.sympy_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.calculate_membership"><code class="docutils literal notranslate"><span class="pre">GeneralizedGuassian.calculate_membership()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian"><code class="docutils literal notranslate"><span class="pre">LogGaussian</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.internal_calculate_membership"><code class="docutils literal notranslate"><span class="pre">LogGaussian.internal_calculate_membership</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.sympy_formula"><code class="docutils literal notranslate"><span class="pre">LogGaussian.sympy_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.calculate_membership"><code class="docutils literal notranslate"><span class="pre">LogGaussian.calculate_membership()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.enable_sparse"><code class="docutils literal notranslate"><span class="pre">LogGaussian.enable_sparse</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.training"><code class="docutils literal notranslate"><span class="pre">LogGaussian.training</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.Gaussian"><code class="docutils literal notranslate"><span class="pre">Gaussian</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.Gaussian.internal_calculate_membership"><code class="docutils literal notranslate"><span class="pre">Gaussian.internal_calculate_membership()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.Gaussian.sympy_formula"><code class="docutils literal notranslate"><span class="pre">Gaussian.sympy_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.Gaussian.calculate_membership"><code class="docutils literal notranslate"><span class="pre">Gaussian.calculate_membership()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#module-fuzzy.sets.impl.gauss_variants.dmf">fuzzy.sets.impl.gauss_variants.dmf module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.dmf.DimensionDependent"><code class="docutils literal notranslate"><span class="pre">DimensionDependent</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.dmf.GaussianNoExpDMF"><code class="docutils literal notranslate"><span class="pre">GaussianNoExpDMF</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.dmf.GaussianNoExpDMF.internal_calculate_membership"><code class="docutils literal notranslate"><span class="pre">GaussianNoExpDMF.internal_calculate_membership()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.dmf.GaussianNoExpDMF.sympy_formula"><code class="docutils literal notranslate"><span class="pre">GaussianNoExpDMF.sympy_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.dmf.GaussianNoExpDMF.calculate_membership"><code class="docutils literal notranslate"><span class="pre">GaussianNoExpDMF.calculate_membership()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.dmf.GaussianDMF"><code class="docutils literal notranslate"><span class="pre">GaussianDMF</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.dmf.GaussianDMF.internal_calculate_membership"><code class="docutils literal notranslate"><span class="pre">GaussianDMF.internal_calculate_membership()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.dmf.GaussianDMF.sympy_formula"><code class="docutils literal notranslate"><span class="pre">GaussianDMF.sympy_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.dmf.GaussianDMF.calculate_membership"><code class="docutils literal notranslate"><span class="pre">GaussianDMF.calculate_membership()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#module-fuzzy.sets.impl.gauss_variants">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-fuzzy.sets.impl.basic">
+<span id="fuzzy-sets-impl-basic-module"></span><h2>fuzzy.sets.impl.basic module<a class="headerlink" href="#module-fuzzy.sets.impl.basic" title="Link to this heading"></a></h2>
+<p>Implements various  conventional membership functions (CMFs) by inheriting from FuzzySet,
+such as no operation (i.e., do nothing) and triangular fuzzy sets.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.NoOp">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.basic.</span></span><span class="sig-name descname"><span class="pre">NoOp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_elements</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">membership</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#NoOp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.NoOp" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySet</span></code></a></p>
+<p>Implementation of the NoOp membership function, written in PyTorch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_elements</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+<li><p><strong>membership</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.NoOp.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#NoOp.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.NoOp.save" title="Link to this definition"></a></dt>
+<dd><p>Save the fuzzy set to a file.</p>
+<p>Note: This does not preserve the ParameterList structure, but rather concatenates the
+parameters into a single tensor, which is then saved to a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary containing the state of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.MutableMapping" title="(in Python v3.14)"><em>MutableMapping</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.NoOp.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#NoOp.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.NoOp.load" title="Link to this definition"></a></dt>
+<dd><p>Load the fuzzy set from a file and put it on the specified device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><em>FuzzySet</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.NoOp.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">membership_degree</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#NoOp.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.NoOp.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the NoOp fuzzy set.
+This is a static method, so it can be called without instantiating the class.
+This static method is particularly useful when animating the membership function.</p>
+<p>Warning: This method is not meant to be called directly, as it does not take into account
+the mask that likely should exist. Use the calculate_membership method instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+<li><p><strong>membership_degree</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The membership degree of the NoOp fuzzy set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the NoOp fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.NoOp.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#NoOp.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.NoOp.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.NoOp.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#NoOp.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.NoOp.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the NoOp fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the NoOp fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Lorentzian">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.basic.</span></span><span class="sig-name descname"><span class="pre">Lorentzian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">membership_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Lorentzian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Lorentzian" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySet</span></code></a></p>
+<p>Implementation of the Lorentzian membership function, written in PyTorch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>ndarray</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>, </em><em>dtype</em><em>[</em><em>floating</em><em>[</em><em>_64Bit</em><em>]</em><em>]</em><em>]</em>)</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>ndarray</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>, </em><em>dtype</em><em>[</em><em>floating</em><em>[</em><em>_64Bit</em><em>]</em><em>]</em><em>]</em>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>membership_config</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.shape.MembershipConfig" title="fuzzy.sets.shape.MembershipConfig"><em>MembershipConfig</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Lorentzian.sigmas">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sigmas</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><span class="pre">Tensor</span></a></em><a class="headerlink" href="#fuzzy.sets.impl.basic.Lorentzian.sigmas" title="Link to this definition"></a></dt>
+<dd><p>Gets the sigma for the Lorentzian fuzzy set; alias for the ‘widths’ parameter.</p>
+<p>Regression fix: this used to read self.widths, a plain instance attribute
+that no longer exists on FuzzySet since widths moved into the
+_FuzzySetParameters submodule (see get_widths()) - every access raised
+AttributeError, which Python’s property protocol then silently reported as
+“no attribute ‘sigmas’” rather than the real cause.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Lorentzian.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Lorentzian.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Lorentzian.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Lorentzian fuzzy set.
+This is a static method, so it can be called without instantiating the class.
+This static method is particularly useful when animating the membership function.</p>
+<p>Warning: This method is not meant to be called directly, as it does not take into account
+the mask that likely should exist. Use the calculate_membership method instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The centers of the Lorentzian fuzzy set.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The widths of the Lorentzian fuzzy set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Lorentzian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Lorentzian.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Lorentzian.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Lorentzian.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Lorentzian.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Lorentzian.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Lorentzian.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Lorentzian fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Lorentzian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.LogisticCurve">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.basic.</span></span><span class="sig-name descname"><span class="pre">LogisticCurve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">midpoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">growth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supremum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#LogisticCurve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.LogisticCurve" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a>, <a class="reference internal" href="fuzzy.utils.html#fuzzy.utils.classes.Loggable" title="fuzzy.utils.classes.Loggable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Loggable</span></code></a></p>
+<p>A generic torch.nn.Module class that implements a logistic curve, which allows us to
+tune the midpoint, and growth of the curve, with a fixed supremum (the supremum is
+the maximum value of the curve).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>midpoint</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>growth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>supremum</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.LogisticCurve.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#LogisticCurve.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.LogisticCurve.forward" title="Link to this definition"></a></dt>
+<dd><p>Calculate the value of the logistic curve at the given point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tensors</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+<p>Returns:</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Triangular">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.basic.</span></span><span class="sig-name descname"><span class="pre">Triangular</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Triangular"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Triangular" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySet</span></code></a></p>
+<p>Implementation of the Triangular membership function, written in PyTorch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Triangular.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Triangular.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Triangular.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Triangular fuzzy set.
+This is a static method, so it can be called without instantiating the class.
+This static method is particularly useful when animating the membership function.</p>
+<p>Warning: This method is not meant to be called directly, as it does not take into account
+the mask that likely should exist. Use the calculate_membership method instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The centers of the Triangular fuzzy set.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The widths of the Triangular fuzzy set.</p></li>
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Triangular fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Triangular.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Triangular.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Triangular.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Triangular.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Triangular.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Triangular.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Forward pass of the function. Applies the function to the input elementwise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – Two-dimensional matrix of observations,</p></li>
+<li><p><strong>column</strong> (<em>where a row is a single observation and each</em>)</p></li>
+<li><p><strong>observation.</strong> (<em>is related to an attribute measured during that</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Triangular fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Trapezoidal">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.basic.</span></span><span class="sig-name descname"><span class="pre">Trapezoidal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plateaus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Trapezoidal" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySet</span></code></a></p>
+<p>Implementation of the Trapezoidal membership function, written in PyTorch.</p>
+<p>Parameterized by centers, widths, and plateaus:
+- centers (c): center of the trapezoid
+- widths (w): half-width from center to outer foot
+- plateaus (p): half-width of the flat top region</p>
+<p>When plateaus = 0, this degenerates to a Triangular membership function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Trapezoidal.get_plateaus">
+<span class="sig-name descname"><span class="pre">get_plateaus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal.get_plateaus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Trapezoidal.get_plateaus" title="Link to this definition"></a></dt>
+<dd><p>Get the concatenated plateaus of the Trapezoidal fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The concatenated plateaus of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Trapezoidal.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plateaus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Trapezoidal.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Trapezoidal fuzzy set.
+This is a static method, so it can be called without instantiating the class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The centers of the Trapezoidal fuzzy set.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The widths (half-widths to outer foot) of the Trapezoidal fuzzy set.</p></li>
+<li><p><strong>plateaus</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The plateaus (half-widths of flat top) of the Trapezoidal fuzzy set.</p></li>
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Trapezoidal fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Trapezoidal.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Trapezoidal.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Trapezoidal.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Trapezoidal.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Forward pass of the function. Applies the function to the input elementwise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – Two-dimensional matrix of observations,</p></li>
+<li><p><strong>column</strong> (<em>where a row is a single observation and each</em>)</p></li>
+<li><p><strong>observation.</strong> (<em>is related to an attribute measured during that</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Trapezoidal fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Trapezoidal.parameter_signature">
+<span class="sig-name descname"><span class="pre">parameter_signature</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal.parameter_signature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Trapezoidal.parameter_signature" title="Link to this definition"></a></dt>
+<dd><p>Extend the base signature with ‘plateaus’: it is a learnable parameter that
+calculate_membership also depends on, so the membership cache must be able to tell
+when it - not just centers/widths - has changed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A signature of this fuzzy set’s parameters, including plateaus.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.14)"><em>Tuple</em></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.basic.Trapezoidal.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.basic.Trapezoidal.to" title="Link to this definition"></a></dt>
+<dd><p>Move the FuzzySet to a new device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.sets.impl">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-fuzzy.sets.impl" title="Link to this heading"></a></h2>
+<p>This module provides implementations of various fuzzy sets.</p>
+<p>It includes Gaussian DMF, Triangular, LogGaussian, Gaussian, Lorentzian, and
+LogisticCurve fuzzy sets.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.NoOp">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.</span></span><span class="sig-name descname"><span class="pre">NoOp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_elements</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">membership</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#NoOp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.NoOp" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySet</span></code></a></p>
+<p>Implementation of the NoOp membership function, written in PyTorch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_elements</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+<li><p><strong>membership</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.NoOp.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#NoOp.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.NoOp.save" title="Link to this definition"></a></dt>
+<dd><p>Save the fuzzy set to a file.</p>
+<p>Note: This does not preserve the ParameterList structure, but rather concatenates the
+parameters into a single tensor, which is then saved to a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary containing the state of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.MutableMapping" title="(in Python v3.14)"><em>MutableMapping</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.NoOp.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#NoOp.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.NoOp.load" title="Link to this definition"></a></dt>
+<dd><p>Load the fuzzy set from a file and put it on the specified device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><em>FuzzySet</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.NoOp.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">membership_degree</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#NoOp.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.NoOp.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the NoOp fuzzy set.
+This is a static method, so it can be called without instantiating the class.
+This static method is particularly useful when animating the membership function.</p>
+<p>Warning: This method is not meant to be called directly, as it does not take into account
+the mask that likely should exist. Use the calculate_membership method instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+<li><p><strong>membership_degree</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The membership degree of the NoOp fuzzy set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the NoOp fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.NoOp.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#NoOp.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.NoOp.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.NoOp.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#NoOp.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.NoOp.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the NoOp fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the NoOp fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Triangular">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.</span></span><span class="sig-name descname"><span class="pre">Triangular</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Triangular"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Triangular" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySet</span></code></a></p>
+<p>Implementation of the Triangular membership function, written in PyTorch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Triangular.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Triangular.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Triangular.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Triangular fuzzy set.
+This is a static method, so it can be called without instantiating the class.
+This static method is particularly useful when animating the membership function.</p>
+<p>Warning: This method is not meant to be called directly, as it does not take into account
+the mask that likely should exist. Use the calculate_membership method instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The centers of the Triangular fuzzy set.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The widths of the Triangular fuzzy set.</p></li>
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Triangular fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Triangular.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Triangular.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Triangular.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Triangular.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Triangular.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Triangular.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Forward pass of the function. Applies the function to the input elementwise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – Two-dimensional matrix of observations,</p></li>
+<li><p><strong>column</strong> (<em>where a row is a single observation and each</em>)</p></li>
+<li><p><strong>observation.</strong> (<em>is related to an attribute measured during that</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Triangular fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Trapezoidal">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.</span></span><span class="sig-name descname"><span class="pre">Trapezoidal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plateaus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Trapezoidal" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySet</span></code></a></p>
+<p>Implementation of the Trapezoidal membership function, written in PyTorch.</p>
+<p>Parameterized by centers, widths, and plateaus:
+- centers (c): center of the trapezoid
+- widths (w): half-width from center to outer foot
+- plateaus (p): half-width of the flat top region</p>
+<p>When plateaus = 0, this degenerates to a Triangular membership function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Trapezoidal.get_plateaus">
+<span class="sig-name descname"><span class="pre">get_plateaus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal.get_plateaus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Trapezoidal.get_plateaus" title="Link to this definition"></a></dt>
+<dd><p>Get the concatenated plateaus of the Trapezoidal fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The concatenated plateaus of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Trapezoidal.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plateaus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Trapezoidal.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Trapezoidal fuzzy set.
+This is a static method, so it can be called without instantiating the class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The centers of the Trapezoidal fuzzy set.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The widths (half-widths to outer foot) of the Trapezoidal fuzzy set.</p></li>
+<li><p><strong>plateaus</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The plateaus (half-widths of flat top) of the Trapezoidal fuzzy set.</p></li>
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Trapezoidal fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Trapezoidal.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Trapezoidal.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Trapezoidal.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Trapezoidal.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Forward pass of the function. Applies the function to the input elementwise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – Two-dimensional matrix of observations,</p></li>
+<li><p><strong>column</strong> (<em>where a row is a single observation and each</em>)</p></li>
+<li><p><strong>observation.</strong> (<em>is related to an attribute measured during that</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Trapezoidal fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Trapezoidal.parameter_signature">
+<span class="sig-name descname"><span class="pre">parameter_signature</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal.parameter_signature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Trapezoidal.parameter_signature" title="Link to this definition"></a></dt>
+<dd><p>Extend the base signature with ‘plateaus’: it is a learnable parameter that
+calculate_membership also depends on, so the membership cache must be able to tell
+when it - not just centers/widths - has changed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A signature of this fuzzy set’s parameters, including plateaus.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.14)"><em>Tuple</em></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Trapezoidal.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Trapezoidal.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Trapezoidal.to" title="Link to this definition"></a></dt>
+<dd><p>Move the FuzzySet to a new device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.LogGaussian">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.</span></span><span class="sig-name descname"><span class="pre">LogGaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gaussian_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">GaussianKernel(width_multiplier=2.0,</span> <span class="pre">slope_multiplier=1.0)</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#LogGaussian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.LogGaussian" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySet</span></code></a></p>
+<p>Implementation of the Log Gaussian membership function, written in PyTorch.
+This is a modified version that helps when the dimensionality is high,
+and TSK product inference engine will be used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>gaussian_kernel</strong> (<a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel" title="fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel"><em>GaussianKernel</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.LogGaussian.internal_calculate_membership">
+<span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;torch.jit.ScriptFunction</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#fuzzy.sets.impl.LogGaussian.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.LogGaussian.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#LogGaussian.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.LogGaussian.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.LogGaussian.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#LogGaussian.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.LogGaussian.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Log Gaussian fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Log Gaussian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.LogGaussian.enable_sparse">
+<span class="sig-name descname"><span class="pre">enable_sparse</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></em><a class="headerlink" href="#fuzzy.sets.impl.LogGaussian.enable_sparse" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.LogGaussian.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></em><a class="headerlink" href="#fuzzy.sets.impl.LogGaussian.training" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Gaussian">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.</span></span><span class="sig-name descname"><span class="pre">Gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gaussian_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">GaussianKernel(width_multiplier=2.0,</span> <span class="pre">slope_multiplier=1.0)</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#Gaussian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Gaussian" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian" title="fuzzy.sets.impl.gauss_variants.cmf.LogGaussian"><code class="xref py py-class docutils literal notranslate"><span class="pre">LogGaussian</span></code></a></p>
+<p>Implementation of the Gaussian membership function, written in PyTorch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>gaussian_kernel</strong> (<a class="reference internal" href="fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel" title="fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel"><em>GaussianKernel</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Gaussian.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_multiplier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#Gaussian.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Gaussian.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Gaussian fuzzy set.
+This is a static method, so it can be called without instantiating the class.
+This static method is particularly useful when animating the membership function.</p>
+<p>Warning: This method is not meant to be called directly, as it does not take into account
+the mask that likely should exist. Use the calculate_membership method instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The centers of the Gaussian fuzzy set.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The widths of the Gaussian fuzzy set.</p></li>
+<li><p><strong>width_multiplier</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The width multiplier of the Gaussian fuzzy set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Gaussian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Gaussian.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#Gaussian.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Gaussian.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Gaussian.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#Gaussian.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Gaussian.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Log Gaussian fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Log Gaussian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Lorentzian">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.</span></span><span class="sig-name descname"><span class="pre">Lorentzian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">membership_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Lorentzian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Lorentzian" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySet</span></code></a></p>
+<p>Implementation of the Lorentzian membership function, written in PyTorch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>ndarray</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>, </em><em>dtype</em><em>[</em><em>floating</em><em>[</em><em>_64Bit</em><em>]</em><em>]</em><em>]</em>)</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>ndarray</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>, </em><em>dtype</em><em>[</em><em>floating</em><em>[</em><em>_64Bit</em><em>]</em><em>]</em><em>]</em>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>membership_config</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.shape.MembershipConfig" title="fuzzy.sets.shape.MembershipConfig"><em>MembershipConfig</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Lorentzian.sigmas">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sigmas</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><span class="pre">Tensor</span></a></em><a class="headerlink" href="#fuzzy.sets.impl.Lorentzian.sigmas" title="Link to this definition"></a></dt>
+<dd><p>Gets the sigma for the Lorentzian fuzzy set; alias for the ‘widths’ parameter.</p>
+<p>Regression fix: this used to read self.widths, a plain instance attribute
+that no longer exists on FuzzySet since widths moved into the
+_FuzzySetParameters submodule (see get_widths()) - every access raised
+AttributeError, which Python’s property protocol then silently reported as
+“no attribute ‘sigmas’” rather than the real cause.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Lorentzian.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Lorentzian.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Lorentzian.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Lorentzian fuzzy set.
+This is a static method, so it can be called without instantiating the class.
+This static method is particularly useful when animating the membership function.</p>
+<p>Warning: This method is not meant to be called directly, as it does not take into account
+the mask that likely should exist. Use the calculate_membership method instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The centers of the Lorentzian fuzzy set.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The widths of the Lorentzian fuzzy set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Lorentzian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Lorentzian.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Lorentzian.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Lorentzian.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.Lorentzian.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#Lorentzian.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.Lorentzian.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Lorentzian fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Lorentzian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.LogisticCurve">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.</span></span><span class="sig-name descname"><span class="pre">LogisticCurve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">midpoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">growth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supremum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#LogisticCurve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.LogisticCurve" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a>, <a class="reference internal" href="fuzzy.utils.html#fuzzy.utils.classes.Loggable" title="fuzzy.utils.classes.Loggable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Loggable</span></code></a></p>
+<p>A generic torch.nn.Module class that implements a logistic curve, which allows us to
+tune the midpoint, and growth of the curve, with a fixed supremum (the supremum is
+the maximum value of the curve).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>midpoint</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>growth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>supremum</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.LogisticCurve.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/basic.html#LogisticCurve.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.LogisticCurve.forward" title="Link to this definition"></a></dt>
+<dd><p>Calculate the value of the logistic curve at the given point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tensors</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+<p>Returns:</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="fuzzy.sets.html" class="btn btn-neutral float-left" title="fuzzy.sets package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fuzzy.sets.impl.gauss_variants.html" class="btn btn-neutral float-right" title="fuzzy.sets.impl.gauss_variants package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

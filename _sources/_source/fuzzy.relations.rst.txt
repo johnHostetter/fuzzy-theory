@@ -1,0 +1,77 @@
+fuzzy.relations package
+=======================
+
+Submodules
+----------
+
+fuzzy.relations.aggregation module
+----------------------------------
+
+.. automodule:: fuzzy.relations.aggregation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.relations.compound module
+-------------------------------
+
+.. automodule:: fuzzy.relations.compound
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.relations.confidence module
+---------------------------------
+
+.. automodule:: fuzzy.relations.confidence
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.relations.custom\_t\_norm module
+--------------------------------------
+
+.. automodule:: fuzzy.relations.custom_t_norm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.relations.linkage module
+------------------------------
+
+.. automodule:: fuzzy.relations.linkage
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.relations.n\_ary module
+-----------------------------
+
+.. automodule:: fuzzy.relations.n_ary
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.relations.t\_norm module
+------------------------------
+
+.. automodule:: fuzzy.relations.t_norm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.relations.triton\_kernels module
+--------------------------------------
+
+.. automodule:: fuzzy.relations.triton_kernels
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: fuzzy.relations
+   :members:
+   :undoc-members:
+   :show-inheritance:

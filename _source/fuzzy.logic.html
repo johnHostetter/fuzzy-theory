@@ -1,0 +1,654 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.logic package &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="fuzzy.logic.control package" href="fuzzy.logic.control.html" />
+    <link rel="prev" title="fuzzy package" href="fuzzy.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">src</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="fuzzy.html">fuzzy package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="fuzzy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">fuzzy.logic package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.relations.html">fuzzy.relations package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.html">fuzzy.sets package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.utils.html">fuzzy.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.html#module-fuzzy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">src</a></li>
+          <li class="breadcrumb-item"><a href="fuzzy.html">fuzzy package</a></li>
+      <li class="breadcrumb-item active">fuzzy.logic package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_source/fuzzy.logic.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fuzzy-logic-package">
+<h1>fuzzy.logic package<a class="headerlink" href="#fuzzy-logic-package" title="Link to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="fuzzy.logic.control.html">fuzzy.logic.control package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.logic.control.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.logic.control.configurations.html">fuzzy.logic.control.configurations package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#module-fuzzy.logic.control.configurations.abstract">fuzzy.logic.control.configurations.abstract module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#module-fuzzy.logic.control.configurations.data">fuzzy.logic.control.configurations.data module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#module-fuzzy.logic.control.configurations.impl">fuzzy.logic.control.configurations.impl module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.configurations.html#module-fuzzy.logic.control.configurations">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.logic.control.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.logic.control.html#module-fuzzy.logic.control.controller">fuzzy.logic.control.controller module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController"><code class="docutils literal notranslate"><span class="pre">FuzzyLogicController</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.shape"><code class="docutils literal notranslate"><span class="pre">FuzzyLogicController.shape</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.save"><code class="docutils literal notranslate"><span class="pre">FuzzyLogicController.save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.load"><code class="docutils literal notranslate"><span class="pre">FuzzyLogicController.load()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.to"><code class="docutils literal notranslate"><span class="pre">FuzzyLogicController.to()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.disable_parameters_and_build"><code class="docutils literal notranslate"><span class="pre">FuzzyLogicController.disable_parameters_and_build()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.split_granules_by_type"><code class="docutils literal notranslate"><span class="pre">FuzzyLogicController.split_granules_by_type()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.linguistic_variables"><code class="docutils literal notranslate"><span class="pre">FuzzyLogicController.linguistic_variables()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.controller.FuzzyLogicController.forward"><code class="docutils literal notranslate"><span class="pre">FuzzyLogicController.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.logic.control.html#module-fuzzy.logic.control.defuzzification">fuzzy.logic.control.defuzzification module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.Defuzzification"><code class="docutils literal notranslate"><span class="pre">Defuzzification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.Defuzzification.load"><code class="docutils literal notranslate"><span class="pre">Defuzzification.load()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.Defuzzification.to"><code class="docutils literal notranslate"><span class="pre">Defuzzification.to()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.Defuzzification.forward"><code class="docutils literal notranslate"><span class="pre">Defuzzification.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.ZeroOrder"><code class="docutils literal notranslate"><span class="pre">ZeroOrder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.ZeroOrder.save"><code class="docutils literal notranslate"><span class="pre">ZeroOrder.save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.ZeroOrder.to"><code class="docutils literal notranslate"><span class="pre">ZeroOrder.to()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.ZeroOrder.forward"><code class="docutils literal notranslate"><span class="pre">ZeroOrder.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.NormalizedZeroOrder"><code class="docutils literal notranslate"><span class="pre">NormalizedZeroOrder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.NormalizedZeroOrder.forward"><code class="docutils literal notranslate"><span class="pre">NormalizedZeroOrder.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.TSK"><code class="docutils literal notranslate"><span class="pre">TSK</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.TSK.consequences"><code class="docutils literal notranslate"><span class="pre">TSK.consequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.TSK.save"><code class="docutils literal notranslate"><span class="pre">TSK.save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.TSK.to"><code class="docutils literal notranslate"><span class="pre">TSK.to()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.TSK.forward"><code class="docutils literal notranslate"><span class="pre">TSK.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.Mamdani"><code class="docutils literal notranslate"><span class="pre">Mamdani</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.Mamdani.save"><code class="docutils literal notranslate"><span class="pre">Mamdani.save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.Mamdani.to"><code class="docutils literal notranslate"><span class="pre">Mamdani.to()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.control.html#fuzzy.logic.control.defuzzification.Mamdani.forward"><code class="docutils literal notranslate"><span class="pre">Mamdani.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fuzzy.logic.control.html#module-fuzzy.logic.control">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-fuzzy.logic.knowledge_base">
+<span id="fuzzy-logic-knowledge-base-module"></span><h2>fuzzy.logic.knowledge_base module<a class="headerlink" href="#module-fuzzy.logic.knowledge_base" title="Link to this heading"></a></h2>
+<p>Implements the vital KnowledgeBase class.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.logic.knowledge_base.</span></span><span class="sig-name descname"><span class="pre">KnowledgeBase</span></span><a class="reference internal" href="../_modules/fuzzy/logic/knowledge_base.html#KnowledgeBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">RoughDecisions</span></code>, <a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.abstract.FuzzySystem" title="fuzzy.logic.control.configurations.abstract.FuzzySystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySystem</span></code></a></p>
+<p>The KnowledgeBase class is a significant component to this Soft Computing library.</p>
+<p>As the name suggests, it implements the concept of a Knowledge Base in the
+field of Artificial Intelligence.</p>
+<p>Its implementation is abstract and generic, using a graph structure (i.e., self.graph)
+to store facts, data, functions, implications, relations, etc. in the form
+of vertices or edges, whichever is most appropriate.</p>
+<p>Typically, facts, data, and functions are vertices, whereas implications and
+relations are implemented with edges in the graph structure.</p>
+<p>The distinction between what each vertex represents is made by the
+vertex’s attributes, such as ‘tags’.</p>
+<p>The same can be said for edges.</p>
+<p>For example, fuzzy sets may exist in the KnowledgeBase’s graph (i.e., self.graph)
+as vertices, and how those fuzzy sets are used is represented with an edge. At the time of
+writing (4/14/2023), these fuzzy sets are connected to another vertex representing the t-norm
+in which they are aggregated together (e.g., hot weather and cold soup) to offer flexibility
+in the choice of t-norm. In other words, it is possible to construct a KnowledgeBase where
+each fuzzy logic rule has its own independent t-norm definition. Then, this vertex representing
+the compound relation between the fuzzy sets can be interpreted as an antecedent,
+if a directed edge is connected from this compound relation to another compound relation
+such that (source_vertex, target_vertex) represent antecedents and consequences, respectively.</p>
+<p>Naturally, this allows for fuzzy sets to be dynamically added or removed from fuzzy rules,
+or fuzzy rules to be dynamically added or removed. Allowing for the process of
+self-organizing with various methods (e.g., genetic algorithms, unsupervised learning,
+rough set theory) to be somewhat easily incorporated.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape" title="fuzzy.logic.control.configurations.data.Shape"><span class="pre">Shape</span></a></em><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.shape" title="Link to this definition"></a></dt>
+<dd><p>Get the shape of the Fuzzy System. This is used to ensure that the Fuzzy System is built
+correctly and that the KnowledgeBase contains the correct number of fuzzy sets.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.granulation_layers">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">granulation_layers</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.GranulationLayers" title="fuzzy.logic.control.configurations.data.GranulationLayers"><span class="pre">GranulationLayers</span></a></em><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.granulation_layers" title="Link to this definition"></a></dt>
+<dd><p>Create the granulation layers and the inference engine for the Fuzzy System.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The granulation layers (e.g., premise, consequence).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.engine">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">engine</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="fuzzy.relations.html#fuzzy.relations.t_norm.TNorm" title="fuzzy.relations.t_norm.TNorm"><span class="pre">TNorm</span></a></em><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.engine" title="Link to this definition"></a></dt>
+<dd><p>Fetch the fuzzy logic inference engine from the KnowledgeBase.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The fuzzy logic inference engine.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.rules">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rules</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#fuzzy.logic.rule.Rule" title="fuzzy.logic.rule.Rule"><span class="pre">Rule</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.rules" title="Link to this definition"></a></dt>
+<dd><p>Get a list of fuzzy logic rules, where each element in the list is a Rule object.</p>
+<p>Note: This retrieves the rules from the KnowledgeBase’s graph, as opposed to simply
+retrieving the rules from an attribute. This is because the KnowledgeBase’s graph
+can be analyzed, modified, and used to create new rules.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of fuzzy logic rules (as instances of Rule), ordered by their creation
+(i.e., rule’s id attribute).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.rule_base">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rule_base</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#fuzzy.logic.rulebase.RuleBase" title="fuzzy.logic.rulebase.RuleBase"><span class="pre">RuleBase</span></a></em><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.rule_base" title="Link to this definition"></a></dt>
+<dd><p>Get the RuleBase object from the KnowledgeBase; automatically determine the device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A RuleBase object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.get_granules">
+<span class="sig-name descname"><span class="pre">get_granules</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tags</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/knowledge_base.html#KnowledgeBase.get_granules"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.get_granules" title="Link to this definition"></a></dt>
+<dd><p>Given a set of tags, find the granules in the KnowledgeBase.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.14)"><em>Set</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>) – The tags to filter the granules by.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The granules in the KnowledgeBase (their vertex sequence).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>VertexSeq</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.intra_dimensions">
+<span class="sig-name descname"><span class="pre">intra_dimensions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tags</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/knowledge_base.html#KnowledgeBase.intra_dimensions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.intra_dimensions" title="Link to this definition"></a></dt>
+<dd><p>Calculate the dimensionality within dimensions. For example, calculate the
+number of linguistic terms available for the first input variable, and the
+second input variable, and so on. The result is a calculation for each variable,
+stored as a 1-dimensional Numpy array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.14)"><em>Set</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>) – A string or a set of strings that are used to filter the vertices</p></li>
+<li><p><strong>granules.</strong> (<em>in the graph to find the</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 1-dimensional Numpy array where each element is a count of
+the possible terms for their respective dimension
+(e.g., the 0th element may say 3, meaning that
+there are 3 possible terms/sets within the first dimension).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.attributes">
+<span class="sig-name descname"><span class="pre">attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">element</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/knowledge_base.html#KnowledgeBase.attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.attributes" title="Link to this definition"></a></dt>
+<dd><p>Fetch the attributes and their values for the given element.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>element</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – An element or object in the universe of discourse.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary where each key is the attribute type (or relation)
+and the value associated with the key is the value of that attribute
+(or unique auto-generated id for relations).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/knowledge_base.html#KnowledgeBase.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.save" title="Link to this definition"></a></dt>
+<dd><p>Save this Knowledgebase object for later use.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The path to the directory that this KnowledgeBase should be saved at.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.save_granules">
+<span class="sig-name descname"><span class="pre">save_granules</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extension</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/knowledge_base.html#KnowledgeBase.save_granules"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.save_granules" title="Link to this definition"></a></dt>
+<dd><p>Save the granules to the given path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The path to the directory that the granules should be saved at.</p></li>
+<li><p><strong>class_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – The type of the granules.</p></li>
+<li><p><strong>extension</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The file extension to save the granules as.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.add_hypercube">
+<span class="sig-name descname"><span class="pre">add_hypercube</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tags</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/knowledge_base.html#KnowledgeBase.add_hypercube"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.add_hypercube" title="Link to this definition"></a></dt>
+<dd><p>Constructs the granules for this mapping in a format that will be compatible with the
+expected functionality. Also, modifies a Knowledgebase such that the condensed
+(i.e., stacked) version of the granules is readily available.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.14)"><em>Set</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>) – The tags that indicate which granules to stack.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A single membership function that combines all the granules for faster computation; if
+there is an uneven number of granules in each dimension, then the values (e.g.,
+centers, widths) have been padded with torch.nan (if not trainable) or 0 for centers
+and -1 for widths (if trainable).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None | <em>Vertex</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.create">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">linguistic_variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rules</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/knowledge_base.html#KnowledgeBase.create"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.create" title="Link to this definition"></a></dt>
+<dd><p>A convenient helper method for the expert-design procedure of a Knowledge Base.
+The linguistic variable’s inputs member contains the premises and the targets
+member contains the consequences.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>linguistic_variables</strong> (<a class="reference internal" href="#fuzzy.logic.variables.LinguisticVariables" title="fuzzy.logic.variables.LinguisticVariables"><em>LinguisticVariables</em></a>) – The linguistic variables involved and their terms.</p></li>
+<li><p><strong>rules</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a><em>[</em><a class="reference internal" href="#fuzzy.logic.rule.Rule" title="fuzzy.logic.rule.Rule"><em>Rule</em></a><em>]</em>) – The fuzzy logic rules; must be non-empty.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A KnowledgeBase object, with the linguistic_variables (i.e., antecedents, consequents),
+and fuzzy logic rules added.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.logic.knowledge_base.KnowledgeBase" title="fuzzy.logic.knowledge_base.KnowledgeBase"><em>KnowledgeBase</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.load">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/knowledge_base.html#KnowledgeBase.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.load" title="Link to this definition"></a></dt>
+<dd><p>Given a path to a directory, load the saved KnowledgeBase object at that location.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The path to the directory that the KnowledgeBase was saved at.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>) – The device to use.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>KnowledgeBase</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.logic.knowledge_base.KnowledgeBase" title="fuzzy.logic.knowledge_base.KnowledgeBase"><em>KnowledgeBase</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.knowledge_base.KnowledgeBase.parse_vertex_attributes">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parse_vertex_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vertices_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/knowledge_base.html#KnowledgeBase.parse_vertex_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.knowledge_base.KnowledgeBase.parse_vertex_attributes" title="Link to this definition"></a></dt>
+<dd><p>Parse the vertex attributes from the vertices_df and modify them in-place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vertices_df</strong> (<em>DataFrame</em>) – The DataFrame containing the vertex attributes.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>) – The device to use.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.logic.rule">
+<span id="fuzzy-logic-rule-module"></span><h2>fuzzy.logic.rule module<a class="headerlink" href="#module-fuzzy.logic.rule" title="Link to this heading"></a></h2>
+<p>This directory contains the implementation of the Rule class, which is used to represent
+fuzzy logic rules.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.logic.rule.Rule">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.logic.rule.</span></span><span class="sig-name descname"><span class="pre">Rule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">premise</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">consequence</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/rule.html#Rule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.rule.Rule" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A fuzzy logic rule that contains the premise and the consequence. The premise is a n-ary
+fuzzy relation compound, usually involving a t-norm (e.g., minimum, product). The consequence
+is a list of tuples, where the first element is the index of the output variable and the
+second element is the index of the output linguistic term.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>premise</strong> (<a class="reference internal" href="fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation" title="fuzzy.relations.n_ary.NAryRelation"><em>NAryRelation</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.14)"><em>Type</em></a><em>[</em><a class="reference internal" href="fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation" title="fuzzy.relations.n_ary.NAryRelation"><em>NAryRelation</em></a><em>]</em>)</p></li>
+<li><p><strong>consequence</strong> (<a class="reference internal" href="fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation" title="fuzzy.relations.n_ary.NAryRelation"><em>NAryRelation</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.14)"><em>Type</em></a><em>[</em><a class="reference internal" href="fuzzy.relations.html#fuzzy.relations.n_ary.NAryRelation" title="fuzzy.relations.n_ary.NAryRelation"><em>NAryRelation</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.logic.rule.Rule.next_id">
+<span class="sig-name descname"><span class="pre">next_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#fuzzy.logic.rule.Rule.next_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.rule.Rule.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/rule.html#Rule.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.rule.Rule.save" title="Link to this definition"></a></dt>
+<dd><p>Save the Rule object to a directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The path (directory) to save the Rule object to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.rule.Rule.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/rule.html#Rule.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.rule.Rule.load" title="Link to this definition"></a></dt>
+<dd><p>Load the Rule object from a directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The path (directory) to load the Rule object from.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>) – The device to put the Rule object on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The Rule object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.logic.rule.Rule" title="fuzzy.logic.rule.Rule"><em>Rule</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.logic.rulebase">
+<span id="fuzzy-logic-rulebase-module"></span><h2>fuzzy.logic.rulebase module<a class="headerlink" href="#module-fuzzy.logic.rulebase" title="Link to this heading"></a></h2>
+<p>A fuzzy logic rule base that contains a list of rules. The rule base is a module that can be
+used to perform fuzzy logic inference more efficiently than using a list of rules.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.logic.rulebase.RuleBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.logic.rulebase.</span></span><span class="sig-name descname"><span class="pre">RuleBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rules</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/rulebase.html#RuleBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.rulebase.RuleBase" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<p>A fuzzy logic rule base that contains a list of rules. The rule base is a module that can be
+used to perform fuzzy logic inference more efficiently than using a list of rules.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rules</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a><em>[</em><a class="reference internal" href="#fuzzy.logic.rule.Rule" title="fuzzy.logic.rule.Rule"><em>Rule</em></a><em>]</em>)</p></li>
+<li><p><strong>device</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.logic.rulebase.RuleBase.shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="fuzzy.logic.control.configurations.html#fuzzy.logic.control.configurations.data.Shape" title="fuzzy.logic.control.configurations.data.Shape"><span class="pre">Shape</span></a></em><a class="headerlink" href="#fuzzy.logic.rulebase.RuleBase.shape" title="Link to this definition"></a></dt>
+<dd><p>Get the shape of the RuleBase object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The shape of the RuleBase object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.rulebase.RuleBase.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/rulebase.html#RuleBase.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.rulebase.RuleBase.save" title="Link to this definition"></a></dt>
+<dd><p>Save the RuleBase object to a directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The path (directory) to save the RuleBase object to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.rulebase.RuleBase.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/rulebase.html#RuleBase.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.rulebase.RuleBase.load" title="Link to this definition"></a></dt>
+<dd><p>Load a RuleBase object from a directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The path (directory) to load the RuleBase object from.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>) – The device to move the RuleBase object to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A RuleBase object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.logic.rulebase.RuleBase" title="fuzzy.logic.rulebase.RuleBase"><em>RuleBase</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.logic.rulebase.RuleBase.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">membership</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/rulebase.html#RuleBase.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.rulebase.RuleBase.forward" title="Link to this definition"></a></dt>
+<dd><p>Forward pass through the rule base.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>membership</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The membership values of the input elements.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership values of the rule base given the elements after applying the t-norm(s).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.logic.variables">
+<span id="fuzzy-logic-variables-module"></span><h2>fuzzy.logic.variables module<a class="headerlink" href="#module-fuzzy.logic.variables" title="Link to this heading"></a></h2>
+<p>Implements the LinguisticVariables class to store the input and output fuzzy sets
+for fuzzy logic rule(s).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.logic.variables.LinguisticVariables">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.logic.variables.</span></span><span class="sig-name descname"><span class="pre">LinguisticVariables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/logic/variables.html#LinguisticVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.logic.variables.LinguisticVariables" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>The LinguisticVariables class contains the input and output fuzzy sets for fuzzy logic rule(s).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a><em>[</em><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><em>FuzzySet</em></a><em>]</em>)</p></li>
+<li><p><strong>targets</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a><em>[</em><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><em>FuzzySet</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.logic.variables.LinguisticVariables.inputs">
+<span class="sig-name descname"><span class="pre">inputs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><span class="pre">FuzzySet</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#fuzzy.logic.variables.LinguisticVariables.inputs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.logic.variables.LinguisticVariables.targets">
+<span class="sig-name descname"><span class="pre">targets</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><span class="pre">FuzzySet</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#fuzzy.logic.variables.LinguisticVariables.targets" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.logic">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-fuzzy.logic" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="fuzzy.html" class="btn btn-neutral float-left" title="fuzzy package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fuzzy.logic.control.html" class="btn btn-neutral float-right" title="fuzzy.logic.control package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

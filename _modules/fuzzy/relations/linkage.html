@@ -1,0 +1,498 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.relations.linkage &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.relations.linkage</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.relations.linkage</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file helps support the linkage between relations necessary for fuzzy logic inference engines.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch._C</span><span class="w"> </span><span class="kn">import</span> <span class="n">Size</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.sets.membership</span><span class="w"> </span><span class="kn">import</span> <span class="n">Membership</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">NestedTorchJitModule</span><span class="p">,</span> <span class="n">check_path_to_save_torch_module</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.utils.classes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Loggable</span>
+
+<span class="c1"># from fuzzy.utils.functions import log_classmethod, log_method</span>
+
+
+<div class="viewcode-block" id="BinaryLinks">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.linkage.BinaryLinks">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BinaryLinks</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">Loggable</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class will implement the &#39;standard&#39; neuro-fuzzy network definition, where connections or</span>
+<span class="sd">    edges between layers of a neuro-fuzzy network can only have a value of either 0 or 1.</span>
+
+<span class="sd">    Disclaimer: This is useful when the neuro-fuzzy network architecture has been defined a priori</span>
+<span class="sd">    to training, such as through the SelfOrganize functionality, but is *not* to be used when</span>
+<span class="sd">    performing network morphism.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">links</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">links</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">links</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int8</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="c1"># indices: torch.Tensor = torch.tensor(links.nonzero(), device=device)</span>
+        <span class="c1"># self.links = torch.sparse_coo_tensor(</span>
+        <span class="c1">#     indices=indices, values=torch.ones(indices.shape[1], dtype=torch.bool, device=device),</span>
+        <span class="c1">#     size=links.shape,</span>
+        <span class="c1"># )</span>
+        <span class="c1"># the below is VALID but NOT compatible w/ autograd</span>
+        <span class="c1"># store term selections as integers for major memory savings; each variable -&gt; selected term</span>
+        <span class="c1"># self.original_links: np.ndarray = links</span>
+        <span class="c1"># cast_links = links.astype(dtype=float)</span>
+        <span class="c1"># cast_links[cast_links == 0] = &#39;nan&#39;</span>
+        <span class="c1"># self.memory_efficient_links: np.ndarray = np.nanargmax(</span>
+        <span class="c1">#     links, axis=1</span>
+        <span class="c1"># )  # 2D shape: (n_inputs, n_relations)</span>
+        <span class="c1"># self.links: torch.Tensor = torch.tensor(</span>
+        <span class="c1">#     self.memory_efficient_links, dtype=torch.int8, device=device</span>
+        <span class="c1"># )</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">BinaryLinks</span><span class="p">)</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">links</span><span class="o">.</span><span class="n">to_dense</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">links</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+        <span class="p">)</span>
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">links</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Size</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the shape of the binary links.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">links</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="BinaryLinks.save">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.linkage.BinaryLinks.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the n-ary relation to a dictionary.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            The path to save the n-ary relation.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The dictionary representation of the n-ary relation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">check_path_to_save_torch_module</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;links&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">links</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">state_dict</span></div>
+
+
+<div class="viewcode-block" id="BinaryLinks.load">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.linkage.BinaryLinks.load">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="c1"># @log_classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;BinaryLinks&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load the n-ary relation from a file and put it on the specified device.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">links</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;links&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">links</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">state_dict</span><span class="p">)</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="BinaryLinks.to">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.linkage.BinaryLinks.to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;BinaryLinks&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Move the BinaryLinks to a new device.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The BinaryLinks object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Call the parent class&#39;s `to` method to handle parameters and</span>
+        <span class="c1"># submodules</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># special handling for the non-parameter tensors, such as mask</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">links</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">links</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">links</span><span class="o">.</span><span class="n">device</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="BinaryLinks.forward">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.linkage.BinaryLinks.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the defined binary linkage to the given membership degrees.</span>
+
+<span class="sd">        Note: This &#39;forward&#39; function is primarily intended for use with membership degrees</span>
+<span class="sd">        describing the relationship to the premise layer.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees having been appropriately unsqueezed and applied to their</span>
+<span class="sd">            respective dimensions for later use in inferring rule activation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">links</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="GroupedLinks">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.linkage.GroupedLinks">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GroupedLinks</span><span class="p">(</span><span class="n">NestedTorchJitModule</span><span class="p">,</span> <span class="n">Loggable</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class is a container for the various LogitLinks or BinaryLinks that are used to</span>
+<span class="sd">    probabilistically sample from the fuzzy sets along some dimension. This class is defined as a</span>
+<span class="sd">    torch.nn.Module for compatibility with torch.nn.ModuleList among other helpful necessities. More</span>
+<span class="sd">    specifically, this class enables us to use other code that may expect torch.nn.Module</span>
+<span class="sd">    functionality, such as GumbelSoftmax.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">modules_list</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]],</span>
+        <span class="c1"># debug: bool = False,</span>
+        <span class="n">callback</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># self.create_logger(name=self.__class__.__name__, debug=debug)</span>
+        <span class="k">if</span> <span class="n">modules_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">modules_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">modules_list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">membership_dimension</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compute_shape_cache</span><span class="p">()</span>
+        <span class="c1"># self.streams = [torch.cuda.Stream() for _ in range(len(self.modules_list))]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GroupedLinks</span><span class="p">):</span>
+            <span class="n">links</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">membership</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="n">other_links</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">membership</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">links</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">other_links</span><span class="o">.</span><span class="n">shape</span>
+                <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">links</span><span class="p">,</span> <span class="n">other_links</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">membership_dimension</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">membership_dimension</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="c1"># __eq__ compares by value via torch.allclose (a tolerance-based, not exact,</span>
+        <span class="c1"># equality), so no hash of the links&#39; contents can be made consistent with it -</span>
+        <span class="c1"># two &quot;close enough&quot; GroupedLinks would need the same hash, which a real</span>
+        <span class="c1"># content hash cannot guarantee. Falling back to identity keeps __hash__ at</span>
+        <span class="c1"># least internally consistent (stable across calls, unlike hashing the tensor</span>
+        <span class="c1"># freshly returned by self.forward() each time, which changes identity - and</span>
+        <span class="c1"># therefore hash - on every call since torch.cat allocates a new</span>
+        <span class="c1"># tensor).</span>
+        <span class="k">return</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Size</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the shape of the current linkage.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The shape of the current linkage, represented via a Size object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_shape</span>
+
+<div class="viewcode-block" id="GroupedLinks.append">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.linkage.GroupedLinks.append">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Append a module to the end of the list.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            module: The module to be appended.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compute_shape_cache</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GroupedLinks.extend">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.linkage.GroupedLinks.extend">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extend the available linkage to incorporate the new list of modules.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            modules: A list of modules that should be appended.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">modules</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compute_shape_cache</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_shape_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Size</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># nothing appended yet - constructing with modules_list=None/[] and</span>
+            <span class="c1"># building up via append()/extend() afterward is an explicitly supported</span>
+            <span class="c1"># workflow (see those methods), so this must not crash</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cached_shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_shape</span>
+
+        <span class="n">base_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+        <span class="c1"># this is efficient and works if modules inside self.modules_list are only added when</span>
+        <span class="c1"># neurogenesis is enabled and self.membership_dimension = 1, but if you need it to work with</span>
+        <span class="c1"># splitting up logits/links for the purpose of intra-GPU parallelism, then you need to</span>
+        <span class="c1"># change self.membership_dimension = 2</span>
+        <span class="c1"># self.membership_dimension = 2</span>
+        <span class="n">dim_sum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="n">module</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">membership_dimension</span><span class="p">]</span> <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="p">)</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">s</span> <span class="o">+</span> <span class="n">dim_sum</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">membership_dimension</span> <span class="k">else</span> <span class="n">s</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">base_shape</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_shape</span>
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="GroupedLinks.to">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.linkage.GroupedLinks.to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Move the GroupedLinks to a new device.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Call the parent class&#39;s `to` method to handle parameters and</span>
+        <span class="c1"># submodules</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># special handling for the non-parameter tensors, such as mask</span>
+        <span class="c1"># don&#39;t use self.modules_list.to(*args, **kwargs) as it will not work</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">module</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="c1"># pylint: disable=fixme</span>
+    <span class="c1"># TODO: add this back in</span>
+    <span class="c1"># def expand_logits_if_necessary(</span>
+    <span class="c1">#     self,</span>
+    <span class="c1">#     membership_degrees: torch.Tensor,</span>
+    <span class="c1">#     values: str = &quot;random&quot;,</span>
+    <span class="c1">#     callback: Callable[[Tuple[int, int, int]], torch.nn.Module] = None,</span>
+    <span class="c1">#     membership_dimension: int = -1,</span>
+    <span class="c1"># ) -&gt; bool:</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Determine if there is a mismatch between the incoming membership degrees and</span>
+    <span class="c1">#     the currently</span>
+    <span class="c1">#     stored logits. In other words, if it appears in the membership degrees that a fuzzy set</span>
+    <span class="c1">#     has been introduced or created, then the logits probabilistically sampling from those</span>
+    <span class="c1">#     fuzzy</span>
+    <span class="c1">#     sets along some dimension will not be &#39;aware&#39; of this new fuzzy set yet. As such, we</span>
+    <span class="c1">#     need to</span>
+    <span class="c1">#     expand the defined logits to account for this newly created fuzzy set.</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Args:</span>
+    <span class="c1">#         membership_degrees: The membership degrees to some fuzzy sets.</span>
+    <span class="c1">#         values: Whether the new logits should follow a real-number value convention</span>
+    <span class="c1">#         or binary</span>
+    <span class="c1">#         value convention. If values is &#39;random&#39;, then real-number values will be used;</span>
+    <span class="c1">#         this is</span>
+    <span class="c1">#         useful for when Gumbel Softmax trick is being applied. If values is &#39;zero&#39;, then</span>
+    <span class="c1">#         binary values will be used, but all the values are initialized as zero. This is</span>
+    <span class="c1">#         helpful</span>
+    <span class="c1">#         when we are using predefined rule premises, but a new fuzzy set has been added in the</span>
+    <span class="c1">#         premise layer that we must accommodate for. However, the network will *not* use the</span>
+    <span class="c1">#         newly added premise (as there is no connection to it, hence the zeroes).</span>
+    <span class="c1">#         membership_dimension: The membership dimension under consideration. For example,</span>
+    <span class="c1">#         whether</span>
+    <span class="c1">#         to perform this operation along the number of inputs dimension. This is typically the</span>
+    <span class="c1">#         desired behavior, but which dimension refers to number of inputs may change from</span>
+    <span class="c1">#         code to</span>
+    <span class="c1">#         code.</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns:</span>
+    <span class="c1">#         None</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     existing_logits: torch.Tensor = self(None)</span>
+    <span class="c1">#     difference_between_shapes: int = (</span>
+    <span class="c1">#         membership_degrees.shape[-1] - existing_logits.shape[membership_dimension]</span>
+    <span class="c1">#     )</span>
+    <span class="c1">#     if difference_between_shapes &gt; 0:</span>
+    <span class="c1">#         print(&quot;expanding the logits&quot;)</span>
+    <span class="c1">#         new_shape = list(existing_logits.shape)</span>
+    <span class="c1">#         new_shape[membership_dimension] = difference_between_shapes</span>
+    <span class="c1">#         if &quot;random&quot; in values.lower():</span>
+    <span class="c1">#             new_logits = LogitLinks(</span>
+    <span class="c1">#                 logits=torch.ones(new_shape, device=existing_logits.device).abs()</span>
+    <span class="c1">#                 * existing_logits.max(),</span>
+    <span class="c1">#                 # temperature=self.temperature,</span>
+    <span class="c1">#             )</span>
+    <span class="c1">#         elif &quot;zero&quot; in values.lower():</span>
+    <span class="c1">#             new_logits = BinaryLinks(</span>
+    <span class="c1">#                 links=torch.zeros(new_shape),</span>
+    <span class="c1">#                 device=existing_logits.device,</span>
+    <span class="c1">#                 # temperature=self.temperature,</span>
+    <span class="c1">#             )</span>
+    <span class="c1">#         else:</span>
+    <span class="c1">#             raise ValueError(f&quot;The given values is not recognized: {values}&quot;)</span>
+    <span class="c1">#         new_idx: int = len(self.modules_list)</span>
+    <span class="c1">#         self.modules_list.add_module(str(new_idx), new_logits)</span>
+    <span class="c1">#     elif difference_between_shapes &lt; 0:</span>
+    <span class="c1">#         print(&quot;cutting down the logits&quot;)</span>
+    <span class="c1">#         # cut down the logits to match the membership degrees</span>
+    <span class="c1">#         new_logits = existing_logits[:, :, 0 : membership_degrees.shape[-1]]</span>
+    <span class="c1">#         self.modules_list = torch.nn.ModuleList(</span>
+    <span class="c1">#             [LogitLinks(logits=new_logits).cuda()]</span>
+    <span class="c1">#         )</span>
+    <span class="c1">#         assert membership_degrees.shape[-1] == existing_logits.shape[-1], (</span>
+    <span class="c1">#             &quot;The membership degrees have a larger shape than the logits. &quot;</span>
+    <span class="c1">#             &quot;This should not be possible, as the logits should be truncated to &quot;</span>
+    <span class="c1">#             &quot;account for any newly removed fuzzy sets.&quot;</span>
+    <span class="c1">#         )</span>
+    <span class="c1">#     return difference_between_shapes &gt; 0</span>
+
+    <span class="c1"># @log_method</span>
+<div class="viewcode-block" id="GroupedLinks.forward">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.linkage.GroupedLinks.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fetch the links for later use.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># if torch.is_grad_enabled():</span>
+        <span class="c1">#     assert (</span>
+        <span class="c1">#         membership.degrees.grad_fn is not None</span>
+        <span class="c1">#     ), &quot;The membership degrees must have a grad_fn.&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">membership</span><span class="p">)</span>
+        <span class="n">all_links</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># out_tensor = torch.empty(*self.shape, device=self.modules_list[0].logits.device)</span>
+        <span class="c1"># for idx, links in enumerate(self.modules_list):</span>
+        <span class="c1">#     with torch.cuda.stream(self.streams[idx]):</span>
+        <span class="c1">#         start = idx * 64</span>
+        <span class="c1">#         end =  ((idx + 1) * 64)</span>
+        <span class="c1"># out_tensor[:, :, start:end] = links(membership)  # (option 1) for</span>
+        <span class="c1"># stream</span>
+
+        <span class="k">for</span> <span class="n">links</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules_list</span><span class="p">:</span>
+            <span class="c1"># out_tensor[:, start:end, :] = links(membership)  # (option 2) for</span>
+            <span class="c1"># expanding mu</span>
+            <span class="n">all_links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">links</span><span class="p">(</span><span class="n">membership</span><span class="p">))</span>
+        <span class="c1"># torch.cuda.synchronize(device=self.modules_list[0].logits.device)</span>
+        <span class="c1"># return out_tensor</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_links</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">membership_dimension</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

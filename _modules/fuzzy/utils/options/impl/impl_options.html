@@ -1,0 +1,922 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.utils.options.impl.impl_options &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.utils.options.impl.impl_options</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.utils.options.impl.impl_options</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This script contains the design options that are available. It extends from Enum classes which</span>
+<span class="sd">outline the names of each option by allowing a selection to coincide along all possible options.</span>
+<span class="sd">This functionality is ideal for outlining what is permitted for the neural architecture, while</span>
+<span class="sd">allowing the end-user (or optuna) to select (and store) their selection alongside those.</span>
+<span class="sd">Furthermore, some of these classes will also store the accompanying function for cohesion (e.g.,</span>
+<span class="sd">they inherit from torch.nn.Module and can be used accordingly).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">fields</span> <span class="k">as</span> <span class="n">dataclasses_fields</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.stats</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">entmax</span><span class="w"> </span><span class="kn">import</span> <span class="n">entmax15</span><span class="p">,</span> <span class="n">entmax_bisect</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypeAdapter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic.dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Module</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.utils.options.abstract.meta</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnumPromoter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.utils.options.abstract.primitive</span><span class="w"> </span><span class="kn">import</span> <span class="n">CategoricalOptions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.utils.options.impl.impl_enums</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BoundAlphaEntmaxEnum</span><span class="p">,</span>
+    <span class="n">DefuzzificationMethodEnum</span><span class="p">,</span>
+    <span class="n">NeurogenesisEnum</span><span class="p">,</span>
+    <span class="n">PremiseActivationEnum</span><span class="p">,</span>
+    <span class="n">PremiseAggregationEnum</span><span class="p">,</span>
+    <span class="n">PremiseEliminationEnum</span><span class="p">,</span>
+    <span class="n">RuleElevationEnum</span><span class="p">,</span>
+    <span class="n">RuleEliminationEnum</span><span class="p">,</span>
+    <span class="n">RuleWeightsEnum</span><span class="p">,</span>
+    <span class="n">SamplingEnum</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">_64_BIT_INT</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">63</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># max magnitude of a 64-bit integer</span>
+
+
+<div class="viewcode-block" id="Range">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.Range">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Range</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A range of possible values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">low</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+    <span class="n">high</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+    <span class="n">log</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># log scale for floats</span>
+    <span class="c1"># if step size is given, options are discrete</span>
+    <span class="n">step</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Range.to_scipy">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.Range.to_scipy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_scipy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Conveniently translate this range instance to scipy.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A scipy.stats.range instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">:</span>
+            <span class="c1"># scipy.stats.randint(low, high) samples from [low, high) - high excluded -</span>
+            <span class="c1"># whereas the rest of Range (contains(), to_optuna()) treats high as</span>
+            <span class="c1"># inclusive, so it must be offset by one to match</span>
+            <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">loguniform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Range.to_optuna">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.Range.to_optuna">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_optuna</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trial</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Conveniently translate this range instance to Optuna for hyperparameter search.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            trial: The instance of Trial.</span>
+<span class="sd">            name: The reference name.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_int</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_float</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_float</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Range.contains">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.Range.contains">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">contains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A method to check if a value is in the range.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            val: The value of interest.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Whether the value is in the range.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span> <span class="o">&lt;=</span> <span class="n">val</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">high</span></div>
+
+
+<div class="viewcode-block" id="Range.to_dict">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.Range.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert the instance of Range to a dictionary.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The dictionary representing the Range object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;low&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">:</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;log&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span>
+        <span class="k">return</span> <span class="n">entry</span></div>
+
+
+<div class="viewcode-block" id="Range.from_dict">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.Range.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Range&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        An implementation that allows the conversion of a dictionary entry to an instance of Range.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            entry: The dictionary entry.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An instance of Range.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">low</span><span class="o">=</span><span class="n">entry</span><span class="p">[</span><span class="s2">&quot;low&quot;</span><span class="p">],</span>
+            <span class="n">high</span><span class="o">=</span><span class="n">entry</span><span class="p">[</span><span class="s2">&quot;high&quot;</span><span class="p">],</span>
+            <span class="n">log</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="n">step</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;low=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;high=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;log=true&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;step=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Range(</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="PremiseAggregation">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.PremiseAggregation">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PremiseAggregation</span><span class="p">(</span>
+    <span class="n">CategoricalOptions</span><span class="p">,</span> <span class="n">EnumPromoter</span><span class="p">,</span> <span class="n">enum_cls</span><span class="o">=</span><span class="n">PremiseAggregationEnum</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Outlines the available premise aggregation strategies and their implementations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># type hints for Pylint - not required for functionality but only static</span>
+    <span class="c1"># code analysis</span>
+    <span class="n">SUM</span><span class="p">:</span> <span class="n">PremiseAggregationEnum</span>
+    <span class="n">MEAN</span><span class="p">:</span> <span class="n">PremiseAggregationEnum</span>
+
+    <span class="n">_fn</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">PremiseAggregationEnum</span><span class="o">.</span><span class="n">SUM</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">PremiseAggregationEnum</span><span class="o">.</span><span class="n">MEAN</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PremiseAggregation.func">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.PremiseAggregation.func">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">func</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">selection</span><span class="p">:</span> <span class="n">PremiseAggregationEnum</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Obtain the appropriate premise aggregation function based on the stored selection.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            selection: A selection made from the set of options in PremiseAggregationEnum.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A callable function that expects a torch.Tensor and will return a torch.Tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_fn</span><span class="p">[</span><span class="n">selection</span><span class="p">]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="BoundAlphaEntmax">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.BoundAlphaEntmax">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BoundAlphaEntmax</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Outlines the available strategies for bounding the alpha value used in the entmax_bisect and</span>
+<span class="sd">    their implementations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">bounding_strategy</span><span class="p">:</span> <span class="n">BoundAlphaEntmaxEnum</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bounding_strategy</span> <span class="o">=</span> <span class="n">bounding_strategy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_default_device</span><span class="p">()</span> <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">dim</span>
+        <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BoundAlphaEntmax.bound_alpha">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.BoundAlphaEntmax.bound_alpha">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bound_alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Bound the alpha parameter to abide by the constraint that it must exist within (1, 2) so it</span>
+<span class="sd">        does not devolve to softmax or sparsemax, respectively.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The bounded alpha within the appropriate range according to the selected bounding</span>
+<span class="sd">            strategy outlined in the configuration settings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounding_strategy</span> <span class="o">==</span> <span class="n">BoundAlphaEntmaxEnum</span><span class="o">.</span><span class="n">SIGMOID</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounding_strategy</span> <span class="o">==</span> <span class="n">BoundAlphaEntmaxEnum</span><span class="o">.</span><span class="n">TANH</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">1.5</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">alpha</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounding_strategy</span> <span class="o">==</span> <span class="n">BoundAlphaEntmaxEnum</span><span class="o">.</span><span class="n">HARD_TANH</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">1.5</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">hardtanh</span><span class="p">(</span><span class="n">alpha</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounding_strategy</span> <span class="o">==</span> <span class="n">BoundAlphaEntmaxEnum</span><span class="o">.</span><span class="n">SOFTPLUS</span><span class="p">:</span>
+            <span class="n">softplus_alpha</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softplus</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>  <span class="c1"># pylint: disable=not-callable</span>
+            <span class="k">return</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="p">(</span><span class="n">softplus_alpha</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">softplus_alpha</span><span class="p">))</span>
+
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;The only implemented bounding strategies are Sigmoid representation &quot;</span>
+            <span class="s2">&quot;(sigmoid_reparameterization), Scaled tanh (scaled_tanh), and &quot;</span>
+            <span class="s2">&quot;Softplus + Shift (softplus_add_shift)&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BoundAlphaEntmax.forward">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.BoundAlphaEntmax.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">dim</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply entmax_bisect to the given tensor using the bounded alpha parameter.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            tensor: The tensor to apply entmax_bisect to.</span>
+<span class="sd">            dim: The dimension to apply entmax_bisect along; defaults to the</span>
+<span class="sd">                dimension given at construction (self.dim) if not provided.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The result of entmax_bisect applied to the tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span>  <span class="c1"># use internal referenced dim for the forward</span>
+        <span class="n">bounded_alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bound_alpha</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">tensor</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">bounded_alpha</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+            <span class="n">bounded_alpha</span> <span class="o">=</span> <span class="n">bounded_alpha</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">entmax_bisect</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">bounded_alpha</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PremiseActivation">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.PremiseActivation">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PremiseActivation</span><span class="p">(</span>
+    <span class="n">CategoricalOptions</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">EnumPromoter</span><span class="p">,</span> <span class="n">enum_cls</span><span class="o">=</span><span class="n">PremiseActivationEnum</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Outlines the available premise activation strategies and their implementations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_fn</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">PremiseActivationEnum</span><span class="o">.</span><span class="n">SOFTMAX</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span>  <span class="c1"># default TSK behavior</span>
+        <span class="n">PremiseActivationEnum</span><span class="o">.</span><span class="n">ENTMAX15</span><span class="p">:</span> <span class="n">entmax15</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="c1"># alpha: Union[None, torch.Tensor] = None,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">dim</span>
+        <span class="n">Module</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_default_device</span><span class="p">()</span> <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">device</span>
+        <span class="c1"># self.bound_alpha = (</span>
+        <span class="c1">#     BoundAlphaEntmax(device=self.device)</span>
+        <span class="c1">#     if alpha is None</span>
+        <span class="c1">#     else (BoundAlphaEntmax(device=self.device, alpha=alpha))</span>
+        <span class="c1"># )</span>
+
+<div class="viewcode-block" id="PremiseActivation.func">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.PremiseActivation.func">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">func</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">transform</span><span class="p">:</span> <span class="n">PremiseActivationEnum</span><span class="p">,</span> <span class="n">bound</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">BoundAlphaEntmaxEnum</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Obtain the appropriate premise activation function based on the selected transform.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            transform: A selected transform from the set of options in PremiseActivationEnum.</span>
+<span class="sd">            bound: A selected bounding strategy from the set of options in BoundAlphaEntmaxEnum;</span>
+<span class="sd">            ignored if transform is NOT PremiseActivationEnum.ENTMAX_BISECT.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A callable function that expects a torch.Tensor and will return a torch.Tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">transform</span> <span class="o">==</span> <span class="n">PremiseActivationEnum</span><span class="o">.</span><span class="n">ENTMAX_BISECT</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bound</span><span class="p">,</span> <span class="n">BoundAlphaEntmaxEnum</span><span class="p">),</span> <span class="p">(</span>
+                <span class="s2">&quot;You must select a bounding strategy to limit the range of alpha when using &quot;</span>
+                <span class="s2">&quot;an adaptable entmax.&quot;</span>
+            <span class="p">)</span>
+            <span class="c1"># build a copy since it has params</span>
+            <span class="k">return</span> <span class="n">BoundAlphaEntmax</span><span class="p">(</span><span class="n">bounding_strategy</span><span class="o">=</span><span class="n">bound</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_fn</span><span class="p">[</span><span class="n">transform</span><span class="p">]</span></div>
+</div>
+
+
+    <span class="c1"># def forward(self, input):</span>
+    <span class="c1">#     if self.selection == PremiseActivationEnum.ENTMAX15:</span>
+    <span class="c1">#         return entmax15(input, dim=self.dim)</span>
+    <span class="c1">#     if self.selection == PremiseActivationEnum.SOFTMAX:</span>
+    <span class="c1">#         return torch.nn.functional.softmax(input, dim=self.dim)</span>
+    <span class="c1">#     # if self.selection == PremiseActivationEnum.ENTMAX_BISECT:</span>
+    <span class="c1">#     #     if input.device != self.bound_alpha.alpha.device:</span>
+    <span class="c1">#     #         self.bound_alpha.alpha.to(input.device)</span>
+    <span class="c1">#     #     return entmax_bisect(input, alpha=self.bound_alpha(), dim=self.dim)</span>
+    <span class="c1">#     raise ValueError(</span>
+    <span class="c1">#         f&quot;The premise_activation must be either &#39;entmax15&#39;, &#39;entmax_bisect&#39;, &quot;</span>
+    <span class="c1">#         f&quot;or &#39;softmax&#39;. Instead, received the selection of &#39;{self.selection}&#39;.&quot;</span>
+    <span class="c1">#     )</span>
+
+
+<div class="viewcode-block" id="YAMLConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.YAMLConfig">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">YAMLConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Allows a convenient interface to save and load dataclass configurations with pydantic.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__path_validation</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Ensure the given path is a valid YAML file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The path to validate. It must end with a *.yaml extension.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">(),</span> <span class="s2">&quot;The given path must be designated as a file.&quot;</span>
+        <span class="k">assert</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span>
+            <span class="s2">&quot;.yaml&quot;</span>
+        <span class="p">),</span> <span class="s2">&quot;Only paths that end with &#39;.yaml&#39; are allowed.&quot;</span>
+
+<div class="viewcode-block" id="YAMLConfig.save">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.YAMLConfig.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the current configuration to a *.yaml file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The path to use. It must end with a *.yaml extension.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__path_validation</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">adapter</span> <span class="o">=</span> <span class="n">TypeAdapter</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">adapter</span><span class="o">.</span><span class="n">dump_python</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="YAMLConfig.load">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.YAMLConfig.load">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;YAMLConfig&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load the dataclass configuration from a *.yaml file and instantiate its appropriate class.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The path to use. It must end with a *.yaml extension.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An instance of YAMLConfig class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__path_validation</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TypeAdapter</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">validate_python</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PremiseConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.PremiseConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PremiseConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    How to set up the premise terms, whether we should use standard implementation (e.g.,</span>
+<span class="sd">    sum and softmax) or try something more experimental (e.g., mean and 1.5-entmax), as well as</span>
+<span class="sd">    whether to eliminate any premise terms. Default is SUM for aggregation (standard), NONE for</span>
+<span class="sd">    elimination, and SOFTMAX for activation (standard if Gaussian fuzzy sets are used, but no exp</span>
+<span class="sd">    has been applied to them yet).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">aggregation</span><span class="p">:</span> <span class="n">PremiseAggregationEnum</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">PremiseAggregationEnum</span><span class="o">.</span><span class="n">SUM</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">elimination</span><span class="p">:</span> <span class="n">PremiseEliminationEnum</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">PremiseEliminationEnum</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">activation</span><span class="p">:</span> <span class="n">PremiseActivationEnum</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">PremiseActivationEnum</span><span class="o">.</span><span class="n">SOFTMAX</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">bound</span><span class="p">:</span> <span class="n">BoundAlphaEntmaxEnum</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">BoundAlphaEntmaxEnum</span><span class="o">.</span><span class="n">SIGMOID</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="RuleConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.RuleConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RuleConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    How to set up the fuzzy logic rules, whether they should be weighed (e.g., certainty factors),</span>
+<span class="sd">    whether to eliminate any, and/or whether to elevate their firing levels. Default is NONE for</span>
+<span class="sd">    all.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">weights</span><span class="p">:</span> <span class="n">RuleWeightsEnum</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">RuleWeightsEnum</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">elimination</span><span class="p">:</span> <span class="n">RuleEliminationEnum</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">RuleEliminationEnum</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">elevation</span><span class="p">:</span> <span class="n">RuleElevationEnum</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">RuleElevationEnum</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="DefuzzificationConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.DefuzzificationConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DefuzzificationConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    How to conduct defuzzification after the fuzzy logic rules are activated given the stimuli. For</span>
+<span class="sd">    instance, whether to use zero-order TSK, TSK, Mamdani, or other experimental methods.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">method</span><span class="p">:</span> <span class="n">DefuzzificationMethodEnum</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">DefuzzificationMethodEnum</span><span class="o">.</span><span class="n">TSK</span><span class="p">)</span>
+    <span class="n">n_latent_space_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;The dimensionality of the latent space to utilize, if applicable.&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;range&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)),</span>
+            <span class="s2">&quot;search&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">32</span><span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="InferenceConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.InferenceConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">InferenceConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A configuration for fuzzy logic rule inference.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">premise</span><span class="p">:</span> <span class="n">PremiseConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">PremiseConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How premises should be aggregated, eliminated and elevated.&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">rule</span><span class="p">:</span> <span class="n">RuleConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">RuleConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How rules should be aggregated, eliminated, and elevated.&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">defuzzification</span><span class="p">:</span> <span class="n">DefuzzificationConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">DefuzzificationConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;Determines how to proceed with defuzzification.&quot;</span><span class="p">},</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="GumbelConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.GumbelConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GumbelConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    How to set up the Gumbel Softmax, whether it should be constrained, how long to delay</span>
+<span class="sd">    resampling the Gumbel noise, and what temperature to use for the Gumbel distribution.</span>
+<span class="sd">    Default options and values replicate those explored in Hostetter&#39;s dissertation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">sampling</span><span class="p">:</span> <span class="n">SamplingEnum</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">SamplingEnum</span><span class="o">.</span><span class="n">ST_GUMBEL_SOFTMAX</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How much temperature should be used for the Gumbel distribution.&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;range&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)),</span>
+            <span class="s2">&quot;search&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">1.25</span><span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">epsilon_filter</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;Whether to constrain the Straight-Through Gumbel Softmax Estimator.&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;range&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+            <span class="s2">&quot;choices&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">noise_delay</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;The number of forward passes to process before resampling noise from the &quot;</span>
+            <span class="s2">&quot;Gumbel distribution.&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;range&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="n">_64_BIT_INT</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="s2">&quot;choices&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="mi">1</span><span class="p">,</span>  <span class="c1"># no delay in updating noise (since it&#39;s about modulo)</span>
+                <span class="mi">32</span><span class="p">,</span>
+                <span class="mi">64</span><span class="p">,</span>
+                <span class="mi">128</span><span class="p">,</span>
+                <span class="mi">256</span><span class="p">,</span>
+            <span class="p">],</span>
+        <span class="p">},</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="NeurogenesisConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.NeurogenesisConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">NeurogenesisConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    How to set up neurogenesis, such as whether it should be delayed and how it should be</span>
+<span class="sd">    triggered. Default options and values replicate those explored in Hostetter&#39;s dissertation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">neurogenesis</span><span class="p">:</span> <span class="n">NeurogenesisEnum</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">NeurogenesisEnum</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;The desired membership degree that should be satisfied by all elements to &quot;</span>
+            <span class="s2">&quot;achieve epsilon-completeness.&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;range&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+            <span class="s2">&quot;search&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">add_premise_delay</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How long to wait before adding new premises to the neuro-fuzzy network.&quot;</span><span class="p">,</span>
+            <span class="c1"># 1 = no delay to add fuzzy sets (since it&#39;s about modulo)</span>
+            <span class="s2">&quot;range&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="n">_64_BIT_INT</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="s2">&quot;search&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="EvolutionConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.EvolutionConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">EvolutionConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dictates how the neuro-fuzzy network will evolve.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">premise</span><span class="p">:</span> <span class="n">NeurogenesisConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">NeurogenesisConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;A modified and delayed version of Welford&#39;s method for computing variance.&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">rule</span><span class="p">:</span> <span class="n">GumbelConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">GumbelConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How to set up the Straight-Through Gumbel Softmax Estimator.&quot;</span>
+        <span class="p">},</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ParameterConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.ParameterConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ParameterConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determines how to initialize parameters of the neuro-fuzzy network (e.g., premise, weights,</span>
+<span class="sd">    consequences, etc.).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ParameterConfig.PremiseParameterConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.ParameterConfig.PremiseParameterConfig">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">PremiseParameterConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determines how to initialize parameters of the neuro-fuzzy network with respect to the</span>
+<span class="sd">        premise layer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">init_width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;Initial width of fuzzy sets upon initialization.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;range&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">),</span> <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="p">},</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ParameterConfig.RuleParameterConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.ParameterConfig.RuleParameterConfig">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">RuleParameterConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determines how to initialize parameters of the neuro-fuzzy network with respect to the</span>
+<span class="sd">        rule layer, if applicable (i.e., assuming rule sampling is implemented).</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="ParameterConfig.ConsequenceParameterConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.ParameterConfig.ConsequenceParameterConfig">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">ConsequenceParameterConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determines how to initialize parameters of the neuro-fuzzy network with respect to the</span>
+<span class="sd">        consequence layer.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+
+    <span class="n">premise</span><span class="p">:</span> <span class="n">PremiseParameterConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">PremiseParameterConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How to initialize the premise layer&#39;s parameters.&quot;</span><span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">rule</span><span class="p">:</span> <span class="n">RuleParameterConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">RuleParameterConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How to initialize the rule layer&#39;s parameters (if applicable).&quot;</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">consequence</span><span class="p">:</span> <span class="n">ConsequenceParameterConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">ConsequenceParameterConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How to initialize the consequence layer&#39;s parameters.&quot;</span><span class="p">},</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="StructureConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.StructureConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">StructureConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determines how to initialize structure of the neuro-fuzzy network (e.g., rule count).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="StructureConfig.PremiseStructureConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.StructureConfig.PremiseStructureConfig">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">PremiseStructureConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determines how to initialize structure of the neuro-fuzzy network with respect to the</span>
+<span class="sd">        premise layer.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="StructureConfig.RuleStructureConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.StructureConfig.RuleStructureConfig">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">RuleStructureConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determines how to initialize structure of the neuro-fuzzy network with respect to the</span>
+<span class="sd">        rule layer, if applicable.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">n_rules</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;The number of non-unique rules available to the neuro-fuzzy network.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;range&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                <span class="s2">&quot;search&quot;</span><span class="p">:</span> <span class="n">Range</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">64</span><span class="p">),</span>
+            <span class="p">},</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="StructureConfig.ConsequenceStructureConfig">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.StructureConfig.ConsequenceStructureConfig">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">ConsequenceStructureConfig</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determines how to initialize structure of the neuro-fuzzy network with respect to the</span>
+<span class="sd">        consequence layer.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+
+    <span class="n">premise</span><span class="p">:</span> <span class="n">PremiseStructureConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">PremiseStructureConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How to initialize the premise layer&#39;s structure.&quot;</span><span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">rule</span><span class="p">:</span> <span class="n">RuleStructureConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">RuleStructureConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How to initialize the rule layer&#39;s structure (if applicable).&quot;</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">consequence</span><span class="p">:</span> <span class="n">ConsequenceStructureConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">ConsequenceStructureConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How to initialize the consequence layer&#39;s structure.&quot;</span><span class="p">},</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ApproximatorHyperparameters">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.ApproximatorHyperparameters">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ApproximatorHyperparameters</span><span class="p">(</span><span class="n">YAMLConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A standard data class format with attributes that are expected throughout PySoft optuna</span>
+<span class="sd">    experiments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">display_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+    <span class="p">)</span>  <span class="c1"># the display name of the approximator</span>
+    <span class="c1"># an abbreviated name of the approximator</span>
+    <span class="n">abbrev_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="NeuroFuzzyNetworkHyperparameters">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.NeuroFuzzyNetworkHyperparameters">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">NeuroFuzzyNetworkHyperparameters</span><span class="p">(</span><span class="n">ApproximatorHyperparameters</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    An all-encompassing class for exposing all available hyperparameters or design-choices of</span>
+<span class="sd">    neuro-fuzzy networks.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">structure</span><span class="p">:</span> <span class="n">StructureConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">StructureConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How to design the initial structure of the neuro-fuzzy networks.&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">parameter</span><span class="p">:</span> <span class="n">ParameterConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">ParameterConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;How to initialize the parameters of the neuro-fuzzy network.&quot;</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">inference</span><span class="p">:</span> <span class="n">InferenceConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">InferenceConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;Inference configuration for neuro-fuzzy networks.&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">evolution</span><span class="p">:</span> <span class="n">EvolutionConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">EvolutionConfig</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;Evolution configuration for neuro-fuzzy networks.&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">display_name</span> <span class="o">=</span> <span class="s2">&quot;Concurrent Optimization of Fuzzy Inference Systems&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">abbrev_name</span> <span class="o">=</span> <span class="s2">&quot;CO-FIS&quot;</span>
+
+        <span class="c1"># disable the constraint for every instance, not just the first one built in</span>
+        <span class="c1"># the process - a ClassVar-gated &quot;only the first time&quot; guard used to make this</span>
+        <span class="c1"># silently stop applying after the first instantiation anywhere in the</span>
+        <span class="c1"># process</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evolution</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">epsilon_filter</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># noinspection PyTypeChecker</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Field</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return only the fields that are unique to this subclass.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of fields that are unique to this subclass.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">hyperparameter</span>
+            <span class="k">for</span> <span class="n">hyperparameter</span> <span class="ow">in</span> <span class="n">dataclasses_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">hyperparameter</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dataclasses_fields</span><span class="p">(</span><span class="n">ApproximatorHyperparameters</span><span class="p">)</span>
+        <span class="p">]</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

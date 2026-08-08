@@ -1,0 +1,480 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.sets.impl.gauss_variants.cmf &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.sets.impl.gauss_variants.cmf</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.sets.impl.gauss_variants.cmf</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Implements conventional membership functions (CMFs) by inheriting from FuzzySet that are</span>
+<span class="sd">primarily variations of the Gaussian formula.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sympy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">...abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuzzySet</span>
+
+
+<div class="viewcode-block" id="GaussianKernel">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GaussianKernel">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GaussianKernel</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A dataclass containing static settings which may adjust or influence Gaussian related functions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">width_multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="mf">2.0</span>  <span class="c1"># in fuzzy logic, convention is usually 1.0, but can be 2.0</span>
+    <span class="p">)</span>
+    <span class="n">slope_multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span></div>
+
+
+
+<div class="viewcode-block" id="GeneralizedGuassian">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GeneralizedGuassian">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GeneralizedGuassian</span><span class="p">(</span><span class="n">FuzzySet</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implementation of the Generalized Gaussian membership function, written in PyTorch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">,</span>
+        <span class="n">widths</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">gaussian_kernel</span><span class="p">:</span> <span class="n">GaussianKernel</span> <span class="o">=</span> <span class="n">GaussianKernel</span><span class="p">(),</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">centers</span><span class="o">=</span><span class="n">centers</span><span class="p">,</span> <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gaussian_kernel</span> <span class="o">=</span> <span class="n">gaussian_kernel</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gaussian_kernel</span><span class="o">.</span><span class="n">width_multiplier</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The width multiplier must be &gt; 0, but got&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_gaussian_kernel</span><span class="o">.</span><span class="n">width_multiplier</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_width_multiplier</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ParameterList</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">make_parameter</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_gaussian_kernel</span><span class="o">.</span><span class="n">width_multiplier</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">centers</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slope_multiplier</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ParameterList</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">make_parameter</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_gaussian_kernel</span><span class="o">.</span><span class="n">slope_multiplier</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">centers</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="GeneralizedGuassian.get_width_multiplier">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GeneralizedGuassian.get_width_multiplier">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_width_multiplier</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the concatenated width multipliers of the fuzzy set from its</span>
+<span class="sd">        corresponding ParameterList.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The concatenated width multipliers of the fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_width_multiplier</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GeneralizedGuassian.get_slope_multiplier">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GeneralizedGuassian.get_slope_multiplier">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_slope_multiplier</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the concatenated slope multipliers of the fuzzy set from its</span>
+<span class="sd">        corresponding ParameterList.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The concatenated slope multipliers of the fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_slope_multiplier</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GeneralizedGuassian.internal_calculate_membership">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GeneralizedGuassian.internal_calculate_membership">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">internal_calculate_membership</span><span class="p">(</span>
+        <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">width_multiplier</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">slope_multiplier</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Generalized Gaussian fuzzy set.</span>
+<span class="sd">        This is a static method, so it can be called without instantiating the class.</span>
+<span class="sd">        This static method is particularly useful when animating the membership function.</span>
+
+<span class="sd">        Warning: This method is not meant to be called directly, as it does not take into account</span>
+<span class="sd">        the mask that likely should exist. Use the calculate_membership method instead.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+<span class="sd">            centers: The centers of the Generalized Gaussian fuzzy set.</span>
+<span class="sd">            width_multiplier: The width multiplier of the Generalized Gaussian fuzzy set.</span>
+<span class="sd">            slope_multiplier: The slope multiplier of the Generalized Gaussian fuzzy set.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Generalized Gaussian fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vals</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">observations</span> <span class="o">-</span> <span class="n">centers</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">width_multiplier</span><span class="p">,</span> <span class="mi">2</span><span class="p">)),</span>
+            <span class="n">slope_multiplier</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># this works pretty well -- but does cause NaNs later on</span>
+        <span class="c1"># vals = (</span>
+        <span class="c1">#     -1.0 * torch.pow(observations - centers, 2) / torch.pow(width_multiplier, 2)</span>
+        <span class="c1"># )</span>
+        <span class="k">return</span> <span class="n">vals</span></div>
+
+
+<div class="viewcode-block" id="GeneralizedGuassian.sympy_formula">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GeneralizedGuassian.sympy_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sympy_formula</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+        <span class="c1"># centers (c), widths (sigma) and observations (x)</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="GeneralizedGuassian.calculate_membership">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.GeneralizedGuassian.calculate_membership">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_membership</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Log Gaussian fuzzy set.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Log Gaussian fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">GeneralizedGuassian</span><span class="o">.</span><span class="n">internal_calculate_membership</span><span class="p">(</span>
+            <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+            <span class="n">centers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span>
+            <span class="n">width_multiplier</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_width_multiplier</span><span class="p">(),</span>
+            <span class="n">slope_multiplier</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_slope_multiplier</span><span class="p">(),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="LogGaussian">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.LogGaussian">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LogGaussian</span><span class="p">(</span><span class="n">FuzzySet</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implementation of the Log Gaussian membership function, written in PyTorch.</span>
+<span class="sd">    This is a modified version that helps when the dimensionality is high,</span>
+<span class="sd">    and TSK product inference engine will be used.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">,</span>
+        <span class="n">widths</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">gaussian_kernel</span><span class="p">:</span> <span class="n">GaussianKernel</span> <span class="o">=</span> <span class="n">GaussianKernel</span><span class="p">(),</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">centers</span><span class="o">=</span><span class="n">centers</span><span class="p">,</span> <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gaussian_kernel</span> <span class="o">=</span> <span class="n">gaussian_kernel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width_multiplier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gaussian_kernel</span><span class="o">.</span><span class="n">width_multiplier</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">width_multiplier</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;The width multiplier must be either 1.0 or 2.0, but got </span><span class="si">{self.width_multiplier}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">script</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">internal_calculate_membership</span><span class="p">(</span>  <span class="c1"># pragma: no cover</span>
+        <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">widths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">width_multiplier</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="c1"># buffer: torch.Tensor,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Log Gaussian fuzzy set.</span>
+
+<span class="sd">        pragma: no cover justification: @torch.jit.script compiles this into</span>
+<span class="sd">        TorchScript IR, executed by TorchScript&#39;s own interpreter rather than as</span>
+<span class="sd">        CPython bytecode, so coverage.py&#39;s sys.settrace()-based tracer cannot</span>
+<span class="sd">        observe it regardless of test thoroughness (the same class of limitation as</span>
+<span class="sd">        the @triton.jit kernels in relations/triton_kernels.py) -</span>
+<span class="sd">        test_log_gaussian.py&#39;s test_calculate_membership_matches_formula does</span>
+<span class="sd">        exercise and numerically verify this method; it just cannot move this</span>
+<span class="sd">        file&#39;s line-coverage number.</span>
+<span class="sd">        This is a static method, so it can be called without instantiating the class.</span>
+<span class="sd">        This static method is particularly useful when animating the membership function.</span>
+
+<span class="sd">        Warning: This method is not meant to be called directly, as it does not take into account</span>
+<span class="sd">        the mask that likely should exist. Use the calculate_membership method instead.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+<span class="sd">            centers: The centers of the Log Gaussian fuzzy set.</span>
+<span class="sd">            widths: The widths of the Log Gaussian fuzzy set.</span>
+<span class="sd">            width_multiplier: The width multiplier of the Log Gaussian fuzzy set.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Log Gaussian fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># return (</span>
+        <span class="c1">#     -1.0</span>
+        <span class="c1">#     * (</span>
+        <span class="c1">#         torch.pow(</span>
+        <span class="c1">#             observations - centers,</span>
+        <span class="c1">#             2,</span>
+        <span class="c1">#         )</span>
+        <span class="c1">#         / (width_multiplier * torch.pow(widths, 2) + 1e-32)</span>
+        <span class="c1">#     )</span>
+        <span class="c1"># ).clamp(</span>
+        <span class="c1">#     min=-10, max=0  # was -50 for visualization</span>
+        <span class="c1"># )  # force values very close to zero to be zero</span>
+
+        <span class="c1"># pre-allocate output</span>
+        <span class="c1"># batch, features = observations.shape[0], observations.shape[1]</span>
+        <span class="c1"># terms = centers.shape[-1]</span>
+        <span class="c1"># out = torch.empty(batch, features, terms, device=observations.device,</span>
+        <span class="c1">#                   dtype=observations.dtype)</span>
+
+        <span class="c1"># inv_sigma2 = widths.mul(widths)  # widths^2</span>
+        <span class="c1"># inv_sigma2.mul_(width_multiplier)  # *= width_multiplier</span>
+        <span class="c1"># inv_sigma2.add_(1e-32)  # += epsilon</span>
+        <span class="c1"># inv_sigma2.reciprocal_()  # 1/x (in-place)</span>
+        <span class="c1">#</span>
+        <span class="c1"># # Suppose buffer is already allocated with the right shape</span>
+        <span class="c1"># buffer[:] = observations  # copy data into buffer</span>
+        <span class="c1"># buffer.sub(centers)  # in-place subtraction (autograd-safe)</span>
+        <span class="c1"># buffer.mul_(buffer)  # square in-place</span>
+        <span class="c1"># buffer.mul_(inv_sigma2)  # scale in-place</span>
+        <span class="c1"># return buffer</span>
+
+        <span class="c1">#</span>
+        <span class="c1"># buffer = torch.sub(observations, centers)</span>
+        <span class="c1"># buffer.mul_(buffer)</span>
+        <span class="c1"># buffer.mul_(inv_sigma2)</span>
+        <span class="c1"># buffer.neg_()</span>
+        <span class="c1"># buffer.clamp_(min=-10.0, max=0.0)</span>
+        <span class="c1"># return buffer</span>
+
+        <span class="c1"># step 1: observations - centers</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">observations</span> <span class="o">-</span> <span class="n">centers</span>  <span class="c1"># (batch, features, terms)</span>
+
+        <span class="c1"># step 2: square diff in-place (safe, diff not used elsewhere)</span>
+        <span class="c1"># autograd-safe because diff is a view, not a leaf requiring grad</span>
+        <span class="n">diff</span><span class="o">.</span><span class="n">pow_</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># step 3: denominator</span>
+        <span class="n">denom</span> <span class="o">=</span> <span class="n">width_multiplier</span> <span class="o">*</span> <span class="n">widths</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-32</span>  <span class="c1"># (features, terms)</span>
+
+        <span class="c1"># step 4: division and multiply by -1, store directly in pre-allocated output</span>
+        <span class="c1"># torch.div(diff, denom, out=out)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">denom</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">mul_</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">)</span>
+
+        <span class="c1"># step 5: clamp in-place (autograd-safe)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">clamp_</span><span class="p">(</span><span class="nb">min</span><span class="o">=-</span><span class="mi">10</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+<div class="viewcode-block" id="LogGaussian.sympy_formula">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.LogGaussian.sympy_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sympy_formula</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+        <span class="c1"># centers (c), widths (sigma) and observations (x)</span>
+        <span class="n">center_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">)</span>
+        <span class="n">width_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">)</span>
+        <span class="n">input_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sympy</span><span class="o">.</span><span class="n">sympify</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;-1.0 * pow((</span><span class="si">{</span><span class="n">input_symbol</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">center_symbol</span><span class="si">}</span><span class="s2">), 2) / (2.0 * pow(</span><span class="si">{</span><span class="n">width_symbol</span><span class="si">}</span><span class="s2">, 2))&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LogGaussian.calculate_membership">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.LogGaussian.calculate_membership">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_membership</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Log Gaussian fuzzy set.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Log Gaussian fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">LogGaussian</span><span class="o">.</span><span class="n">internal_calculate_membership</span><span class="p">(</span>
+            <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+            <span class="n">centers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span>
+            <span class="n">widths</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">(),</span>
+            <span class="n">width_multiplier</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">width_multiplier</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Gaussian">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.Gaussian">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Gaussian</span><span class="p">(</span><span class="n">LogGaussian</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implementation of the Gaussian membership function, written in PyTorch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Gaussian.internal_calculate_membership">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.Gaussian.internal_calculate_membership">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">internal_calculate_membership</span><span class="p">(</span>
+        <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">widths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">width_multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="c1"># in fuzzy logic, convention is usually 1.0, but can be 2.0</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Gaussian fuzzy set.</span>
+<span class="sd">        This is a static method, so it can be called without instantiating the class.</span>
+<span class="sd">        This static method is particularly useful when animating the membership function.</span>
+
+<span class="sd">        Warning: This method is not meant to be called directly, as it does not take into account</span>
+<span class="sd">        the mask that likely should exist. Use the calculate_membership method instead.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+<span class="sd">            centers: The centers of the Gaussian fuzzy set.</span>
+<span class="sd">            widths: The widths of the Gaussian fuzzy set.</span>
+<span class="sd">            width_multiplier: The width multiplier of the Gaussian fuzzy set.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Gaussian fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="o">-</span><span class="mf">1.0</span>
+            <span class="o">*</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span>
+                    <span class="n">observations</span> <span class="o">-</span> <span class="n">centers</span><span class="p">,</span>
+                    <span class="mi">2</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="o">/</span> <span class="p">(</span><span class="n">width_multiplier</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">widths</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-32</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Gaussian.sympy_formula">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.Gaussian.sympy_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sympy_formula</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sympy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">LogGaussian</span><span class="o">.</span><span class="n">sympy_formula</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="Gaussian.calculate_membership">
+<a class="viewcode-back" href="../../../../../_source/fuzzy.sets.impl.gauss_variants.html#fuzzy.sets.Gaussian.calculate_membership">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_membership</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Gaussian</span><span class="o">.</span><span class="n">internal_calculate_membership</span><span class="p">(</span>
+            <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+            <span class="n">centers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span>
+            <span class="n">widths</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">(),</span>
+            <span class="n">width_multiplier</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

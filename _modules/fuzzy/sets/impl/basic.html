@@ -1,0 +1,668 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.sets.impl.basic &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.sets.impl.basic</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.sets.impl.basic</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Implements various  conventional membership functions (CMFs) by inheriting from FuzzySet,</span>
+<span class="sd">such as no operation (i.e., do nothing) and triangular fuzzy sets.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">MutableMapping</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sympy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">...utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_path_to_save_torch_module</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">...utils.classes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Loggable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">...utils.functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterSignature</span><span class="p">,</span> <span class="n">signature_of</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">DynamicParameterList</span><span class="p">,</span> <span class="n">FuzzySet</span>
+
+
+<div class="viewcode-block" id="NoOp">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.NoOp">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NoOp</span><span class="p">(</span><span class="n">FuzzySet</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implementation of the NoOp membership function, written in PyTorch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">n_elements</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="n">centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_elements</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="n">widths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_elements</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">membership</span> <span class="o">=</span> <span class="n">membership</span>  <span class="c1"># the flat membership degree of the NoOp fuzzy set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_elements</span> <span class="o">=</span> <span class="n">n_elements</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">centers</span><span class="o">=</span><span class="n">centers</span><span class="p">,</span> <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NoOp.save">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.NoOp.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the fuzzy set to a file.</span>
+
+<span class="sd">        Note: This does not preserve the ParameterList structure, but rather concatenates the</span>
+<span class="sd">        parameters into a single tensor, which is then saved to a file.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary containing the state of the fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">check_path_to_save_torch_module</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;class_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;n_elements&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_elements</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;membership&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">membership</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">state_dict</span></div>
+
+
+<div class="viewcode-block" id="NoOp.load">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.NoOp.load">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="c1"># @log_classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;FuzzySet&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load the fuzzy set from a file and put it on the specified device.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">n_elements</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;n_elements&quot;</span><span class="p">)</span>
+        <span class="n">membership</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;membership&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">NoOp</span><span class="p">(</span>
+            <span class="n">n_elements</span><span class="o">=</span><span class="n">n_elements</span><span class="p">,</span>
+            <span class="n">membership</span><span class="o">=</span><span class="n">membership</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NoOp.internal_calculate_membership">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.NoOp.internal_calculate_membership">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">internal_calculate_membership</span><span class="p">(</span>
+        <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">membership_degree</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the NoOp fuzzy set.</span>
+<span class="sd">        This is a static method, so it can be called without instantiating the class.</span>
+<span class="sd">        This static method is particularly useful when animating the membership function.</span>
+
+<span class="sd">        Warning: This method is not meant to be called directly, as it does not take into account</span>
+<span class="sd">        the mask that likely should exist. Use the calculate_membership method instead.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+<span class="sd">            membership_degree: The membership degree of the NoOp fuzzy set.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the NoOp fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+                <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">observations</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">observations</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">observations</span><span class="p">)</span>
+            <span class="o">*</span> <span class="n">membership_degree</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NoOp.sympy_formula">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.NoOp.sympy_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sympy_formula</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+        <span class="c1"># centers (c), widths (sigma) and observations (x)</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="NoOp.calculate_membership">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.NoOp.calculate_membership">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_membership</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the NoOp fuzzy set.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the NoOp fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">NoOp</span><span class="o">.</span><span class="n">internal_calculate_membership</span><span class="p">(</span>
+            <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+            <span class="n">membership_degree</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">membership</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Lorentzian">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Lorentzian">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Lorentzian</span><span class="p">(</span><span class="n">FuzzySet</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implementation of the Lorentzian membership function, written in PyTorch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># unlike the other fuzzy sets, Lorentzian&#39;s asserts on NaN/Inf were</span>
+    <span class="c1"># previously live</span>
+    <span class="n">_validate_degrees</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sigmas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the sigma for the Lorentzian fuzzy set; alias for the &#39;widths&#39; parameter.</span>
+
+<span class="sd">        Regression fix: this used to read self.widths, a plain instance attribute</span>
+<span class="sd">        that no longer exists on FuzzySet since widths moved into the</span>
+<span class="sd">        _FuzzySetParameters submodule (see get_widths()) - every access raised</span>
+<span class="sd">        AttributeError, which Python&#39;s property protocol then silently reported as</span>
+<span class="sd">        &quot;no attribute &#39;sigmas&#39;&quot; rather than the real cause.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">()</span>
+
+    <span class="nd">@sigmas</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sigmas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigmas</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the sigma for the Lorentzian fuzzy set; alias for the &#39;widths&#39; parameter.</span>
+
+<span class="sd">        Writes in place into the existing widths parameter so gradient tracking and</span>
+<span class="sd">        any external references to it (e.g. an optimizer) remain valid. Only</span>
+<span class="sd">        correctly updates every width when they are backed by a single underlying</span>
+<span class="sd">        parameter (the overwhelmingly common case - see DynamicParameterList.tensor);</span>
+<span class="sd">        after extend() has grown this fuzzy set to more than one, the concatenation</span>
+<span class="sd">        read back is a fresh copy each time and writing into it would not persist.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">()</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">sigmas</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="Lorentzian.internal_calculate_membership">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Lorentzian.internal_calculate_membership">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">internal_calculate_membership</span><span class="p">(</span>
+        <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">centers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">widths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Lorentzian fuzzy set.</span>
+<span class="sd">        This is a static method, so it can be called without instantiating the class.</span>
+<span class="sd">        This static method is particularly useful when animating the membership function.</span>
+
+<span class="sd">        Warning: This method is not meant to be called directly, as it does not take into account</span>
+<span class="sd">        the mask that likely should exist. Use the calculate_membership method instead.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+<span class="sd">            centers: The centers of the Lorentzian fuzzy set.</span>
+<span class="sd">            widths: The widths of the Lorentzian fuzzy set.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Lorentzian fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># unlike (centers - observations) / (0.5 * widths), squaring numerator and</span>
+        <span class="c1"># denominator separately (mathematically equivalent when widths != 0) allows</span>
+        <span class="c1"># an epsilon to be added to the denominator - mirroring the same +1e-32 guard</span>
+        <span class="c1"># Gaussian&#39;s formula already uses. Without it, a zero-width &quot;missing&quot; term</span>
+        <span class="c1"># (see FuzzySet.make_mask/stack) evaluated exactly at its own center divides</span>
+        <span class="c1"># 0 by 0, producing NaN instead of the well-defined limiting value of 1.0 -</span>
+        <span class="c1"># this was previously masked only by Lorentzian defaulting _validate_degrees</span>
+        <span class="c1"># to True (an assertion, not a fix) while every other fuzzy set defaulted to</span>
+        <span class="c1"># False.</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="mi">1</span>
+            <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">centers</span> <span class="o">-</span> <span class="n">observations</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="o">/</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">widths</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-32</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Lorentzian.sympy_formula">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Lorentzian.sympy_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sympy_formula</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+        <span class="c1"># centers (c), widths (sigma) and observations (x)</span>
+        <span class="n">center_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">)</span>
+        <span class="n">width_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">)</span>
+        <span class="n">input_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sympy</span><span class="o">.</span><span class="n">sympify</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;1 / (1 + pow((</span><span class="si">{</span><span class="n">center_symbol</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">input_symbol</span><span class="si">}</span><span class="s2">) / (0.5 * </span><span class="si">{</span><span class="n">width_symbol</span><span class="si">}</span><span class="s2">), 2))&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Lorentzian.calculate_membership">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Lorentzian.calculate_membership">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_membership</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Lorentzian fuzzy set.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Lorentzian fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Lorentzian</span><span class="o">.</span><span class="n">internal_calculate_membership</span><span class="p">(</span>
+            <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+            <span class="n">centers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span>
+            <span class="n">widths</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">(),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="LogisticCurve">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.LogisticCurve">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LogisticCurve</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">Loggable</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A generic torch.nn.Module class that implements a logistic curve, which allows us to</span>
+<span class="sd">    tune the midpoint, and growth of the curve, with a fixed supremum (the supremum is</span>
+<span class="sd">    the maximum value of the curve).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">midpoint</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">growth</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">supremum</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">midpoint</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">midpoint</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># explicitly set to True for clarity</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">growth</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">growth</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># explicitly set to True for clarity</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">supremum</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">supremum</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># not a parameter, so we don&#39;t want to track it</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="LogisticCurve.forward">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.LogisticCurve.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tensors</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the value of the logistic curve at the given point.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            tensors:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">supremum</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="mi">1</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">growth</span> <span class="o">*</span> <span class="p">(</span><span class="n">tensors</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">midpoint</span><span class="p">))</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Triangular">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Triangular">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Triangular</span><span class="p">(</span><span class="n">FuzzySet</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implementation of the Triangular membership function, written in PyTorch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">,</span>
+        <span class="n">widths</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">centers</span><span class="o">=</span><span class="n">centers</span><span class="p">,</span> <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Triangular.internal_calculate_membership">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Triangular.internal_calculate_membership">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">internal_calculate_membership</span><span class="p">(</span>
+        <span class="n">centers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">widths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Triangular fuzzy set.</span>
+<span class="sd">        This is a static method, so it can be called without instantiating the class.</span>
+<span class="sd">        This static method is particularly useful when animating the membership function.</span>
+
+<span class="sd">        Warning: This method is not meant to be called directly, as it does not take into account</span>
+<span class="sd">        the mask that likely should exist. Use the calculate_membership method instead.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            centers: The centers of the Triangular fuzzy set.</span>
+<span class="sd">            widths: The widths of the Triangular fuzzy set.</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Triangular fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span>
+            <span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">widths</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">observations</span> <span class="o">-</span> <span class="n">centers</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Triangular.sympy_formula">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Triangular.sympy_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sympy_formula</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+        <span class="c1"># centers (c), widths (w) and observations (x)</span>
+        <span class="n">center_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">)</span>
+        <span class="n">width_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">input_symbol</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sympy</span><span class="o">.</span><span class="n">sympify</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;max(1.0 - (1.0 / </span><span class="si">{</span><span class="n">width_symbol</span><span class="si">}</span><span class="s2">) * abs(</span><span class="si">{</span><span class="n">input_symbol</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">center_symbol</span><span class="si">}</span><span class="s2">), 0.0)&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Triangular.calculate_membership">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Triangular.calculate_membership">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_membership</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward pass of the function. Applies the function to the input elementwise.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: Two-dimensional matrix of observations,</span>
+<span class="sd">            where a row is a single observation and each column</span>
+<span class="sd">            is related to an attribute measured during that observation.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Triangular fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Triangular</span><span class="o">.</span><span class="n">internal_calculate_membership</span><span class="p">(</span>
+            <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+            <span class="n">centers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span>
+            <span class="n">widths</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">(),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Trapezoidal">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Trapezoidal">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Trapezoidal</span><span class="p">(</span><span class="n">FuzzySet</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implementation of the Trapezoidal membership function, written in PyTorch.</span>
+
+<span class="sd">    Parameterized by centers, widths, and plateaus:</span>
+<span class="sd">    - centers (c): center of the trapezoid</span>
+<span class="sd">    - widths (w): half-width from center to outer foot</span>
+<span class="sd">    - plateaus (p): half-width of the flat top region</span>
+
+<span class="sd">    When plateaus = 0, this degenerates to a Triangular membership function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">centers</span><span class="p">,</span>
+        <span class="n">widths</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">plateaus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">centers</span><span class="o">=</span><span class="n">centers</span><span class="p">,</span> <span class="n">widths</span><span class="o">=</span><span class="n">widths</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">plateaus</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">plateaus</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">widths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plateaus</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The plateaus of a Trapezoidal fuzzy set must be a numpy array, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">plateaus</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">plateaus</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">plateaus</span> <span class="o">=</span> <span class="n">plateaus</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plateaus</span> <span class="o">=</span> <span class="n">DynamicParameterList</span><span class="p">(</span>
+            <span class="n">init_params</span><span class="o">=</span><span class="p">[</span><span class="n">plateaus</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Trapezoidal.get_plateaus">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Trapezoidal.get_plateaus">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_plateaus</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the concatenated plateaus of the Trapezoidal fuzzy set.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The concatenated plateaus of the fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plateaus</span><span class="o">.</span><span class="n">tensor</span></div>
+
+
+<div class="viewcode-block" id="Trapezoidal.internal_calculate_membership">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Trapezoidal.internal_calculate_membership">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">internal_calculate_membership</span><span class="p">(</span>
+        <span class="n">centers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">widths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">plateaus</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the membership of the observations to the Trapezoidal fuzzy set.</span>
+<span class="sd">        This is a static method, so it can be called without instantiating the class.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            centers: The centers of the Trapezoidal fuzzy set.</span>
+<span class="sd">            widths: The widths (half-widths to outer foot) of the Trapezoidal fuzzy set.</span>
+<span class="sd">            plateaus: The plateaus (half-widths of flat top) of the Trapezoidal fuzzy set.</span>
+<span class="sd">            observations: The observations to calculate the membership for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Trapezoidal fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">widths</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">observations</span> <span class="o">-</span> <span class="n">centers</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">widths</span> <span class="o">-</span> <span class="n">plateaus</span><span class="p">),</span>
+            <span class="mf">0.0</span><span class="p">,</span>
+            <span class="mf">1.0</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Trapezoidal.sympy_formula">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Trapezoidal.sympy_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sympy_formula</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">)</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sympy</span><span class="o">.</span><span class="n">sympify</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Min(Max((</span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s2"> - Abs(</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">)) / (</span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">), 0.0), 1.0)&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Trapezoidal.calculate_membership">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Trapezoidal.calculate_membership">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_membership</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward pass of the function. Applies the function to the input elementwise.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observations: Two-dimensional matrix of observations,</span>
+<span class="sd">            where a row is a single observation and each column</span>
+<span class="sd">            is related to an attribute measured during that observation.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The membership degrees of the observations for the Trapezoidal fuzzy set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Trapezoidal</span><span class="o">.</span><span class="n">internal_calculate_membership</span><span class="p">(</span>
+            <span class="n">observations</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+            <span class="n">centers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span>
+            <span class="n">widths</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">(),</span>
+            <span class="n">plateaus</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_plateaus</span><span class="p">(),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Trapezoidal.parameter_signature">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Trapezoidal.parameter_signature">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parameter_signature</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParameterSignature</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extend the base signature with &#39;plateaus&#39;: it is a learnable parameter that</span>
+<span class="sd">        calculate_membership also depends on, so the membership cache must be able to tell</span>
+<span class="sd">        when it - not just centers/widths - has changed.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A signature of this fuzzy set&#39;s parameters, including plateaus.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">signature_of</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">(),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_mask</span><span class="p">(),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_plateaus</span><span class="p">(),</span>
+            <span class="p">]</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Trapezoidal.to">
+<a class="viewcode-back" href="../../../../_source/fuzzy.sets.impl.html#fuzzy.sets.Trapezoidal.to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plateaus</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plateaus</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># the base to() already clears the cache, but that happens before _plateaus (a</span>
+        <span class="c1"># parameter the cache also depends on) has itself been moved</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_membership_cache</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extra_save_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="c1"># see FuzzySet._extra_save_state - plateaus is Trapezoidal&#39;s one learnable</span>
+        <span class="c1"># parameter beyond the centers/widths/mask the base save() already</span>
+        <span class="c1"># handles</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;plateaus&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_plateaus</span><span class="p">()}</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extra_load_kwargs</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;plateaus&quot;</span><span class="p">:</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;plateaus&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()}</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+            <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">get_centers</span><span class="p">())</span>
+            <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">get_widths</span><span class="p">())</span>
+            <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_plateaus</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">get_plateaus</span><span class="p">())</span>
+        <span class="p">)</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># hash by value (matching __eq__ above), not by the tensors&#39; identity-based default</span>
+        <span class="c1"># hash - see FuzzySet.__hash__ for why that distinction matters</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_centers</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_widths</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_plateaus</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

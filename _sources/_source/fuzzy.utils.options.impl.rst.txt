@@ -1,0 +1,29 @@
+fuzzy.utils.options.impl package
+================================
+
+Submodules
+----------
+
+fuzzy.utils.options.impl.impl\_enums module
+-------------------------------------------
+
+.. automodule:: fuzzy.utils.options.impl.impl_enums
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.utils.options.impl.impl\_options module
+---------------------------------------------
+
+.. automodule:: fuzzy.utils.options.impl.impl_options
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: fuzzy.utils.options.impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

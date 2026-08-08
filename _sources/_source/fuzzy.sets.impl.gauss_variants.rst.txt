@@ -1,0 +1,29 @@
+fuzzy.sets.impl.gauss\_variants package
+=======================================
+
+Submodules
+----------
+
+fuzzy.sets.impl.gauss\_variants.cmf module
+------------------------------------------
+
+.. automodule:: fuzzy.sets.impl.gauss_variants.cmf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.sets.impl.gauss\_variants.dmf module
+------------------------------------------
+
+.. automodule:: fuzzy.sets.impl.gauss_variants.dmf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: fuzzy.sets.impl.gauss_variants
+   :members:
+   :undoc-members:
+   :show-inheritance:

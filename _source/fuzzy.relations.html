@@ -1,0 +1,1045 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.relations package &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="fuzzy.sets package" href="fuzzy.sets.html" />
+    <link rel="prev" title="fuzzy.logic.control.configurations package" href="fuzzy.logic.control.configurations.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">src</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="fuzzy.html">fuzzy package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="fuzzy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.html">fuzzy.logic package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">fuzzy.relations package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.sets.html">fuzzy.sets package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.utils.html">fuzzy.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.html#module-fuzzy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">src</a></li>
+          <li class="breadcrumb-item"><a href="fuzzy.html">fuzzy package</a></li>
+      <li class="breadcrumb-item active">fuzzy.relations package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_source/fuzzy.relations.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fuzzy-relations-package">
+<h1>fuzzy.relations package<a class="headerlink" href="#fuzzy-relations-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-fuzzy.relations.aggregation">
+<span id="fuzzy-relations-aggregation-module"></span><h2>fuzzy.relations.aggregation module<a class="headerlink" href="#module-fuzzy.relations.aggregation" title="Link to this heading"></a></h2>
+<p>Implements aggregation operators in fuzzy theory.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.aggregation.OrderedWeightedAveraging">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.aggregation.</span></span><span class="sig-name descname"><span class="pre">OrderedWeightedAveraging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/aggregation.html#OrderedWeightedAveraging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.aggregation.OrderedWeightedAveraging" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a>, <a class="reference internal" href="fuzzy.utils.html#fuzzy.utils.classes.Loggable" title="fuzzy.utils.classes.Loggable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Loggable</span></code></a></p>
+<p>Yager’s On Ordered Weighted Averaging Aggregation Operators in
+Multicriteria Decisionmaking (1988)</p>
+<p>An operator that lies between the ‘anding’ or the ‘oring’ of multiple criteria.
+The weight vector allows us to easily adjust the degree of ‘anding’ and ‘oring’
+implicit in the aggregation.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.aggregation.OrderedWeightedAveraging.orness">
+<span class="sig-name descname"><span class="pre">orness</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/aggregation.html#OrderedWeightedAveraging.orness"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.aggregation.OrderedWeightedAveraging.orness" title="Link to this definition"></a></dt>
+<dd><p>A degree of 1 means the OWA operator is the ‘or’ operator,
+and this occurs when the first element of the weight vector is equal to 1
+and all other elements in the weight vector are zero.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The degree to which the Ordered Weighted Averaging operator is an ‘or’ operator.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.aggregation.OrderedWeightedAveraging.dispersion">
+<span class="sig-name descname"><span class="pre">dispersion</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/aggregation.html#OrderedWeightedAveraging.dispersion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.aggregation.OrderedWeightedAveraging.dispersion" title="Link to this definition"></a></dt>
+<dd><p>The measure of dispersion; essentially, it is a measure of entropy that is related to the
+Shannon information concept. The more disperse the weight vector, the more information
+is being used in the aggregation of the aggregate value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The amount of dispersion in the weight vector.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.aggregation.OrderedWeightedAveraging.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_observation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/aggregation.html#OrderedWeightedAveraging.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.aggregation.OrderedWeightedAveraging.forward" title="Link to this definition"></a></dt>
+<dd><p>Applies the Ordered Weighted Averaging operator. First, it will sort the argument
+in descending order, then multiply by the weight vector, and finally sum over the entries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>input_observation</strong> – Argument vector, unordered.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The aggregation of the ordered argument vector with the weight vector.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.relations.compound">
+<span id="fuzzy-relations-compound-module"></span><h2>fuzzy.relations.compound module<a class="headerlink" href="#module-fuzzy.relations.compound" title="Link to this heading"></a></h2>
+<p>Classes for representing n-ary fuzzy relations, such as t-norms and t-conorms. These relations
+are used to combine multiple membership values into a single value. The n-ary relations (of
+differing types) can then be combined into a compound relation.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.compound.Compound">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.compound.</span></span><span class="sig-name descname"><span class="pre">Compound</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">relations</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/compound.html#Compound"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.compound.Compound" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a>, <a class="reference internal" href="fuzzy.utils.html#fuzzy.utils.classes.Loggable" title="fuzzy.utils.classes.Loggable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Loggable</span></code></a></p>
+<p>This class represents an n-ary compound relation, where it expects at least 1 or more
+instance of NAryRelation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>relations</strong> (<a class="reference internal" href="#fuzzy.relations.n_ary.NAryRelation" title="fuzzy.relations.n_ary.NAryRelation"><em>NAryRelation</em></a>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.compound.Compound.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">membership</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/compound.html#Compound.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.compound.Compound.forward" title="Link to this definition"></a></dt>
+<dd><p>Apply the compound n-ary relation to the given membership values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>membership</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The membership values to apply the compound n-ary relation to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The stacked output of the compound n-ary relation; ready for subsequent follow-up.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.relations.confidence">
+<span id="fuzzy-relations-confidence-module"></span><h2>fuzzy.relations.confidence module<a class="headerlink" href="#module-fuzzy.relations.confidence" title="Link to this heading"></a></h2>
+<p>This script contains various mechanisms to enable the concept of confidence in rules when
+performing model inference.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.confidence.CertaintyFactors">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.confidence.</span></span><span class="sig-name descname"><span class="pre">CertaintyFactors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/confidence.html#CertaintyFactors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.confidence.CertaintyFactors" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<p>A class that provides access to certainty factors, which may be used in the calculation of the
+rules’ firing levels by reflecting on the model’s corresponding confidence in them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>weights</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.confidence.CertaintyFactors.create_default">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_default</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/confidence.html#CertaintyFactors.create_default"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.confidence.CertaintyFactors.create_default" title="Link to this definition"></a></dt>
+<dd><p>A protocol to create an instance with default settings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_features</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – The number of features in the model.</p></li>
+<li><p><strong>device</strong> – The device on which the certainty factors should be created.</p></li>
+<li><p><strong>*args</strong> – Additional positional arguments.</p></li>
+<li><p><strong>**kwargs</strong> – Additional keyword arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A CertaintyFactors object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.relations.confidence.CertaintyFactors" title="fuzzy.relations.confidence.CertaintyFactors"><em>CertaintyFactors</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.confidence.CertaintyFactors.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/confidence.html#CertaintyFactors.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.confidence.CertaintyFactors.save" title="Link to this definition"></a></dt>
+<dd><p>Save the current certainty factors to a directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – An instance of Path that describes a directory path.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The mutable mapping, or state dictionary, that was saved to file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.MutableMapping" title="(in Python v3.14)"><em>MutableMapping</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.confidence.CertaintyFactors.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/confidence.html#CertaintyFactors.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.confidence.CertaintyFactors.load" title="Link to this definition"></a></dt>
+<dd><p>Load the certainty factors from a directory and put it on the specified device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – An instance of Path that describes a directory path containing “state_dict.pt”.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>) – The device on which the certainty factors should be loaded.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A CertaintyFactors object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.relations.confidence.CertaintyFactors" title="fuzzy.relations.confidence.CertaintyFactors"><em>CertaintyFactors</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.confidence.CertaintyFactors.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/confidence.html#CertaintyFactors.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.confidence.CertaintyFactors.forward" title="Link to this definition"></a></dt>
+<dd><p>Apply the certainty factors to a tensor x.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The tensor to apply the certainty factors to, which is likely an intermediate</p></li>
+<li><p><strong>levels.</strong> (<em>value during the calculation</em><em> of </em><em>rules' firing</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The result of the certainty factors applied to the tensor x.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.relations.custom_t_norm">
+<span id="fuzzy-relations-custom-t-norm-module"></span><h2>fuzzy.relations.custom_t_norm module<a class="headerlink" href="#module-fuzzy.relations.custom_t_norm" title="Link to this heading"></a></h2>
+<p>This script contains various classes that allow the customization of any t-norm operation for the
+purposes of enabling rapid research exploration.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.custom_t_norm.TNormPipeline">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.custom_t_norm.</span></span><span class="sig-name descname"><span class="pre">TNormPipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">configuration</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_relations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/custom_t_norm.html#TNormPipeline"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.custom_t_norm.TNormPipeline" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<p>A generic sequential process that outlines a convenient interface to customize t-norm
+operations in order to enable rapid research exploration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>configuration</strong> (<a class="reference internal" href="fuzzy.utils.options.impl.html#fuzzy.utils.options.impl.impl_options.InferenceConfig" title="fuzzy.utils.options.impl.impl_options.InferenceConfig"><em>InferenceConfig</em></a>)</p></li>
+<li><p><strong>n_relations</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.custom_t_norm.TNormPipeline.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/custom_t_norm.html#TNormPipeline.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.custom_t_norm.TNormPipeline.save" title="Link to this definition"></a></dt>
+<dd><p>Save the custom n-ary relation to a dictionary given a path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The (requested) path to save the n-ary relation. This path must be a directory.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The dictionary representation of the custom n-ary relation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.MutableMapping" title="(in Python v3.14)"><em>MutableMapping</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.custom_t_norm.TNormPipeline.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/custom_t_norm.html#TNormPipeline.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.custom_t_norm.TNormPipeline.load" title="Link to this definition"></a></dt>
+<dd><p>Load the n-ary relation from a file and put it on the specified device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.relations.custom_t_norm.TNormPipeline" title="fuzzy.relations.custom_t_norm.TNormPipeline"><em>TNormPipeline</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.custom_t_norm.TNormPipeline.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/custom_t_norm.html#TNormPipeline.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.custom_t_norm.TNormPipeline.forward" title="Link to this definition"></a></dt>
+<dd><p>Forward pass of the custom n-ary t-norm operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The input to the n-ary t-norm operation, likely a tensor representing membership</p></li>
+<li><p><strong>manipulated.</strong> (<em>degrees that are to be</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Membership degrees determined based on the custom n-ary t-norm operation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.relations.linkage">
+<span id="fuzzy-relations-linkage-module"></span><h2>fuzzy.relations.linkage module<a class="headerlink" href="#module-fuzzy.relations.linkage" title="Link to this heading"></a></h2>
+<p>This file helps support the linkage between relations necessary for fuzzy logic inference engines.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.linkage.BinaryLinks">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.linkage.</span></span><span class="sig-name descname"><span class="pre">BinaryLinks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">links</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/linkage.html#BinaryLinks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.linkage.BinaryLinks" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a>, <a class="reference internal" href="fuzzy.utils.html#fuzzy.utils.classes.Loggable" title="fuzzy.utils.classes.Loggable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Loggable</span></code></a></p>
+<p>This class will implement the ‘standard’ neuro-fuzzy network definition, where connections or
+edges between layers of a neuro-fuzzy network can only have a value of either 0 or 1.</p>
+<p>Disclaimer: This is useful when the neuro-fuzzy network architecture has been defined a priori
+to training, such as through the SelfOrganize functionality, but is <em>not</em> to be used when
+performing network morphism.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>links</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.relations.linkage.BinaryLinks.shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.pytorch.org/docs/stable/size.html#torch.Size" title="(in PyTorch v2.13)"><span class="pre">Size</span></a></em><a class="headerlink" href="#fuzzy.relations.linkage.BinaryLinks.shape" title="Link to this definition"></a></dt>
+<dd><p>Get the shape of the binary links.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.linkage.BinaryLinks.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/linkage.html#BinaryLinks.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.linkage.BinaryLinks.save" title="Link to this definition"></a></dt>
+<dd><p>Save the n-ary relation to a dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>relation.</strong> (<em>The path to save the n-ary</em>)</p></li>
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The dictionary representation of the n-ary relation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.MutableMapping" title="(in Python v3.14)"><em>MutableMapping</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.linkage.BinaryLinks.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/linkage.html#BinaryLinks.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.linkage.BinaryLinks.load" title="Link to this definition"></a></dt>
+<dd><p>Load the n-ary relation from a file and put it on the specified device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.relations.linkage.BinaryLinks" title="fuzzy.relations.linkage.BinaryLinks"><em>BinaryLinks</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.linkage.BinaryLinks.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/linkage.html#BinaryLinks.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.linkage.BinaryLinks.to" title="Link to this definition"></a></dt>
+<dd><p>Move the BinaryLinks to a new device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The BinaryLinks object.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#fuzzy.relations.linkage.BinaryLinks" title="fuzzy.relations.linkage.BinaryLinks"><em>BinaryLinks</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.linkage.BinaryLinks.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">_</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/linkage.html#BinaryLinks.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.linkage.BinaryLinks.forward" title="Link to this definition"></a></dt>
+<dd><p>Apply the defined binary linkage to the given membership degrees.</p>
+<p>Note: This ‘forward’ function is primarily intended for use with membership degrees
+describing the relationship to the premise layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The membership degrees having been appropriately unsqueezed and applied to their
+respective dimensions for later use in inferring rule activation.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.linkage.GroupedLinks">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.linkage.</span></span><span class="sig-name descname"><span class="pre">GroupedLinks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modules_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/linkage.html#GroupedLinks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.linkage.GroupedLinks" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.utils.html#fuzzy.utils.classes.NestedTorchJitModule" title="fuzzy.utils.classes.NestedTorchJitModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">NestedTorchJitModule</span></code></a>, <a class="reference internal" href="fuzzy.utils.html#fuzzy.utils.classes.Loggable" title="fuzzy.utils.classes.Loggable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Loggable</span></code></a></p>
+<p>This class is a container for the various LogitLinks or BinaryLinks that are used to
+probabilistically sample from the fuzzy sets along some dimension. This class is defined as a
+torch.nn.Module for compatibility with torch.nn.ModuleList among other helpful necessities. More
+specifically, this class enables us to use other code that may expect torch.nn.Module
+functionality, such as GumbelSoftmax.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>modules_list</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a><em>[</em><a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><em>Module</em></a><em>]</em>)</p></li>
+<li><p><strong>callback</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em>[</em><em>[</em><em>]</em><em>, </em><em>None</em><em>] </em><em>| </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.relations.linkage.GroupedLinks.shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.pytorch.org/docs/stable/size.html#torch.Size" title="(in PyTorch v2.13)"><span class="pre">Size</span></a></em><a class="headerlink" href="#fuzzy.relations.linkage.GroupedLinks.shape" title="Link to this definition"></a></dt>
+<dd><p>Get the shape of the current linkage.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The shape of the current linkage, represented via a Size object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.linkage.GroupedLinks.append">
+<span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/linkage.html#GroupedLinks.append"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.linkage.GroupedLinks.append" title="Link to this definition"></a></dt>
+<dd><p>Append a module to the end of the list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>module</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><em>Module</em></a>) – The module to be appended.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.linkage.GroupedLinks.extend">
+<span class="sig-name descname"><span class="pre">extend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">modules</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/linkage.html#GroupedLinks.extend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.linkage.GroupedLinks.extend" title="Link to this definition"></a></dt>
+<dd><p>Extend the available linkage to incorporate the new list of modules.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>modules</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a><em>[</em><a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><em>Module</em></a><em>]</em>) – A list of modules that should be appended.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.linkage.GroupedLinks.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/linkage.html#GroupedLinks.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.linkage.GroupedLinks.to" title="Link to this definition"></a></dt>
+<dd><p>Move the GroupedLinks to a new device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.linkage.GroupedLinks.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">membership</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/linkage.html#GroupedLinks.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.linkage.GroupedLinks.forward" title="Link to this definition"></a></dt>
+<dd><p>Fetch the links for later use.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>membership</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.relations.n_ary">
+<span id="fuzzy-relations-n-ary-module"></span><h2>fuzzy.relations.n_ary module<a class="headerlink" href="#module-fuzzy.relations.n_ary" title="Link to this heading"></a></h2>
+<p>Classes for representing n-ary fuzzy relations, such as t-norms and t-conorms. These relations
+are used to combine multiple membership values into a single value. The n-ary relations (of
+differing types) can then be combined into a compound relation.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryMaskMethods">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.n_ary.</span></span><span class="sig-name descname"><span class="pre">NAryMaskMethods</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryMaskMethods"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryMaskMethods" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>The available methods for completing n-ary fuzzy relations.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryMaskMethods.PROD">
+<span class="sig-name descname"><span class="pre">PROD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'prod'</span></em><a class="headerlink" href="#fuzzy.relations.n_ary.NAryMaskMethods.PROD" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryMaskMethods.EXP_SUM_LOG">
+<span class="sig-name descname"><span class="pre">EXP_SUM_LOG</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'exp_sum_log'</span></em><a class="headerlink" href="#fuzzy.relations.n_ary.NAryMaskMethods.EXP_SUM_LOG" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryMaskMethods.LINEAR_SUM">
+<span class="sig-name descname"><span class="pre">LINEAR_SUM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'linear'</span></em><a class="headerlink" href="#fuzzy.relations.n_ary.NAryMaskMethods.LINEAR_SUM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.n_ary.</span></span><span class="sig-name descname"><span class="pre">NAryRelation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grouped_links</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nan_replacement</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">NAryMaskMethods.PROD</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryRelation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.utils.html#fuzzy.utils.classes.TorchJitModule" title="fuzzy.utils.classes.TorchJitModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchJitModule</span></code></a>, <a class="reference internal" href="fuzzy.utils.html#fuzzy.utils.classes.Loggable" title="fuzzy.utils.classes.Loggable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Loggable</span></code></a></p>
+<p>This class represents an n-ary fuzzy relation. An n-ary fuzzy relation is a relation that takes
+n arguments and returns a (float) value. This class is useful for representing fuzzy relations
+that take multiple arguments, such as a t-norm that takes two or more arguments and returns a
+truth value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>indices</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.14)"><em>Tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.14)"><em>Tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em><em>]</em>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>grouped_links</strong> (<em>None</em><em> | </em><a class="reference internal" href="#fuzzy.relations.linkage.GroupedLinks" title="fuzzy.relations.linkage.GroupedLinks"><em>GroupedLinks</em></a>)</p></li>
+<li><p><strong>nan_replacement</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>method</strong> (<a class="reference internal" href="#fuzzy.relations.n_ary.NAryMaskMethods" title="fuzzy.relations.n_ary.NAryMaskMethods"><em>NAryMaskMethods</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation.shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.pytorch.org/docs/stable/size.html#torch.Size" title="(in PyTorch v2.13)"><span class="pre">Size</span></a></em><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation.shape" title="Link to this definition"></a></dt>
+<dd><p>Get the shape of the relation’s matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The shape of the relation’s matrix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation.convert_indices_to_matrix">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">convert_indices_to_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indices</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryRelation.convert_indices_to_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation.convert_indices_to_matrix" title="Link to this definition"></a></dt>
+<dd><p>Convert the given indices to a COO matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>indices</strong> – The indices where a ‘1’ will be placed at each index.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The COO matrix with a ‘1’ at each index.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>coo_matrix</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation.get_mask">
+<span class="sig-name descname"><span class="pre">get_mask</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryRelation.get_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation.get_mask" title="Link to this definition"></a></dt>
+<dd><p>Get the applied mask.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The applied mask.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryRelation.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation.to" title="Link to this definition"></a></dt>
+<dd><p>Move the n-ary relation to the specified device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>) – The device to move the n-ary relation to.</p></li>
+<li><p><strong>*args</strong> – Additional positional arguments.</p></li>
+<li><p><strong>**kwargs</strong> – Additional keyword arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The n-ary relation on the specified device.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.relations.n_ary.NAryRelation" title="fuzzy.relations.n_ary.NAryRelation"><em>NAryRelation</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryRelation.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation.save" title="Link to this definition"></a></dt>
+<dd><p>Save the n-ary relation to a dictionary given a path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The (requested) path to save the n-ary relation. This may be modified to ensure</p></li>
+<li><p><strong>saved</strong> (<em>all necessary files are</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The dictionary representation of the n-ary relation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.MutableMapping" title="(in Python v3.14)"><em>MutableMapping</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryRelation.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation.load" title="Link to this definition"></a></dt>
+<dd><p>Load the n-ary relation from a file and put it on the specified device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – The path to load the t-norm relation.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>) – The physical device to load the t-norm relation onto.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The n-ary relation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#fuzzy.relations.n_ary.NAryRelation" title="fuzzy.relations.n_ary.NAryRelation"><em>NAryRelation</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation.create_ndarray">
+<span class="sig-name descname"><span class="pre">create_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_var</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_term</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryRelation.create_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation.create_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Make (or update) the numpy matrix from the COO matrices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>max_var</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – The maximum number of variables.</p></li>
+<li><p><strong>max_term</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – The maximum number of terms.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation.create_igraph">
+<span class="sig-name descname"><span class="pre">create_igraph</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryRelation.create_igraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation.create_igraph" title="Link to this definition"></a></dt>
+<dd><p>Create the graph representation of the relation(s).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation.resize">
+<span class="sig-name descname"><span class="pre">resize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryRelation.resize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation.resize" title="Link to this definition"></a></dt>
+<dd><p>Resize the matrix in-place to the given shape, and then rebuild the relations’ members.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>shape</strong> – The new shape of the matrix.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation.invalidate_links_cache">
+<span class="sig-name descname"><span class="pre">invalidate_links_cache</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryRelation.invalidate_links_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation.invalidate_links_cache" title="Link to this definition"></a></dt>
+<dd><p>Invalidate the cached links tensors. Must be called after any change to
+the underlying links (e.g., resize, device move, Gumbel-Softmax resample).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation.apply_mask">
+<span class="sig-name descname"><span class="pre">apply_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">membership</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryRelation.apply_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation.apply_mask" title="Link to this definition"></a></dt>
+<dd><p>Apply the n-ary relation’s mask to the given memberships.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>membership</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The membership values to apply the minimum n-ary relation to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The masked membership values (zero may or may not be a valid degree of truth).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.n_ary.NAryRelation.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">membership</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/n_ary.html#NAryRelation.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.n_ary.NAryRelation.forward" title="Link to this definition"></a></dt>
+<dd><p>Apply the n-ary relation to the given memberships.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>membership</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The membership values to apply the n-ary relation to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The resulting membership values, according to the n-ary relation (i.e., which truth
+values to actually consider).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.relations.t_norm">
+<span id="fuzzy-relations-t-norm-module"></span><h2>fuzzy.relations.t_norm module<a class="headerlink" href="#module-fuzzy.relations.t_norm" title="Link to this heading"></a></h2>
+<p>This module contains the implementation of the n-ary t-norm fuzzy relations. These relations
+are used to combine multiple membership values into a single value. The minimum and product
+relations are implemented here.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.t_norm.TNorm">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.t_norm.</span></span><span class="sig-name descname"><span class="pre">TNorm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/t_norm.html#TNorm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.t_norm.TNorm" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.relations.n_ary.NAryRelation" title="fuzzy.relations.n_ary.NAryRelation"><code class="xref py py-class docutils literal notranslate"><span class="pre">NAryRelation</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+<p>This class represents the abstract n-ary fuzzy t-norm relation. This is a special case of the
+n-ary fuzzy relation where the t-norm operation is assumed. This class is abstract and should
+not be instantiated directly, but all fuzzy t-norm relations should inherit from this class.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.t_norm.Minimum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.t_norm.</span></span><span class="sig-name descname"><span class="pre">Minimum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/t_norm.html#Minimum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.t_norm.Minimum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.relations.t_norm.TNorm" title="fuzzy.relations.t_norm.TNorm"><code class="xref py py-class docutils literal notranslate"><span class="pre">TNorm</span></code></a></p>
+<p>This class represents the minimum n-ary fuzzy relation. This is a special case of
+the n-ary fuzzy relation where the minimum value is returned.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.t_norm.Minimum.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">membership</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/t_norm.html#Minimum.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.t_norm.Minimum.forward" title="Link to this definition"></a></dt>
+<dd><p>Apply the minimum n-ary relation to the given memberships.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>membership</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The membership values to apply the minimum n-ary relation to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The minimum membership, according to the n-ary relation (i.e., which truth values
+to actually consider).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.t_norm.Product">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.t_norm.</span></span><span class="sig-name descname"><span class="pre">Product</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/t_norm.html#Product"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.t_norm.Product" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.relations.t_norm.TNorm" title="fuzzy.relations.t_norm.TNorm"><code class="xref py py-class docutils literal notranslate"><span class="pre">TNorm</span></code></a></p>
+<p>This class represents the algebraic product n-ary fuzzy relation. This is a special case of
+the n-ary fuzzy relation where the product value is returned.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.t_norm.Product.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">membership</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/t_norm.html#Product.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.t_norm.Product.forward" title="Link to this definition"></a></dt>
+<dd><p>Apply the algebraic product n-ary relation to the given memberships.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>membership</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The membership values to apply the algebraic product n-ary relation to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The algebraic product membership value, according to the n-ary relation
+(i.e., which truth values to actually consider).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.t_norm.SoftmaxSum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.t_norm.</span></span><span class="sig-name descname"><span class="pre">SoftmaxSum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/t_norm.html#SoftmaxSum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.t_norm.SoftmaxSum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.relations.t_norm.TNorm" title="fuzzy.relations.t_norm.TNorm"><code class="xref py py-class docutils literal notranslate"><span class="pre">TNorm</span></code></a></p>
+<p>This class represents the softmax sum n-ary fuzzy relation. This is a special case when dealing
+with high-dimensional TSK systems, where the softmax sum is used to leverage Gaussians’
+defuzzification relationship to the softmax function.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.t_norm.SoftmaxSum.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">membership</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/t_norm.html#SoftmaxSum.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.t_norm.SoftmaxSum.forward" title="Link to this definition"></a></dt>
+<dd><p>Calculates the fuzzy compound’s applicability using the softmax sum inference engine.
+This is particularly useful for when dealing with high-dimensional data, and is considered
+a traditional variant of TSK fuzzy stems on high-dimensional datasets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>membership</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The memberships.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The applicability of the fuzzy compounds (e.g., fuzzy logic rules).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.t_norm.GeneralizedLukasiewicz">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.t_norm.</span></span><span class="sig-name descname"><span class="pre">GeneralizedLukasiewicz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/t_norm.html#GeneralizedLukasiewicz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.t_norm.GeneralizedLukasiewicz" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.relations.t_norm.TNorm" title="fuzzy.relations.t_norm.TNorm"><code class="xref py py-class docutils literal notranslate"><span class="pre">TNorm</span></code></a></p>
+<p>This class represents the generalized Lukasiewicz n-ary fuzzy relation. This is a special case
+of the n-ary fuzzy relation where the generalized Lukasiewicz value is returned.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.t_norm.GeneralizedLukasiewicz.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">membership</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/t_norm.html#GeneralizedLukasiewicz.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.t_norm.GeneralizedLukasiewicz.forward" title="Link to this definition"></a></dt>
+<dd><p>Apply the n-ary relation to the given memberships.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>membership</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The membership values to apply the n-ary relation to.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The resulting membership values, according to the n-ary relation (i.e., which truth
+values to actually consider).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.relations.t_norm.SoftmaxMean">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.relations.t_norm.</span></span><span class="sig-name descname"><span class="pre">SoftmaxMean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/t_norm.html#SoftmaxMean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.t_norm.SoftmaxMean" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.relations.t_norm.TNorm" title="fuzzy.relations.t_norm.TNorm"><code class="xref py py-class docutils literal notranslate"><span class="pre">TNorm</span></code></a></p>
+<p>This class represents the softmax mean n-ary fuzzy relation. This is a special case when dealing
+with high-dimensional TSK systems, where the softmax mean is used to leverage Gaussians’
+defuzzification relationship to the softmax function.</p>
+<p>This is particularly useful for when dealing with high-dimensional data, and is considered
+a traditional variant of TSK fuzzy systems on high-dimensional datasets.</p>
+<p>This technique is also known as the “HTSK” method, proposed by Yuqi Cui,
+Dongrui Wu, and Yifan Xu, in 2021. The benefit of this method is that it is able to
+overcome the curse of dimensionality, as the scale of the rule activation no longer depends
+upon the dimensionality; “even in very high dimensional space, assuming the input feature
+vectors are properly pre-processed (z-score or zero-one normalization, etc.), we can still
+guarantee the stability of HTSK.” To read more, the paper is titled:</p>
+<blockquote>
+<div><p>“Curse of Dimensionality for TSK Fuzzy Neural Networks: Explanation and Solution”.</p>
+</div></blockquote>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.relations.t_norm.SoftmaxMean.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">membership</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/t_norm.html#SoftmaxMean.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.t_norm.SoftmaxMean.forward" title="Link to this definition"></a></dt>
+<dd><p>Calculates the fuzzy compound’s applicability using the softmax mean inference engine.
+This is particularly useful for when dealing with high-dimensional data, and is considered
+a traditional variant of TSK fuzzy systems on high-dimensional datasets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>membership</strong> (<a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a>) – The memberships.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The applicability of the fuzzy compounds (e.g., fuzzy logic rules).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.membership.Membership" title="fuzzy.sets.membership.Membership"><em>Membership</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.relations.triton_kernels">
+<span id="fuzzy-relations-triton-kernels-module"></span><h2>fuzzy.relations.triton_kernels module<a class="headerlink" href="#module-fuzzy.relations.triton_kernels" title="Link to this heading"></a></h2>
+<p>A fused, Triton-accelerated implementation of “gather one term per variable per rule,
+then take the product across variables” - the core computation of a gather-eligible
+Product t-norm (see NAryRelation._gather_apply_mask and t_norm.Product.forward).</p>
+<p>The eager implementation materializes an intermediate (batch, vars, rules) tensor via
+torch.gather, then reduces it with torch.prod - two separate kernels, with the
+intermediate written and then immediately re-read. This module fuses both into a
+single kernel that never materializes that intermediate, and pairs it with a
+numerically-safe (division-free) backward that handles exact-zero factors correctly -
+verified to match torch.prod’s own backward, including at exact zeros, to floating
+point precision.</p>
+<p>This module only covers the common case: no NaN present in <cite>degrees</cite>, and every
+variable structurally active for every rule (relation._all_active). Callers are
+responsible for checking those preconditions (see t_norm.Product.forward) and falling
+back to the general-purpose eager path otherwise - this module does not attempt to
+replicate the NaN-poisoning-via-any-unselected-term or partial-variable-coverage
+semantics of the general path.</p>
+<p>Requires Triton and a CUDA tensor; TRITON_AVAILABLE is False (and the public function
+raises) when triton cannot be imported, so callers must guard on it before use.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="fuzzy.relations.triton_kernels.gather_prod">
+<span class="sig-prename descclassname"><span class="pre">fuzzy.relations.triton_kernels.</span></span><span class="sig-name descname"><span class="pre">gather_prod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">degrees</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/relations/triton_kernels.html#gather_prod"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.relations.triton_kernels.gather_prod" title="Link to this definition"></a></dt>
+<dd><p>Fused, differentiable equivalent of:</p>
+<blockquote>
+<div><p>selected = torch.gather(degrees, dim=2, index=idx.unsqueeze(0).expand(B, -1, -1))
+return selected.prod(dim=1)</p>
+</div></blockquote>
+<p>without materializing <cite>selected</cite>. Only valid when TRITON_AVAILABLE is True and
+degrees is a CUDA tensor - callers must check both themselves.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>degrees</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – (batch, vars, terms) membership degrees.</p></li>
+<li><p><strong>idx</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – (vars, rules) term index each variable contributes to each rule, e.g.
+NAryRelation._gather_indices.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(batch, rules) product, one value per (observation, rule).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.relations">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-fuzzy.relations" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="fuzzy.logic.control.configurations.html" class="btn btn-neutral float-left" title="fuzzy.logic.control.configurations package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fuzzy.sets.html" class="btn btn-neutral float-right" title="fuzzy.sets package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

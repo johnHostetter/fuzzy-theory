@@ -1,0 +1,399 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.relations.t_norm &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.relations.t_norm</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.relations.t_norm</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module contains the implementation of the n-ary t-norm fuzzy relations. These relations</span>
+<span class="sd">are used to combine multiple membership values into a single value. The minimum and product</span>
+<span class="sd">relations are implemented here.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.relations.n_ary</span><span class="w"> </span><span class="kn">import</span> <span class="n">NAryRelation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.relations.triton_kernels</span><span class="w"> </span><span class="kn">import</span> <span class="n">TRITON_AVAILABLE</span><span class="p">,</span> <span class="n">gather_prod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.sets.membership</span><span class="w"> </span><span class="kn">import</span> <span class="n">Membership</span>
+
+
+<div class="viewcode-block" id="TNorm">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.t_norm.TNorm">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TNorm</span><span class="p">(</span><span class="n">NAryRelation</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents the abstract n-ary fuzzy t-norm relation. This is a special case of the</span>
+<span class="sd">    n-ary fuzzy relation where the t-norm operation is assumed. This class is abstract and should</span>
+<span class="sd">    not be instantiated directly, but all fuzzy t-norm relations should inherit from this class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># @log_method</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot; AND &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s2">)&quot;</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="Minimum">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.t_norm.Minimum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Minimum</span><span class="p">(</span><span class="n">TNorm</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents the minimum n-ary fuzzy relation. This is a special case of</span>
+<span class="sd">    the n-ary fuzzy relation where the minimum value is returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Minimum.forward">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.t_norm.Minimum.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Membership</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the minimum n-ary relation to the given memberships.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            membership: The membership values to apply the minimum n-ary relation to.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The minimum membership, according to the n-ary relation (i.e., which truth values</span>
+<span class="sd">            to actually consider).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># first filter out the values that are not part of the relation</span>
+        <span class="c1"># then take the minimum value of those that remain in the last</span>
+        <span class="c1"># dimension</span>
+        <span class="n">after_mask</span><span class="p">,</span> <span class="n">applied_mask</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask_with_mask</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
+                <span class="n">membership</span><span class="o">=</span><span class="n">membership</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># Regression fix: a variable not referenced at all by a given rule (common</span>
+        <span class="c1"># whenever an NAryRelation combines multiple rules with different variable</span>
+        <span class="c1"># subsets) gets forced to the shared masking machinery&#39;s identity constant,</span>
+        <span class="c1"># 1.0 - correct for the forward value (min(x, 1.0) == x for any x &lt;= 1.0),</span>
+        <span class="c1"># but whenever a rule&#39;s *real* input also equals exactly 1.0 (a fully-</span>
+        <span class="c1"># satisfied rule - routine as training converges), torch.min()&#39;s tie-</span>
+        <span class="c1"># breaking can pick that constant as the argmin instead of the real input.</span>
+        <span class="c1"># Since the constant has zero local derivative, the gradient silently</span>
+        <span class="c1"># vanishes into it instead of reaching the real, deserving parameter -</span>
+        <span class="c1"># confirmed empirically to be dependent on variable index order (whichever</span>
+        <span class="c1"># of the tied entries comes first along the vars dimension wins). Replacing</span>
+        <span class="c1"># every such phantom (var, rule) slot with +inf before min() guarantees it</span>
+        <span class="c1"># can never win a tie against a real value bounded in [0, 1] - identical</span>
+        <span class="c1"># forward result, but ties always resolve to a real input. Reuses the raw</span>
+        <span class="c1"># applied_mask already returned above (shape (vars, terms, rules) for both</span>
+        <span class="c1"># the gather and general paths) rather than any method-specific internal</span>
+        <span class="c1"># state, so this works regardless of which _apply_mask_func computed</span>
+        <span class="c1"># after_mask.</span>
+        <span class="n">phantom</span> <span class="o">=</span> <span class="n">applied_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>  <span class="c1"># (vars, rules)</span>
+        <span class="n">after_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">phantom</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">after_mask</span>  <span class="c1"># broadcast over batch</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">Membership</span><span class="p">(</span>
+            <span class="n">degrees</span><span class="o">=</span><span class="n">after_mask</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">applied_mask</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Product">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.t_norm.Product">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Product</span><span class="p">(</span><span class="n">TNorm</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents the algebraic product n-ary fuzzy relation. This is a special case of</span>
+<span class="sd">    the n-ary fuzzy relation where the product value is returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Product.forward">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.t_norm.Product.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Membership</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the algebraic product n-ary relation to the given memberships.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            membership: The membership values to apply the algebraic product n-ary relation to.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The algebraic product membership value, according to the n-ary relation</span>
+<span class="sd">            (i.e., which truth values to actually consider).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># keep grouped_links/gather state in sync with the incoming shape before</span>
+        <span class="c1"># either path below relies on it - apply_mask() does this same check</span>
+        <span class="c1"># itself, so the fallback path redoes a cheap, harmless no-op</span>
+        <span class="c1"># comparison</span>
+        <span class="n">membership_shape</span> <span class="o">=</span> <span class="n">membership</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grouped_links</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">membership_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="o">*</span><span class="n">membership_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+        <span class="c1"># pylint: disable=too-many-boolean-expressions</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="c1"># short-circuits before the data-dependent bool(...isnan().any()...)</span>
+            <span class="c1"># sync below, which torch.compile(fullgraph=True) cannot trace through</span>
+            <span class="c1"># (a graph break) - is_compiling() is a compile-time constant, so Dynamo</span>
+            <span class="c1"># prunes this whole branch rather than tracing into it, always taking the</span>
+            <span class="c1"># general apply_mask()+prod() path below instead when compiling</span>
+            <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">is_compiling</span><span class="p">()</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_gather</span>  <span class="c1"># pylint: disable=protected-access</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_active</span>  <span class="c1"># pylint: disable=protected-access</span>
+            <span class="ow">and</span> <span class="n">TRITON_AVAILABLE</span>
+            <span class="ow">and</span> <span class="n">membership</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">is_cuda</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="n">membership</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">isnan</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">())</span>
+        <span class="p">):</span>
+            <span class="c1"># pylint: enable=too-many-boolean-expressions</span>
+            <span class="c1"># fused Triton kernel: covers the common case (every variable</span>
+            <span class="c1"># structurally active for every rule, no NaN present) without</span>
+            <span class="c1"># materializing the (batch, vars, rules) intermediate that the</span>
+            <span class="c1"># general apply_mask()+prod() path below writes and immediately</span>
+            <span class="c1"># re-reads - see relations/triton_kernels.py for the full</span>
+            <span class="c1"># correctness argument and its limits (why the general path below</span>
+            <span class="c1"># is still needed for NaN-poisoning and partial variable coverage)</span>
+            <span class="n">applied_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_mask</span>  <span class="c1"># pylint: disable=protected-access</span>
+            <span class="k">return</span> <span class="n">Membership</span><span class="p">(</span>
+                <span class="n">degrees</span><span class="o">=</span><span class="n">gather_prod</span><span class="p">(</span>
+                    <span class="n">membership</span><span class="o">.</span><span class="n">degrees</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_gather_indices</span><span class="p">,</span>  <span class="c1"># pylint: disable=protected-access</span>
+                <span class="p">),</span>
+                <span class="n">mask</span><span class="o">=</span><span class="n">applied_mask</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">after_mask</span><span class="p">,</span> <span class="n">applied_mask</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask_with_mask</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
+                <span class="n">membership</span><span class="o">=</span><span class="n">membership</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">Membership</span><span class="p">(</span>
+            <span class="n">degrees</span><span class="o">=</span><span class="n">after_mask</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">applied_mask</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SoftmaxSum">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.t_norm.SoftmaxSum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SoftmaxSum</span><span class="p">(</span><span class="n">TNorm</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents the softmax sum n-ary fuzzy relation. This is a special case when dealing</span>
+<span class="sd">    with high-dimensional TSK systems, where the softmax sum is used to leverage Gaussians&#39;</span>
+<span class="sd">    defuzzification relationship to the softmax function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SoftmaxSum.forward">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.t_norm.SoftmaxSum.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Membership</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the fuzzy compound&#39;s applicability using the softmax sum inference engine.</span>
+<span class="sd">        This is particularly useful for when dealing with high-dimensional data, and is considered</span>
+<span class="sd">        a traditional variant of TSK fuzzy stems on high-dimensional datasets.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            membership: The memberships.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The applicability of the fuzzy compounds (e.g., fuzzy logic rules).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">intermediate_values</span><span class="p">,</span> <span class="n">applied_mask</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask_with_mask</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
+                <span class="n">membership</span><span class="o">=</span><span class="n">membership</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># pylint: disable=fixme</span>
+        <span class="c1"># TODO: these dimensions are possibly not correct, need to be</span>
+        <span class="c1"># fixed/tested</span>
+        <span class="n">firing_strengths</span> <span class="o">=</span> <span class="n">intermediate_values</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">max_values</span> <span class="o">=</span> <span class="n">firing_strengths</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Membership</span><span class="p">(</span>
+            <span class="n">degrees</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">firing_strengths</span> <span class="o">-</span> <span class="n">max_values</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">applied_mask</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="GeneralizedLukasiewicz">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.t_norm.GeneralizedLukasiewicz">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GeneralizedLukasiewicz</span><span class="p">(</span><span class="n">TNorm</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents the generalized Lukasiewicz n-ary fuzzy relation. This is a special case</span>
+<span class="sd">    of the n-ary fuzzy relation where the generalized Lukasiewicz value is returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GeneralizedLukasiewicz.forward">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.t_norm.GeneralizedLukasiewicz.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Membership</span><span class="p">:</span>
+        <span class="n">intermediate_values</span><span class="p">,</span> <span class="n">applied_mask</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask_with_mask</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
+                <span class="n">membership</span><span class="o">=</span><span class="n">membership</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># pylint: disable=fixme</span>
+        <span class="c1"># TODO: these dimensions are possibly not correct, need to be</span>
+        <span class="c1"># fixed/tested</span>
+        <span class="n">firing_strengths</span> <span class="o">=</span> <span class="n">intermediate_values</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Membership</span><span class="p">(</span>
+            <span class="n">degrees</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span>
+                <span class="n">firing_strengths</span>
+                <span class="c1"># subtract # of inputs - 1; membership.elements was dropped from</span>
+                <span class="c1"># Membership (see membership.py) - degrees.shape[1] (the vars</span>
+                <span class="c1"># dimension) is the direct replacement, since elements previously</span>
+                <span class="c1"># held the raw per-variable observations</span>
+                <span class="o">-</span> <span class="p">(</span><span class="n">membership</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">applied_mask</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SoftmaxMean">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.t_norm.SoftmaxMean">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SoftmaxMean</span><span class="p">(</span><span class="n">TNorm</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents the softmax mean n-ary fuzzy relation. This is a special case when dealing</span>
+<span class="sd">    with high-dimensional TSK systems, where the softmax mean is used to leverage Gaussians&#39;</span>
+<span class="sd">    defuzzification relationship to the softmax function.</span>
+
+<span class="sd">    This is particularly useful for when dealing with high-dimensional data, and is considered</span>
+<span class="sd">    a traditional variant of TSK fuzzy systems on high-dimensional datasets.</span>
+
+<span class="sd">    This technique is also known as the &quot;HTSK&quot; method, proposed by Yuqi Cui,</span>
+<span class="sd">    Dongrui Wu, and Yifan Xu, in 2021. The benefit of this method is that it is able to</span>
+<span class="sd">    overcome the curse of dimensionality, as the scale of the rule activation no longer depends</span>
+<span class="sd">    upon the dimensionality; &quot;even in very high dimensional space, assuming the input feature</span>
+<span class="sd">    vectors are properly pre-processed (z-score or zero-one normalization, etc.), we can still</span>
+<span class="sd">    guarantee the stability of HTSK.&quot; To read more, the paper is titled:</span>
+
+<span class="sd">        &quot;Curse of Dimensionality for TSK Fuzzy Neural Networks: Explanation and Solution&quot;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SoftmaxMean.forward">
+<a class="viewcode-back" href="../../../_source/fuzzy.relations.html#fuzzy.relations.t_norm.SoftmaxMean.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">membership</span><span class="p">:</span> <span class="n">Membership</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Membership</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the fuzzy compound&#39;s applicability using the softmax mean inference engine.</span>
+<span class="sd">        This is particularly useful for when dealing with high-dimensional data, and is considered</span>
+<span class="sd">        a traditional variant of TSK fuzzy systems on high-dimensional datasets.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            membership: The memberships.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The applicability of the fuzzy compounds (e.g., fuzzy logic rules).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">intermediate_values</span><span class="p">,</span> <span class="n">applied_mask</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask_with_mask</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
+                <span class="n">membership</span><span class="o">=</span><span class="n">membership</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># pylint: disable=fixme</span>
+        <span class="c1"># TODO: these dimensions are possibly not correct, need to be</span>
+        <span class="c1"># fixed/tested</span>
+        <span class="n">firing_strengths</span> <span class="o">=</span> <span class="n">intermediate_values</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span>  <span class="c1"># we take the mean instead of the sum</span>
+        <span class="n">max_values</span> <span class="o">=</span> <span class="n">firing_strengths</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span>
+            <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>  <span class="c1"># add this to prevent overflow</span>
+        <span class="k">return</span> <span class="n">Membership</span><span class="p">(</span>
+            <span class="n">degrees</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">firing_strengths</span> <span class="o">-</span> <span class="n">max_values</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">applied_mask</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

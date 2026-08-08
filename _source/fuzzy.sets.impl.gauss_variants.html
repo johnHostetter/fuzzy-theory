@@ -1,0 +1,591 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.sets.impl.gauss_variants package &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="fuzzy.utils package" href="fuzzy.utils.html" />
+    <link rel="prev" title="fuzzy.sets.impl package" href="fuzzy.sets.impl.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">src</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="fuzzy.html">fuzzy package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="fuzzy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.logic.html">fuzzy.logic package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.relations.html">fuzzy.relations package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="fuzzy.sets.html">fuzzy.sets package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="fuzzy.utils.html">fuzzy.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fuzzy.html#module-fuzzy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">src</a></li>
+          <li class="breadcrumb-item"><a href="fuzzy.html">fuzzy package</a></li>
+          <li class="breadcrumb-item"><a href="fuzzy.sets.html">fuzzy.sets package</a></li>
+          <li class="breadcrumb-item"><a href="fuzzy.sets.impl.html">fuzzy.sets.impl package</a></li>
+      <li class="breadcrumb-item active">fuzzy.sets.impl.gauss_variants package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_source/fuzzy.sets.impl.gauss_variants.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fuzzy-sets-impl-gauss-variants-package">
+<h1>fuzzy.sets.impl.gauss_variants package<a class="headerlink" href="#fuzzy-sets-impl-gauss-variants-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-fuzzy.sets.impl.gauss_variants.cmf">
+<span id="fuzzy-sets-impl-gauss-variants-cmf-module"></span><h2>fuzzy.sets.impl.gauss_variants.cmf module<a class="headerlink" href="#module-fuzzy.sets.impl.gauss_variants.cmf" title="Link to this heading"></a></h2>
+<p>Implements conventional membership functions (CMFs) by inheriting from FuzzySet that are
+primarily variations of the Gaussian formula.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.gauss_variants.cmf.</span></span><span class="sig-name descname"><span class="pre">GaussianKernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width_multiplier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope_multiplier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#GaussianKernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A dataclass containing static settings which may adjust or influence Gaussian related functions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>width_multiplier</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>slope_multiplier</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel.width_multiplier">
+<span class="sig-name descname"><span class="pre">width_multiplier</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel.width_multiplier" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel.slope_multiplier">
+<span class="sig-name descname"><span class="pre">slope_multiplier</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.0</span></em><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel.slope_multiplier" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.gauss_variants.cmf.</span></span><span class="sig-name descname"><span class="pre">GeneralizedGuassian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gaussian_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">GaussianKernel(width_multiplier=2.0,</span> <span class="pre">slope_multiplier=1.0)</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#GeneralizedGuassian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySet</span></code></a></p>
+<p>Implementation of the Generalized Gaussian membership function, written in PyTorch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>gaussian_kernel</strong> (<a class="reference internal" href="#fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel" title="fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel"><em>GaussianKernel</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.get_width_multiplier">
+<span class="sig-name descname"><span class="pre">get_width_multiplier</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#GeneralizedGuassian.get_width_multiplier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.get_width_multiplier" title="Link to this definition"></a></dt>
+<dd><p>Get the concatenated width multipliers of the fuzzy set from its
+corresponding ParameterList.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The concatenated width multipliers of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.get_slope_multiplier">
+<span class="sig-name descname"><span class="pre">get_slope_multiplier</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#GeneralizedGuassian.get_slope_multiplier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.get_slope_multiplier" title="Link to this definition"></a></dt>
+<dd><p>Get the concatenated slope multipliers of the fuzzy set from its
+corresponding ParameterList.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The concatenated slope multipliers of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_multiplier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope_multiplier</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#GeneralizedGuassian.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Generalized Gaussian fuzzy set.
+This is a static method, so it can be called without instantiating the class.
+This static method is particularly useful when animating the membership function.</p>
+<p>Warning: This method is not meant to be called directly, as it does not take into account
+the mask that likely should exist. Use the calculate_membership method instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The centers of the Generalized Gaussian fuzzy set.</p></li>
+<li><p><strong>width_multiplier</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The width multiplier of the Generalized Gaussian fuzzy set.</p></li>
+<li><p><strong>slope_multiplier</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The slope multiplier of the Generalized Gaussian fuzzy set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Generalized Gaussian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#GeneralizedGuassian.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#GeneralizedGuassian.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.GeneralizedGuassian.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Log Gaussian fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Log Gaussian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.LogGaussian">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.gauss_variants.cmf.</span></span><span class="sig-name descname"><span class="pre">LogGaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gaussian_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">GaussianKernel(width_multiplier=2.0,</span> <span class="pre">slope_multiplier=1.0)</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#LogGaussian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySet</span></code></a></p>
+<p>Implementation of the Log Gaussian membership function, written in PyTorch.
+This is a modified version that helps when the dimensionality is high,
+and TSK product inference engine will be used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>gaussian_kernel</strong> (<a class="reference internal" href="#fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel" title="fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel"><em>GaussianKernel</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.internal_calculate_membership">
+<span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;torch.jit.ScriptFunction</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#LogGaussian.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#LogGaussian.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Log Gaussian fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Log Gaussian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.enable_sparse">
+<span class="sig-name descname"><span class="pre">enable_sparse</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></em><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.enable_sparse" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></em><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian.training" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.Gaussian">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.gauss_variants.cmf.</span></span><span class="sig-name descname"><span class="pre">Gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gaussian_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">GaussianKernel(width_multiplier=2.0,</span> <span class="pre">slope_multiplier=1.0)</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#Gaussian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.Gaussian" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.sets.impl.gauss_variants.cmf.LogGaussian" title="fuzzy.sets.impl.gauss_variants.cmf.LogGaussian"><code class="xref py py-class docutils literal notranslate"><span class="pre">LogGaussian</span></code></a></p>
+<p>Implementation of the Gaussian membership function, written in PyTorch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>gaussian_kernel</strong> (<a class="reference internal" href="#fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel" title="fuzzy.sets.impl.gauss_variants.cmf.GaussianKernel"><em>GaussianKernel</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.Gaussian.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_multiplier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#Gaussian.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.Gaussian.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Gaussian fuzzy set.
+This is a static method, so it can be called without instantiating the class.
+This static method is particularly useful when animating the membership function.</p>
+<p>Warning: This method is not meant to be called directly, as it does not take into account
+the mask that likely should exist. Use the calculate_membership method instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The centers of the Gaussian fuzzy set.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The widths of the Gaussian fuzzy set.</p></li>
+<li><p><strong>width_multiplier</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The width multiplier of the Gaussian fuzzy set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Gaussian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.Gaussian.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#Gaussian.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.Gaussian.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.cmf.Gaussian.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/cmf.html#Gaussian.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.cmf.Gaussian.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Log Gaussian fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Log Gaussian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.sets.impl.gauss_variants.dmf">
+<span id="fuzzy-sets-impl-gauss-variants-dmf-module"></span><h2>fuzzy.sets.impl.gauss_variants.dmf module<a class="headerlink" href="#module-fuzzy.sets.impl.gauss_variants.dmf" title="Link to this heading"></a></h2>
+<p>Implements dimension-dependent membership functions as proposed in:</p>
+<blockquote>
+<div><p>High-Dimensional Fuzzy Inference Systems</p>
+</div></blockquote>
+<p>by Guangdong Xue; Jian Wang; Kai Zhang; Nikhil R. Pal</p>
+<p>Citation:</p>
+<blockquote>
+<div><p>G. Xue, J. Wang, K. Zhang and N. R. Pal, “High-Dimensional Fuzzy Inference Systems,”
+in IEEE Transactions on Systems, Man, and Cybernetics: Systems, vol. 54, no. 1, pp. 507-519,
+Jan. 2024, doi: 10.1109/TSMC.2023.3311475.</p>
+</div></blockquote>
+<p>The code was modified from the public repository of the authors:</p>
+<blockquote>
+<div><p><a class="reference external" href="https://github.com/Eandon/HDFIS/">https://github.com/Eandon/HDFIS/</a></p>
+</div></blockquote>
+<p>to make it compatible with this fuzzy-theory library.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.dmf.DimensionDependent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.gauss_variants.dmf.</span></span><span class="sig-name descname"><span class="pre">DimensionDependent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/dmf.html#DimensionDependent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.dmf.DimensionDependent" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="fuzzy.sets.html#fuzzy.sets.abstract.FuzzySet" title="fuzzy.sets.abstract.FuzzySet"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuzzySet</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+<p>This class represents a Dimension-Dependent fuzzy set. It is an abstract base class that
+provides the basic structure for Dimension-Dependent fuzzy sets, such as Gaussian DMF and
+Gaussian No-Exp DMF. It inherits from the FuzzySet class and implements the
+calculate_membership method, which is used to calculate the membership of observations
+to the fuzzy set based on the centers, widths, and rho parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>centers</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>widths</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>rho</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.dmf.GaussianNoExpDMF">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.gauss_variants.dmf.</span></span><span class="sig-name descname"><span class="pre">GaussianNoExpDMF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/dmf.html#GaussianNoExpDMF"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.dmf.GaussianNoExpDMF" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.sets.impl.gauss_variants.dmf.DimensionDependent" title="fuzzy.sets.impl.gauss_variants.dmf.DimensionDependent"><code class="xref py py-class docutils literal notranslate"><span class="pre">DimensionDependent</span></code></a></p>
+<p>This class represents the Gaussian w/ No-Exp Dimension-Dependent fuzzy set. This is a special
+case of the Dimension-Dependent fuzzy set where the Gaussian membership function is assumed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>centers</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>widths</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>rho</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.dmf.GaussianNoExpDMF.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/dmf.html#GaussianNoExpDMF.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.dmf.GaussianNoExpDMF.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Dimension-Dependent fuzzy set.
+This is a static method, so it can be called without instantiating the class.
+This static method is particularly useful when animating the membership function.</p>
+<p>Warning: This method is not meant to be called directly, as it does not take into account
+the mask that likely should exist. Use the calculate_membership method instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The centers of the Gaussian DMF fuzzy set.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The widths of the Gaussian DMF fuzzy set.</p></li>
+<li><p><strong>n_inputs</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The widths of the Gaussian DMF fuzzy set.</p></li>
+<li><p><strong>rho</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The scale parameter for the Gaussian DMF fuzzy set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Gaussian DMF fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.dmf.GaussianNoExpDMF.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/dmf.html#GaussianNoExpDMF.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.dmf.GaussianNoExpDMF.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.dmf.GaussianNoExpDMF.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/dmf.html#GaussianNoExpDMF.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.dmf.GaussianNoExpDMF.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Log Gaussian fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Log Gaussian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.dmf.GaussianDMF">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fuzzy.sets.impl.gauss_variants.dmf.</span></span><span class="sig-name descname"><span class="pre">GaussianDMF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/dmf.html#GaussianDMF"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.dmf.GaussianDMF" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#fuzzy.sets.impl.gauss_variants.dmf.DimensionDependent" title="fuzzy.sets.impl.gauss_variants.dmf.DimensionDependent"><code class="xref py py-class docutils literal notranslate"><span class="pre">DimensionDependent</span></code></a></p>
+<p>This class represents the Gaussian Dimension-Dependent fuzzy set. This is a special case of the
+Dimension-Dependent fuzzy set where the Gaussian membership function is assumed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>centers</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>widths</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><em>device</em></a>)</p></li>
+<li><p><strong>rho</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.dmf.GaussianDMF.internal_calculate_membership">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/dmf.html#GaussianDMF.internal_calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.dmf.GaussianDMF.internal_calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Dimension-Dependent fuzzy set.
+This is a static method, so it can be called without instantiating the class.
+This static method is particularly useful when animating the membership function.</p>
+<p>Warning: This method is not meant to be called directly, as it does not take into account
+the mask that likely should exist. Use the calculate_membership method instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p></li>
+<li><p><strong>centers</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The centers of the Gaussian DMF fuzzy set.</p></li>
+<li><p><strong>widths</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The widths of the Gaussian DMF fuzzy set.</p></li>
+<li><p><strong>n_inputs</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The widths of the Gaussian DMF fuzzy set.</p></li>
+<li><p><strong>rho</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The scale parameter for the Gaussian DMF fuzzy set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Gaussian DMF fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.dmf.GaussianDMF.sympy_formula">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sympy_formula</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/dmf.html#GaussianDMF.sympy_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.dmf.GaussianDMF.sympy_formula" title="Link to this definition"></a></dt>
+<dd><p>The abstract method that defines the membership function of the fuzzy set using sympy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A sympy.Expr object that represents the membership function of the fuzzy set.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Expr</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fuzzy.sets.impl.gauss_variants.dmf.GaussianDMF.calculate_membership">
+<span class="sig-name descname"><span class="pre">calculate_membership</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fuzzy/sets/impl/gauss_variants/dmf.html#GaussianDMF.calculate_membership"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fuzzy.sets.impl.gauss_variants.dmf.GaussianDMF.calculate_membership" title="Link to this definition"></a></dt>
+<dd><p>Calculate the membership of the observations to the Log Gaussian fuzzy set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>observations</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a>) – The observations to calculate the membership for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The membership degrees of the observations for the Log Gaussian fuzzy set.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><em>Tensor</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-fuzzy.sets.impl.gauss_variants">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-fuzzy.sets.impl.gauss_variants" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="fuzzy.sets.impl.html" class="btn btn-neutral float-left" title="fuzzy.sets.impl package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fuzzy.utils.html" class="btn btn-neutral float-right" title="fuzzy.utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,173 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.sets.membership &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.sets.membership</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.sets.membership</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The Membership class contains information describing both membership *degrees* and membership *mask*</span>
+<span class="sd">for some given *elements*. The membership degrees are often the degree of membership, truth,</span>
+<span class="sd">activation, applicability, etc. of a fuzzy set, or more generally, a concept. The membership mask is</span>
+<span class="sd">shaped such that it helps filter or &#39;mask&#39; out membership degrees that belong to fuzzy sets or</span>
+<span class="sd">concepts that are not actually real. The distinction between the two is made as applying the mask</span>
+<span class="sd">will zero out membership degrees that are not real, but this might be incorrectly interpreted as</span>
+<span class="sd">having zero degree of membership to the fuzzy set. By including the elements&#39; information with the</span>
+<span class="sd">membership degrees and mask, it is possible to keep track of the original elements that were used to</span>
+<span class="sd">calculate the membership degrees. This is useful for debugging purposes, and it is also useful for</span>
+<span class="sd">understanding the membership degrees and mask in the context of the original elements. Also, it can</span>
+<span class="sd">be used in conjunction with the mask to filter out membership degrees that are not real, as well as</span>
+<span class="sd">assist in performing advanced operations.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># required instead of dataclass for torch.jit.script</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fuzzy.utils.options.impl.impl_enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">DimensionEnum</span>
+
+
+<div class="viewcode-block" id="NamedTensor">
+<a class="viewcode-back" href="../../../_source/fuzzy.sets.html#fuzzy.sets.membership.NamedTensor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NamedTensor</span><span class="p">(</span><span class="n">namedtuple</span><span class="p">(</span><span class="n">typename</span><span class="o">=</span><span class="s2">&quot;NamedTensor&quot;</span><span class="p">,</span> <span class="n">field_names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;names&quot;</span><span class="p">))):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A tensor paired with a name for each of its dimensions (e.g., &quot;batch&quot;, &quot;variable&quot;),</span>
+<span class="sd">    validated at construction to actually match the tensor&#39;s number of dimensions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__new__</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">names</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DimensionEnum</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">),</span> <span class="s2">&quot;The data must be a torch.Tensor&quot;</span>
+        <span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">),</span> <span class="s2">&quot;The data must have the same shape as names&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">names</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># A plain namedtuple, deliberately *not* a subclass with a custom __new__: a</span>
+<span class="c1"># subclassed namedtuple is exotic enough that torch.compile&#39;s Dynamo tracer cannot</span>
+<span class="c1"># see through it (treats both construction and cross-function attribute access as an</span>
+<span class="c1"># opaque, untraceable object, forcing a graph break at both points), while a plain</span>
+<span class="c1"># namedtuple is fully transparent to it. The previous __new__ override&#39;s validation</span>
+<span class="c1"># logic had already been fully commented out, so this is a pure simplification with</span>
+<span class="c1"># no behavior change - see fuzzy.sets.abstract.FuzzySet.forward for where instances</span>
+<span class="c1"># are constructed and fuzzy.logic.control.defuzzification.TSK.forward for where an</span>
+<span class="c1"># incoming instance&#39;s fields are accessed across what can become a graph</span>
+<span class="c1"># boundary.</span>
+<span class="n">Membership</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;Membership&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;degrees&quot;</span><span class="p">,</span> <span class="s2">&quot;mask&quot;</span><span class="p">])</span>
+<span class="n">Membership</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">The Membership class contains information describing both membership *degrees* and</span>
+<span class="s2">membership *mask* for some given *elements*. The membership degrees are often the degree of</span>
+<span class="s2">membership, truth, activation, applicability, etc. of a fuzzy set, or more generally, a concept.</span>
+<span class="s2">The membership  mask is shaped such that it helps filter or &#39;mask&#39; out membership degrees that</span>
+<span class="s2">belong to fuzzy sets or concepts that are not actually real.</span>
+
+<span class="s2">The distinction between the two is made as applying the mask will zero out membership degrees</span>
+<span class="s2">that are not real, but this might be incorrectly interpreted as having zero degree of</span>
+<span class="s2">membership to the fuzzy set.</span>
+
+<span class="s2">By including the elements&#39; information with the membership degrees and mask, it is possible to</span>
+<span class="s2">keep track of the original elements that were used to calculate the membership degrees. This</span>
+<span class="s2">is useful for debugging purposes, and it is also useful for understanding the membership</span>
+<span class="s2">degrees and mask in the context of the original elements. Also, it can be used in conjunction</span>
+<span class="s2">with the mask to filter out membership degrees that are not real, as well as assist in</span>
+<span class="s2">performing advanced operations.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

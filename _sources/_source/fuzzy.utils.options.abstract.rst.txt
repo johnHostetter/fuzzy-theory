@@ -1,0 +1,29 @@
+fuzzy.utils.options.abstract package
+====================================
+
+Submodules
+----------
+
+fuzzy.utils.options.abstract.meta module
+----------------------------------------
+
+.. automodule:: fuzzy.utils.options.abstract.meta
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.utils.options.abstract.primitive module
+---------------------------------------------
+
+.. automodule:: fuzzy.utils.options.abstract.primitive
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: fuzzy.utils.options.abstract
+   :members:
+   :undoc-members:
+   :show-inheritance:

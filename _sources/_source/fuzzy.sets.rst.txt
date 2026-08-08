@@ -1,0 +1,69 @@
+fuzzy.sets package
+==================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   fuzzy.sets.impl
+
+Submodules
+----------
+
+fuzzy.sets.abstract module
+--------------------------
+
+.. automodule:: fuzzy.sets.abstract
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.sets.cache module
+-----------------------
+
+.. automodule:: fuzzy.sets.cache
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.sets.group module
+-----------------------
+
+.. automodule:: fuzzy.sets.group
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.sets.membership module
+----------------------------
+
+.. automodule:: fuzzy.sets.membership
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.sets.shape module
+-----------------------
+
+.. automodule:: fuzzy.sets.shape
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fuzzy.sets.visualization module
+-------------------------------
+
+.. automodule:: fuzzy.sets.visualization
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: fuzzy.sets
+   :members:
+   :undoc-members:
+   :show-inheritance:

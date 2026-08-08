@@ -1,0 +1,19 @@
+fuzzy.utils.options package
+===========================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   fuzzy.utils.options.abstract
+   fuzzy.utils.options.impl
+
+Module contents
+---------------
+
+.. automodule:: fuzzy.utils.options
+   :members:
+   :undoc-members:
+   :show-inheritance:

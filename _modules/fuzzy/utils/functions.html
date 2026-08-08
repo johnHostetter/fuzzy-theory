@@ -1,0 +1,436 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fuzzy.utils.functions &mdash; fuzzy-theory  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            fuzzy-theory
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_source/modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">fuzzy-theory</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">fuzzy.utils.functions</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for fuzzy.utils.functions</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Utility functions for fuzzy-theory.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="c1"># A signature identifying the tensors a calculation depended upon; see signature_of().</span>
+<span class="c1"># A plain List rather than a variadic Tuple[..., ...], since the latter&#39;s Ellipsis is not a</span>
+<span class="c1"># type TorchScript&#39;s annotation resolver supports, and this is only ever compared with &#39;==&#39; /</span>
+<span class="c1"># &#39;!=&#39; (never hashed or used as a dict key), so a List loses nothing here. The third element</span>
+<span class="c1"># of each tuple is the tensor&#39;s requires_grad flag at signature time - see</span>
+<span class="c1"># signature_of().</span>
+<span class="n">ParameterSignature</span> <span class="o">=</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span>
+
+
+<div class="viewcode-block" id="version_of">
+<a class="viewcode-back" href="../../../_source/fuzzy.utils.html#fuzzy.utils.functions.version_of">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">version_of</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read the version counter of a tensor, which PyTorch increments whenever the tensor is</span>
+<span class="sd">    mutated in place (as an optimizer does when it applies an update).</span>
+
+<span class="sd">    Inference tensors do not track a version counter at all, so -1 is reported for them; this</span>
+<span class="sd">    never compares equal to a real version, meaning entries involving inference tensors are</span>
+<span class="sd">    simply not re-used.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tensor: The tensor to read the version counter of.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The version counter of the tensor, or -1 if it does not track one.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tensor</span><span class="o">.</span><span class="n">_version</span>  <span class="c1"># pylint: disable=protected-access</span>
+    <span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
+        <span class="c1"># &quot;Inference tensors do not track version counter.&quot;</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="signature_of">
+<a class="viewcode-back" href="../../../_source/fuzzy.utils.html#fuzzy.utils.functions.signature_of">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">signature_of</span><span class="p">(</span><span class="n">tensors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ParameterSignature</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Summarize the tensors that a calculation depended upon, such that the summary changes if any</span>
+<span class="sd">    of those tensors is replaced by another object, is mutated in place, or has its</span>
+<span class="sd">    requires_grad flag toggled.</span>
+
+<span class="sd">    The identity of a tensor is safe to use here (rather than a weak reference) because the</span>
+<span class="sd">    caller - a torch.nn.Module - holds a strong reference to its own parameters for as long as</span>
+<span class="sd">    the cache entry can be looked up, so an identifier cannot be recycled behind our back.</span>
+
+<span class="sd">    requires_grad is included because it changes the autograd graph a calculation produces</span>
+<span class="sd">    without changing the tensor&#39;s identity or bumping its version counter: freezing a</span>
+<span class="sd">    parameter (requires_grad_(False)), computing with it, then unfreezing it and reusing the</span>
+<span class="sd">    same observations would otherwise hand back a cached result whose graph was built with</span>
+<span class="sd">    that parameter detached - so its gradient would silently stay None forever afterward,</span>
+<span class="sd">    even though it is trainable again.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tensors: The tensors that a calculation depended upon (e.g., centers and widths).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A hashable and comparable signature of those tensors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">tensor</span><span class="p">),</span> <span class="n">version_of</span><span class="p">(</span><span class="n">tensor</span><span class="p">),</span> <span class="n">tensor</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">)</span> <span class="k">for</span> <span class="n">tensor</span> <span class="ow">in</span> <span class="n">tensors</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="module_class">
+<a class="viewcode-back" href="../../../_source/fuzzy.utils.html#fuzzy.utils.functions.module_class">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">module_class</span><span class="p">(</span><span class="n">instance</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given an instance of a class, obtain the name of its class and append it to a string</span>
+<span class="sd">    representation of its module path.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        instance: An instance of a class.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A string representation of the module path.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cls_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cls_type</span><span class="o">.</span><span class="vm">__module__</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">cls_type</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="load_module_class">
+<a class="viewcode-back" href="../../../_source/fuzzy.utils.html#fuzzy.utils.functions.load_module_class">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_module_class</span><span class="p">(</span><span class="n">module_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="nb">object</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a module path, load the class and return it.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        module_path: The module path, which includes the class name; this is usually prepared by</span>
+<span class="sd">        the function called module_class.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The loaded class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">split_file_path</span> <span class="o">=</span> <span class="n">module_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+    <span class="n">class_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">split_file_path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">module_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">split_file_path</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># drop the Class name</span>
+    <span class="c1"># https://stackoverflow.com/questions/547829/how-to-dynamically-load-a-python-class</span>
+    <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">class_name</span><span class="p">])</span>
+    <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">class_name</span><span class="p">)</span></div>
+
+
+
+<span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">script</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">exp_sum_log</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A numerically stable product which may offer more time-efficient performance than torch.prod</span>
+<span class="sd">    while remaining equivalent. Although this is not a simpler operation, it may perform</span>
+<span class="sd">    better on PyTorch CUDA backend as sum-based reductions are more efficient than</span>
+<span class="sd">    multiplicative ones.</span>
+
+<span class="sd">    Also, if x contains zeros, torch.prod will give zero (which may underflow if chaining</span>
+<span class="sd">    gradients) so it may be more ideal to use this function instead.</span>
+
+<span class="sd">    Overall, this function could perhaps:</span>
+
+<span class="sd">    1. Leverage fused add+exp+log kernels (heavily optimized in CUDA)</span>
+<span class="sd">    2. Exploit tensor core friendly ops (adds and exps are vectorized; multiplications in prod</span>
+<span class="sd">    are chained and harder to parallelize efficiently)</span>
+<span class="sd">    3. Benefits from numerical stability with fewer infs/NaNs. Hopefully, fewer slow paths</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x: The tensor to operate on.</span>
+<span class="sd">        dim: The dimension of the given tensor to apply this operation onto.</span>
+<span class="sd">        eps: A very small numerical offset.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The product along that dimension of the given tensor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># torch.jit.script compiles this body to TorchScript, so it executes outside the</span>
+    <span class="c1"># CPython interpreter and coverage.py&#39;s line tracer never sees it run, regardless</span>
+    <span class="c1"># of how many tests call this function - see test_exp_sum_log_matches_prod and</span>
+    <span class="c1"># test_exp_sum_log_handles_zeros_without_underflow in tests/test_utils.py</span>
+    <span class="c1"># instead</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="n">eps</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+    <span class="p">)</span>  <span class="c1"># pragma: no cover</span>
+
+
+<div class="viewcode-block" id="log_method">
+<a class="viewcode-back" href="../../../_source/fuzzy.utils.html#fuzzy.utils.functions.log_method">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">log_method</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Log the call and completion of an object&#39;s method.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        method: The method to be logged.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The wrapped method.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@wraps</span><span class="p">(</span><span class="n">method</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">called_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">method</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&lt;</span><span class="si">%s</span><span class="s2">&gt;&quot;</span><span class="p">,</span> <span class="n">called_method</span><span class="p">)</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&lt;perf_counter&gt;</span><span class="si">%s</span><span class="s2">&lt;/perf_counter&gt;&quot;</span><span class="p">,</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&lt;/</span><span class="si">%s</span><span class="s2">&gt;&quot;</span><span class="p">,</span> <span class="n">called_method</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">return</span> <span class="n">wrapper</span></div>
+
+
+
+<div class="viewcode-block" id="log_classmethod">
+<a class="viewcode-back" href="../../../_source/fuzzy.utils.html#fuzzy.utils.functions.log_classmethod">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">log_classmethod</span><span class="p">(</span><span class="n">class_method</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Log the call and completion of a class method using the root logger.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        class_method: The class method to be logged.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The wrapped class method.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@wraps</span><span class="p">(</span><span class="n">class_method</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">called_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">class_method</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&lt;</span><span class="si">%s</span><span class="s2">&gt;&quot;</span><span class="p">,</span> <span class="n">called_method</span><span class="p">)</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">class_method</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&lt;perf_counter&gt;</span><span class="si">%s</span><span class="s2">&lt;/perf_counter&gt;&quot;</span><span class="p">,</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&lt;/</span><span class="si">%s</span><span class="s2">&gt;&quot;</span><span class="p">,</span> <span class="n">called_method</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">return</span> <span class="n">wrapper</span></div>
+
+
+
+<div class="viewcode-block" id="log_func">
+<a class="viewcode-back" href="../../../_source/fuzzy.utils.html#fuzzy.utils.functions.log_func">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">log_func</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Log the call and completion of a function using the root logger.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        func: The function to be logged.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The wrapped function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">called_func</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&lt;</span><span class="si">%s</span><span class="s2">&gt;&quot;</span><span class="p">,</span> <span class="n">called_func</span><span class="p">)</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&lt;perf_counter&gt;</span><span class="si">%s</span><span class="s2">&lt;/perf_counter&gt;&quot;</span><span class="p">,</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&lt;/</span><span class="si">%s</span><span class="s2">&gt;&quot;</span><span class="p">,</span> <span class="n">called_func</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">return</span> <span class="n">wrapper</span></div>
+
+
+
+<div class="viewcode-block" id="check_path_to_save_torch_module">
+<a class="viewcode-back" href="../../../_source/fuzzy.utils.html#fuzzy.utils.functions.check_path_to_save_torch_module">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_path_to_save_torch_module</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check if the path to save a PyTorch module has the correct file extension. If it does not,</span>
+<span class="sd">    raise an error.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path: The path to save the PyTorch module.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">,</span> <span class="s2">&quot;.pth&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The path to save the fuzzy set must have a file extension of &#39;.pt&#39;, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;but got </span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.pth&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The path to save the fuzzy set must have a file extension of &#39;.pt&#39;, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;but got </span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. Please change the file extension to &#39;.pt&#39; as it is not &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;recommended to use &#39;.pth&#39; for PyTorch models, since it conflicts with Python path&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;configuration files.&quot;</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="all_subclasses">
+<a class="viewcode-back" href="../../../_source/fuzzy.utils.html#fuzzy.utils.functions.all_subclasses">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">all_subclasses</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get all subclasses of the given class, recursively.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A set of all subclasses of the given class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="bp">cls</span><span class="p">}</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">s</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">all_subclasses</span><span class="p">(</span><span class="n">c</span><span class="p">))</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_read_only_property</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check whether name is a computed, read-only @property on cls (or any of its</span>
+<span class="sd">    bases) - i.e. one with no setter, such as FuzzySetGroup.centers/widths/mask.</span>
+<span class="sd">    Such a property can never be reconstructed via setattr(), so it must never be</span>
+<span class="sd">    treated as save/load-able state by get_object_attributes() below.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        cls: The class to search (its own __dict__ and every base&#39;s, via MRO).</span>
+<span class="sd">        name: The attribute name to check.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        True if name resolves to a property with no setter.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">klass</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__mro__</span><span class="p">:</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="n">klass</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="nb">property</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">fset</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="get_object_attributes">
+<a class="viewcode-back" href="../../../_source/fuzzy.utils.html#fuzzy.utils.functions.get_object_attributes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_object_attributes</span><span class="p">(</span><span class="n">obj_instance</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the attributes of an object instance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># get the attributes that are local to the class, but may be inherited</span>
+    <span class="c1"># from the super class</span>
+    <span class="n">local_attributes</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span>
+        <span class="n">obj_instance</span><span class="p">,</span>
+        <span class="k">lambda</span> <span class="n">attr</span><span class="p">:</span> <span class="ow">not</span> <span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">ismethod</span><span class="p">(</span><span class="n">attr</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">isfunction</span><span class="p">(</span><span class="n">attr</span><span class="p">)),</span>
+    <span class="p">)</span>
+    <span class="c1"># get the attributes that are inherited from (or found within) any of the</span>
+    <span class="c1"># super classes; using only __bases__[0] would miss attributes purely</span>
+    <span class="c1"># inherited from other bases in multiple-inheritance scenarios, so the</span>
+    <span class="c1"># full MRO (excluding the class itself) is checked instead</span>
+    <span class="n">super_attributes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">attr_pair</span>
+        <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">obj_instance</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__mro__</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">for</span> <span class="n">attr_pair</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span>
+            <span class="n">base</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">attr</span><span class="p">:</span> <span class="ow">not</span> <span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">ismethod</span><span class="p">(</span><span class="n">attr</span><span class="p">))</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">isfunction</span><span class="p">(</span><span class="n">attr</span><span class="p">)),</span>
+        <span class="p">)</span>
+    <span class="p">]</span>
+    <span class="c1"># get the attributes that are local to the class, but not inherited from</span>
+    <span class="c1"># any of the super classes</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">attr</span><span class="p">:</span> <span class="n">value</span>
+        <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">local_attributes</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">super_attributes</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">attr</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">_is_read_only_property</span><span class="p">(</span><span class="n">obj_instance</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+    <span class="p">}</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
