@@ -144,13 +144,21 @@ class TestMamdani(MissingDataHandlingMixin, unittest.TestCase):
         #     calc_intermediate_output, expected_calc_intermediate_output
         # )
 
+        # Values below reflect the "height method" center-of-gravity approximation
+        # (see Mamdani.forward()'s docstring/comments): each rule's clipped-consequent
+        # area is approximated as proportional to its consequent's width, and the
+        # output is a firing-strength-and-width-weighted average of consequent
+        # centers - properly normalized, unlike the previous (buggy) formula, whose
+        # per-rule ratio had width cancel out identically for the standard one-term-
+        # per-rule case, and whose final sum over rules was never normalized at
+        # all.
         expected_y = torch.tensor(
             [
-                [5.0000000e-01, -6.9999999e-01],
-                [1.7279544e-01, -2.4191362e-01],
-                [2.4472545e-03, -5.6169494e-03],
-                [2.4864213e-01, -5.3699726e-01],
-                [1.3655053e-05, -2.5326384e-05],
+                [5.0000000e-01, -7.0000000e-01],
+                [5.0000000e-01, -7.0000000e-01],
+                [3.1056708e-01, -7.9397327e-01],
+                [3.1336778e-01, -7.6947430e-01],
+                [3.2112380e-01, -7.0802194e-01],
             ],
             device=AVAILABLE_DEVICE,
         )

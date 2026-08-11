@@ -48,6 +48,33 @@ class TestSoftmaxSum(TestNAryRelation):
         )
         self.assertTrue(torch.allclose(result.degrees, expected_degrees, atol=1e-6))
 
+    def test_gradient_flows_to_degrees(self) -> None:
+        """
+        Golden-value/drift-detection test: no gradient test existed for
+        SoftmaxSum at all. A bare .sum() of a softmax output is *always* exactly
+        1 regardless of the input (that is the defining property of softmax), so
+        it would have zero gradient even for a perfectly correct implementation -
+        a dot product against a non-uniform weight vector is used instead to get
+        a loss that is actually sensitive to which rule "wins".
+
+        Returns:
+            None
+        """
+        n_ary = SoftmaxSum([(0, 0), (1, 0)], [(0, 1), (1, 1)], device=AVAILABLE_DEVICE)
+        degrees = torch.tensor(
+            [[[0.6, 0.4], [0.3, 0.7]]], device=AVAILABLE_DEVICE, requires_grad=True
+        )
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
+        )
+        result = n_ary.forward(membership)
+        loss = (
+            result.degrees * torch.tensor([2.0, -3.0], device=AVAILABLE_DEVICE)
+        ).sum()
+        loss.backward()
+        self.assertFalse(bool(degrees.grad.isnan().any()))
+        self.assertFalse(bool((degrees.grad == 0).all()))
+
     def test_forward_matches_formula(self) -> None:
         """
         Returns:
@@ -103,6 +130,31 @@ class TestSoftmaxMean(TestNAryRelation):
             [[0.47502081, 0.52497919]], device=AVAILABLE_DEVICE
         )
         self.assertTrue(torch.allclose(result.degrees, expected_degrees, atol=1e-6))
+
+    def test_gradient_flows_to_degrees(self) -> None:
+        """
+        Golden-value/drift-detection test: see TestSoftmaxSum's equivalent test
+        for why a dot product against a non-uniform weight vector is used rather
+        than a bare .sum() (which is always exactly 1 for a softmax output,
+        regardless of the input).
+
+        Returns:
+            None
+        """
+        n_ary = SoftmaxMean([(0, 0), (1, 0)], [(0, 1), (1, 1)], device=AVAILABLE_DEVICE)
+        degrees = torch.tensor(
+            [[[0.6, 0.4], [0.3, 0.7]]], device=AVAILABLE_DEVICE, requires_grad=True
+        )
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
+        )
+        result = n_ary.forward(membership)
+        loss = (
+            result.degrees * torch.tensor([2.0, -3.0], device=AVAILABLE_DEVICE)
+        ).sum()
+        loss.backward()
+        self.assertFalse(bool(degrees.grad.isnan().any()))
+        self.assertFalse(bool((degrees.grad == 0).all()))
 
     def test_forward_matches_formula(self) -> None:
         """

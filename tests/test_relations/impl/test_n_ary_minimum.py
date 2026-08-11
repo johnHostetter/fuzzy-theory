@@ -154,3 +154,47 @@ class TestMinimum(TestNAryRelation):
         self.assertTrue(
             torch.allclose(min_membership.degrees.to_dense(), expected_degrees)
         )
+
+    def test_gradient_reaches_real_input_when_tied_with_phantom_variable(
+        self,
+    ) -> None:
+        """
+        Regression guard: a variable not referenced at all by a given rule (e.g.
+        rule 1 below never mentions var0) is forced to the shared masking
+        machinery's identity constant, 1.0 - correct for the forward value, but
+        whenever a rule's real input also equals exactly 1.0 (a fully-satisfied
+        rule - routine as training converges), torch.min()'s tie-breaking used to
+        be free to pick that constant as the argmin instead of the real input,
+        silently killing the gradient. Confirmed to be index-order-dependent: the
+        phantom variable (var0) is placed *before* the real one (var1) here
+        specifically because that ordering used to trigger the bug (the other
+        ordering happened to work by coincidence, since ties go to the first
+        occurrence).
+
+        Returns:
+            None
+        """
+        # rule 0 uses var0 and var1; rule 1 uses ONLY var1 - var0 is a phantom
+        # (unreferenced) variable for rule 1, and comes before var1 (the real
+        # input) along the vars dimension
+        n_ary = Minimum([(0, 0), (1, 0)], [(1, 1)], device=AVAILABLE_DEVICE)
+        degrees = torch.tensor(
+            [[[0.4, 0.4], [1.0, 1.0]]], device=AVAILABLE_DEVICE, requires_grad=True
+        )
+        membership = Membership(
+            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
+        )
+
+        result = n_ary.forward(membership)
+        self.assertTrue(
+            torch.allclose(
+                result.degrees,
+                torch.tensor([[0.4, 1.0]], device=AVAILABLE_DEVICE),
+            )
+        )
+
+        result.degrees.sum().backward()
+        # var1 (index 1), term1 - rule 1's only real input, tied at exactly 1.0
+        # with var0's (index 0) phantom-forced constant - must receive the
+        # gradient, not the constant
+        self.assertEqual(1.0, degrees.grad[0, 1, 1].item())

@@ -63,6 +63,38 @@ class TestDimensionDependent(unittest.TestCase):
         )
         self.assertTrue(torch.allclose(fuzzy_set.rho.cpu(), expected_rho, atol=1e-6))
 
+    def test_gradient_flows_to_centers_and_widths(self) -> None:
+        """
+        Golden-value/drift-detection test: only grad_fn-is-not-None was ever
+        checked for GaussianDMF/GaussianNoExpDMF (generically, across every
+        FuzzySet subclass in test_impl.py) - never an actual backward() call
+        inspecting real gradient values. Confirms centers/widths receive a real,
+        non-zero, NaN-free gradient for both classes.
+
+        Returns:
+            None
+        """
+        for cls in (GaussianDMF, GaussianNoExpDMF):
+            fuzzy_set = cls(
+                centers=np.array([[0.0], [1.0]]),
+                widths=np.array([[1.0], [1.0]]),
+                device=AVAILABLE_DEVICE,
+            )
+            # GaussianNoExpDMF's effective width (n_inputs ** rho) is tiny at
+            # this class' low n_inputs=2 here (by design - see the class'
+            # docstring, it exists for *high*-dimensional problems), so it
+            # clamps to -10 (zero gradient) even for a small 0.2 offset from
+            # center - observations must stay very close to their centers to
+            # exercise the real, unclamped gradient
+            observations = torch.tensor([[[0.001], [0.999]]], device=AVAILABLE_DEVICE)
+            fuzzy_set.calculate_membership(observations).sum().backward()
+            centers_grad = fuzzy_set.get_centers().grad
+            widths_grad = fuzzy_set.get_widths().grad
+            self.assertFalse(bool(centers_grad.isnan().any()), cls.__name__)
+            self.assertFalse(bool(widths_grad.isnan().any()), cls.__name__)
+            self.assertFalse(bool((centers_grad == 0).all()), cls.__name__)
+            self.assertFalse(bool((widths_grad == 0).all()), cls.__name__)
+
     def test_sympy_formulas(self) -> None:
         """
         Coverage/regression test: neither class' sympy_formula() (used for

@@ -109,6 +109,46 @@ class TestTNormPipeline(unittest.TestCase):
             torch.allclose(result.sum(dim=-1), torch.ones(5, device=AVAILABLE_DEVICE))
         )
 
+    def test_gradient_flows_through_layer_norm_and_certainty(self) -> None:
+        """
+        Golden-value/drift-detection test: no gradient test existed for
+        TNormPipeline at all. Its output is a softmax-family activation, whose
+        .sum(dim=-1) is always exactly 1 regardless of the input (see
+        test_forward_applies_layer_norm_and_certainty's own assertion of that
+        same property) - a bare .sum() loss would therefore have zero gradient
+        even for a correct implementation, so a dot product against a
+        non-uniform weight vector is used instead. Confirms layer_norm's and
+        certainty's own parameters, as well as the input x itself, all receive a
+        real, non-zero, NaN-free gradient.
+
+        Returns:
+            None
+        """
+        n_relations = 3
+        configuration = InferenceConfig(
+            rule=RuleConfig(
+                elevation=RuleElevationEnum.LAYER_NORMALIZATION,
+                weights=RuleWeightsEnum.CERTAINTY_FACTORS,
+            )
+        )
+        pipeline = TNormPipeline(
+            configuration=configuration,
+            n_relations=n_relations,
+            device=AVAILABLE_DEVICE,
+        )
+        x = torch.rand(5, n_relations, device=AVAILABLE_DEVICE, requires_grad=True)
+        result = pipeline(x)
+        loss = (
+            result * torch.linspace(0.5, 2.0, n_relations, device=AVAILABLE_DEVICE)
+        ).sum()
+        loss.backward()
+
+        self.assertFalse(bool(x.grad.isnan().any()))
+        self.assertFalse(bool((x.grad == 0).all()))
+        for name, param in pipeline.named_parameters():
+            self.assertFalse(bool(param.grad.isnan().any()), name)
+            self.assertFalse(bool((param.grad == 0).all()), name)
+
     def test_load_invalid_path_raises(self) -> None:
         """
         load() must reject a path that is not a directory (e.g. it was never saved,

@@ -73,7 +73,6 @@ instance/
 # deploys the result to the gh-pages branch, so neither belongs in version control
 docs/_build/
 docs/_source/
-/_build/
 
 # PyBuilder
 .pybuilder/
