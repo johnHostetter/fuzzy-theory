@@ -22,8 +22,11 @@ class NoOp(FuzzySet):
     """
 
     def __init__(
-        self, n_elements: int, membership: float, device: torch.device, **kwargs
-    ):
+            self,
+            n_elements: int,
+            membership: float,
+            device: torch.device,
+            **kwargs):
         centers = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         widths = np.zeros(n_elements, dtype=np.float32)[:, np.newaxis]
         self.membership = membership  # the flat membership degree of the NoOp fuzzy set
@@ -159,8 +162,10 @@ class Lorentzian(FuzzySet):
         """
         with torch.no_grad():
             self.get_widths().copy_(
-                torch.as_tensor(sigmas, dtype=torch.float32, device=self.device)
-            )
+                torch.as_tensor(
+                    sigmas,
+                    dtype=torch.float32,
+                    device=self.device))
 
     @staticmethod
     def internal_calculate_membership(
@@ -364,8 +369,7 @@ class Trapezoidal(FuzzySet):
         if not isinstance(plateaus, np.ndarray):
             raise ValueError(
                 f"The plateaus of a Trapezoidal fuzzy set must be a numpy array, "
-                f"but got {type(plateaus)}"
-            )
+                f"but got {type(plateaus)}")
         if plateaus.ndim == 1:
             plateaus = plateaus[None, :]
         self._plateaus = DynamicParameterList(

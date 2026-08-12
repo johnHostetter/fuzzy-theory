@@ -53,7 +53,8 @@ class Defuzzification(TorchJitModule, abc.ABC):
         except UnicodeDecodeError:
             # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xde in position 157881408:
             # invalid continuation byte
-            state_dict = torch.load(path, weights_only=False, encoding="latin1")
+            state_dict = torch.load(
+                path, weights_only=False, encoding="latin1")
 
         shape: Shape = Shape(*state_dict.pop("shape"))
         class_name: str = state_dict.pop("class_name")
@@ -217,9 +218,12 @@ class ZeroOrder(Defuzzification):
         #     # num of rules), MISO
         #     return (numerator / denominator)
 
-        return (rule_activations.degrees.unsqueeze(dim=-1) * self.consequences).sum(
-            dim=1
-        )
+        return (
+            rule_activations.degrees.unsqueeze(
+                dim=-
+                1) *
+            self.consequences).sum(
+            dim=1)
 
 
 class NormalizedZeroOrder(ZeroOrder):
@@ -295,10 +299,8 @@ class TSK(Defuzzification):
         shape = consequences[:, :, 1:].shape
         # Flatten (r, o) into one big linear projection dimension
         self.r, self.o, self.f = shape[0], shape[1], shape[2]
-        self.weights = torch.nn.Parameter(
-            consequences[:, :, 1:].reshape(self.r * self.o, self.f).T.contiguous(),
-            requires_grad=True,
-        )
+        self.weights = torch.nn.Parameter(consequences[:, :, 1:].reshape(
+            self.r * self.o, self.f).T.contiguous(), requires_grad=True, )
         self.bias = torch.nn.Parameter(
             consequences[:, :, 0].contiguous().unsqueeze(0), requires_grad=True
         )
@@ -531,8 +533,9 @@ class Mamdani(Defuzzification):
             dim=-1
         ) * self.output_links.unsqueeze(dim=0)
         numerator = (
-            weighted_links * self.consequences.centers * self.consequences.widths
-        )
+            weighted_links *
+            self.consequences.centers *
+            self.consequences.widths)
         denominator = weighted_links * self.consequences.widths
 
         # sum over both rules (dim=1) and terms (dim=-1) jointly, then divide once -

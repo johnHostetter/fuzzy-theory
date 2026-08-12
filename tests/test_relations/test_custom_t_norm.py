@@ -10,7 +10,8 @@ import torch
 
 from fuzzy.relations.confidence import CertaintyFactors
 from fuzzy.relations.custom_t_norm import TNormPipeline
-from fuzzy.utils.options.impl.impl_enums import RuleElevationEnum, RuleWeightsEnum
+from fuzzy.utils.options.impl.impl_enums import (RuleElevationEnum,
+                                                 RuleWeightsEnum)
 from fuzzy.utils.options.impl.impl_options import InferenceConfig, RuleConfig
 from tests import AVAILABLE_DEVICE
 
@@ -106,8 +107,12 @@ class TestTNormPipeline(unittest.TestCase):
         # PremiseActivation's softmax-family output sums to 1 along the last
         # dim
         self.assertTrue(
-            torch.allclose(result.sum(dim=-1), torch.ones(5, device=AVAILABLE_DEVICE))
-        )
+            torch.allclose(
+                result.sum(
+                    dim=-1),
+                torch.ones(
+                    5,
+                    device=AVAILABLE_DEVICE)))
 
     def test_gradient_flows_through_layer_norm_and_certainty(self) -> None:
         """
@@ -136,11 +141,19 @@ class TestTNormPipeline(unittest.TestCase):
             n_relations=n_relations,
             device=AVAILABLE_DEVICE,
         )
-        x = torch.rand(5, n_relations, device=AVAILABLE_DEVICE, requires_grad=True)
+        x = torch.rand(
+            5,
+            n_relations,
+            device=AVAILABLE_DEVICE,
+            requires_grad=True)
         result = pipeline(x)
         loss = (
-            result * torch.linspace(0.5, 2.0, n_relations, device=AVAILABLE_DEVICE)
-        ).sum()
+            result *
+            torch.linspace(
+                0.5,
+                2.0,
+                n_relations,
+                device=AVAILABLE_DEVICE)).sum()
         loss.backward()
 
         self.assertFalse(bool(x.grad.isnan().any()))
@@ -221,9 +234,12 @@ class TestTNormPipeline(unittest.TestCase):
         configuration.save(path.parent / "configuration.yaml")
 
         try:
-            loaded_pipeline = TNormPipeline.load(path, device=torch.device("cpu"))
-            self.assertEqual("cpu", loaded_pipeline.layer_norm.weight.device.type)
-            self.assertEqual("cpu", loaded_pipeline.layer_norm.bias.device.type)
+            loaded_pipeline = TNormPipeline.load(
+                path, device=torch.device("cpu"))
+            self.assertEqual(
+                "cpu", loaded_pipeline.layer_norm.weight.device.type)
+            self.assertEqual(
+                "cpu", loaded_pipeline.layer_norm.bias.device.type)
             self.assertTrue(
                 torch.allclose(
                     pipeline.layer_norm.weight.cpu(),

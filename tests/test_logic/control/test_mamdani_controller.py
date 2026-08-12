@@ -69,7 +69,8 @@ class TestMamdani(MissingDataHandlingMixin, unittest.TestCase):
             inference=Mamdani,
             device=torch.device("cpu"),
         )
-        self.assertEqual(torch.device("cpu"), flc.defuzzification.output_links.device)
+        self.assertEqual(torch.device("cpu"),
+                         flc.defuzzification.output_links.device)
 
         flc.defuzzification.to(torch.device("cuda"))
 
@@ -245,7 +246,8 @@ class TestMamdani(MissingDataHandlingMixin, unittest.TestCase):
             [[1.2, 0.2], [1.1, 0.3], [2.1, 0.1], [2.7, 0.15], [1.7, 0.25]],
             device=AVAILABLE_DEVICE,
         )
-        assert_compile_fullgraph_matches_eager(self.fuzzy_logic_controller, input_data)
+        assert_compile_fullgraph_matches_eager(
+            self.fuzzy_logic_controller, input_data)
 
     def test_granulation_layers(self) -> None:
         """
@@ -337,7 +339,8 @@ class TestMamdani(MissingDataHandlingMixin, unittest.TestCase):
         # the number of rule vertices should equal len(rules)
         assert len(rule_vertices) == len(self.rules)
         # the recovered rules should be in the same order as the rules
-        for expected_rule, actual_rule in zip(self.rules, self.knowledge_base.rules):
+        for expected_rule, actual_rule in zip(
+                self.rules, self.knowledge_base.rules):
             self.assertEqual(expected_rule, actual_rule)
 
     def test_links_and_offsets(self) -> None:

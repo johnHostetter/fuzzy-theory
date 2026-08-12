@@ -32,7 +32,9 @@ class TestBinaryLinks(unittest.TestCase):
         """
         self.assertIsInstance(self.binary_links, BinaryLinks)
         self.assertIsInstance(self.binary_links.links, torch.Tensor)
-        self.assertEqual(AVAILABLE_DEVICE.type, self.binary_links.links.device.type)
+        self.assertEqual(
+            AVAILABLE_DEVICE.type,
+            self.binary_links.links.device.type)
         self.assertEqual(torch.int8, self.binary_links.links.dtype)
         self.assertEqual((3, 3), self.binary_links.links.shape)
         self.assertEqual(
@@ -50,7 +52,9 @@ class TestBinaryLinks(unittest.TestCase):
         self.binary_links.to(AVAILABLE_DEVICE)
         self.assertEqual(AVAILABLE_DEVICE.type, self.binary_links.device.type)
         # test that this is reflected in its parameters
-        self.assertEqual(AVAILABLE_DEVICE.type, self.binary_links.links.device.type)
+        self.assertEqual(
+            AVAILABLE_DEVICE.type,
+            self.binary_links.links.device.type)
 
         # test we can create a GroupedLinks object
         grouped_links = GroupedLinks(modules_list=[self.binary_links])
@@ -80,28 +84,36 @@ class TestBinaryLinks(unittest.TestCase):
         self.assertIsInstance(loaded_binary_links, BinaryLinks)
         self.assertIsInstance(loaded_binary_links.links, torch.Tensor)
         # test they are on the same device
-        self.assertEqual(AVAILABLE_DEVICE.type, loaded_binary_links.links.device.type)
+        self.assertEqual(
+            AVAILABLE_DEVICE.type,
+            loaded_binary_links.links.device.type)
         self.assertEqual(
             self.binary_links.links.device, loaded_binary_links.links.device
         )
         # test the links' dtypes are equal
         self.assertEqual(torch.int8, loaded_binary_links.links.dtype)
-        self.assertEqual(self.binary_links.links.dtype, loaded_binary_links.links.dtype)
+        self.assertEqual(
+            self.binary_links.links.dtype,
+            loaded_binary_links.links.dtype)
         # test the links' shapes are equal
         self.assertEqual((3, 3), loaded_binary_links.links.shape)
         self.assertEqual(self.binary_links.shape, loaded_binary_links.shape)
-        self.assertEqual(self.binary_links.links.shape, loaded_binary_links.links.shape)
-        # test the links' values are equal
         self.assertEqual(
-            self.links.tolist(), loaded_binary_links.links.cpu().numpy().tolist()
-        )
+            self.binary_links.links.shape,
+            loaded_binary_links.links.shape)
+        # test the links' values are equal
+        self.assertEqual(self.links.tolist(),
+                         loaded_binary_links.links.cpu().numpy().tolist())
         self.assertTrue(
             torch.allclose(self.binary_links.links, loaded_binary_links.links)
         )
         # test the __eq__ method
         self.assertEqual(self.binary_links, loaded_binary_links)
         # test the forward pass
-        self.assertTrue(torch.allclose(self.binary_links(), loaded_binary_links()))
+        self.assertTrue(
+            torch.allclose(
+                self.binary_links(),
+                loaded_binary_links()))
         # remove the file
         path.unlink()
         self.assertFalse(path.exists())
@@ -116,8 +128,10 @@ class TestGroupedLinks(unittest.TestCase):
         super().__init__(*args, **kwargs)
         self.links_1 = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         self.links_2 = np.array([[0, 1, 0], [1, 1, 0], [1, 0, 1]])
-        self.binary_links_1 = BinaryLinks(self.links_1, device=AVAILABLE_DEVICE)
-        self.binary_links_2 = BinaryLinks(self.links_2, device=AVAILABLE_DEVICE)
+        self.binary_links_1 = BinaryLinks(
+            self.links_1, device=AVAILABLE_DEVICE)
+        self.binary_links_2 = BinaryLinks(
+            self.links_2, device=AVAILABLE_DEVICE)
         self.grouped_links = GroupedLinks(
             modules_list=[self.binary_links_1, self.binary_links_2]
         )
@@ -179,7 +193,8 @@ class TestGroupedLinks(unittest.TestCase):
             nonlocal call_count
             call_count += 1
 
-        empty_grouped_links = GroupedLinks(modules_list=None, callback=callback)
+        empty_grouped_links = GroupedLinks(
+            modules_list=None, callback=callback)
         self.assertEqual(1, call_count)
 
         empty_grouped_links.append(self.binary_links_1)
@@ -238,21 +253,23 @@ class TestGroupedLinks(unittest.TestCase):
         # load the file
         loaded_grouped_links = GroupedLinks.load(path, device=AVAILABLE_DEVICE)
         self.assertIsInstance(loaded_grouped_links, GroupedLinks)
-        self.assertIsInstance(loaded_grouped_links.modules_list, torch.nn.ModuleList)
-        self.assertEqual(
-            len(self.grouped_links.modules_list), len(loaded_grouped_links.modules_list)
-        )
+        self.assertIsInstance(
+            loaded_grouped_links.modules_list,
+            torch.nn.ModuleList)
+        self.assertEqual(len(self.grouped_links.modules_list),
+                         len(loaded_grouped_links.modules_list))
         for idx, module in enumerate(self.grouped_links.modules_list):
-            self.assertIsInstance(loaded_grouped_links.modules_list[idx], BinaryLinks)
+            self.assertIsInstance(
+                loaded_grouped_links.modules_list[idx], BinaryLinks)
             self.assertEqual(
-                module.links.device, loaded_grouped_links.modules_list[idx].links.device
-            )
+                module.links.device,
+                loaded_grouped_links.modules_list[idx].links.device)
             self.assertEqual(
-                module.links.dtype, loaded_grouped_links.modules_list[idx].links.dtype
-            )
+                module.links.dtype,
+                loaded_grouped_links.modules_list[idx].links.dtype)
             self.assertEqual(
-                module.links.shape, loaded_grouped_links.modules_list[idx].links.shape
-            )
+                module.links.shape,
+                loaded_grouped_links.modules_list[idx].links.shape)
             self.assertTrue(
                 torch.allclose(
                     module.links, loaded_grouped_links.modules_list[idx].links

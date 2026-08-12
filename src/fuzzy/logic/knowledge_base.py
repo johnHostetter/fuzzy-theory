@@ -68,8 +68,10 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
     @property
     def granulation_layers(self) -> GranulationLayers:
         layers = {"input": None, "output": None}
-        for attr, layer in zip(["input", "output"], ["premise", "consequence"]):
-            group_vertices: ig.VertexSeq = self.select_by_tags(tags={layer, "group"})
+        for attr, layer in zip(["input", "output"], [
+                               "premise", "consequence"]):
+            group_vertices: ig.VertexSeq = self.select_by_tags(
+                tags={layer, "group"})
             # default to None if no granules
             layer: Union[None, FuzzySetGroup] = None
             if len(group_vertices) == 1:
@@ -209,7 +211,10 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         # save the attribute table
         path_to_attribute_table: Path = path / "attribute_table.pickle"
         with open(path_to_attribute_table, "wb") as handle:
-            pickle.dump(self.attribute_table, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(
+                self.attribute_table,
+                handle,
+                protocol=pickle.HIGHEST_PROTOCOL)
 
         # backup the graph's attributes
         deepcopy_graph = self.graph.copy()
@@ -237,7 +242,11 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         # restore the graph's attributes
         self.graph = deepcopy_graph
 
-    def save_granules(self, path: Path, class_type: Any, extension: str) -> None:
+    def save_granules(
+            self,
+            path: Path,
+            class_type: Any,
+            extension: str) -> None:
         """
         Save the granules to the given path.
 
@@ -258,9 +267,11 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         for granule_vertex in matched_objects:
             granule = granule_vertex["item"]  # granule is the object instance
             # create the directory to save the granule in
-            subdirectory = path / class_type.__name__ / str(granule_vertex.index)
+            subdirectory = path / class_type.__name__ / \
+                str(granule_vertex.index)
             subdirectory.mkdir(parents=True, exist_ok=True)
-            actual_path = subdirectory / f"{granule.__class__.__name__}{extension}"
+            actual_path = subdirectory / \
+                f"{granule.__class__.__name__}{extension}"
             _ = granule.save(actual_path)  # ignore the return value
             granule_vertex["file"] = (
                 actual_path  # store the path to the granule to load from
@@ -268,7 +279,10 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
             # remove object instance from the graph
             granule_vertex["item"] = f"{granule.__module__}.{type(granule).__name__}"
 
-    def add_hypercube(self, tags: Union[str, Set[str]]) -> Union[None, ig.Vertex]:
+    def add_hypercube(self,
+                      tags: Union[str,
+                                  Set[str]]) -> Union[None,
+                                                      ig.Vertex]:
         """
         Constructs the granules for this mapping in a format that will be compatible with the
         expected functionality. Also, modifies a Knowledgebase such that the condensed
@@ -293,7 +307,8 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
             granules: List[FuzzySet] = granule_vertices["item"]
             # create the efficient granule module
             stacked_granules: FuzzySet = FuzzySet.stack(granules)
-            hypercube: FuzzySetGroup = FuzzySetGroup(modules_list=[stacked_granules])
+            hypercube: FuzzySetGroup = FuzzySetGroup(
+                modules_list=[stacked_granules])
             # store the efficient granule module in the KnowledgeBase
             target_vertex: Union[None, ig.Vertex] = self.graph.add_vertex(
                 # source=add_stacked_granule,
@@ -353,8 +368,7 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
                 # avoid duplicate names in the graph to prevent igraph from
                 # merging vertices
                 rule_component.graph.vs["name"] = [
-                    f"{component}:{name}" for name in rule_component.graph.vs["name"]
-                ]
+                    f"{component}:{name}" for name in rule_component.graph.vs["name"]]
                 rule_graph.append(rule_component.graph)
             rule_graphs.append(ig.disjoint_union(rule_graph))
 
@@ -370,7 +384,8 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
                 tags={"rule"},
             )
             # point the premise relation to the rule node
-            rule_graphs[-1].add_edge(premise_relation_vertex.index, rule_vertex.index)
+            rule_graphs[-1].add_edge(premise_relation_vertex.index,
+                                     rule_vertex.index)
             # point the consequence relation to the rule node
             rule_graphs[-1].add_edge(
                 rule_vertex.index, consequence_relation_vertex.index
@@ -414,8 +429,10 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         # not required here
         path_to_graph: Path = path / "graph"
 
-        vertices_df: pd.DataFrame = pd.read_csv(f"{path_to_graph / 'vertices'}.csv")
-        vertices_df.replace({np.nan: None}, inplace=True)  # convert np.nan to Nan
+        vertices_df: pd.DataFrame = pd.read_csv(
+            f"{path_to_graph / 'vertices'}.csv")
+        vertices_df.replace({np.nan: None},
+                            inplace=True)  # convert np.nan to Nan
 
         KnowledgeBase.parse_vertex_attributes(vertices_df, device=device)
         knowledge_base = KnowledgeBase()
@@ -433,7 +450,8 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         knowledge_base.graph = ig.Graph.DataFrame(
             # convert np.nan to None since igraph uses None and return the
             # DataFrame
-            pd.read_csv(f"{path_to_graph / 'edges'}.csv").replace(np.nan, None),
+            pd.read_csv(
+                f"{path_to_graph / 'edges'}.csv").replace(np.nan, None),
             directed=True,
             vertices=vertices_df,
         )
@@ -458,9 +476,11 @@ class KnowledgeBase(RoughDecisions, FuzzySystem):
         for _, vertex_row in vertices_df.iterrows():  # ignore row index
             if vertex_row["file"] is not None:
                 tokens = vertex_row["item"].split(".")
-                module_path: str = ".".join(tokens[:-1])  # e.g., fuzzy.sets.impl
+                module_path: str = ".".join(
+                    tokens[:-1])  # e.g., fuzzy.sets.impl
                 class_name: str = tokens[-1]  # e.g., Gaussian
-                module = getattr(importlib.import_module(module_path), class_name)
+                module = getattr(
+                    importlib.import_module(module_path), class_name)
                 # load the vertex 'type' information from the file
                 # must be passed Path for module's that require Path.iterdir()
                 vertex_row["item"] = module.load(

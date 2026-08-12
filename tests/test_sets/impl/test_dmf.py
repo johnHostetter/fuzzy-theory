@@ -32,7 +32,10 @@ class TestDimensionDependent(unittest.TestCase):
         n_inputs = 128
         centers = np.zeros((n_inputs, 1))
         widths = np.ones((n_inputs, 1))
-        fuzzy_set = GaussianDMF(centers=centers, widths=widths, device=AVAILABLE_DEVICE)
+        fuzzy_set = GaussianDMF(
+            centers=centers,
+            widths=widths,
+            device=AVAILABLE_DEVICE)
 
         self.assertEqual(fuzzy_set.n_inputs.item(), n_inputs)
         self.assertFalse(bool(fuzzy_set.rho.isnan().any()))
@@ -41,9 +44,14 @@ class TestDimensionDependent(unittest.TestCase):
         observations = torch.zeros(1, n_inputs, 1, device=AVAILABLE_DEVICE)
         degrees = fuzzy_set.calculate_membership(observations)
         self.assertFalse(bool(degrees.isnan().any()))
-        self.assertTrue(torch.allclose(degrees, torch.ones_like(degrees), atol=1e-4))
+        self.assertTrue(
+            torch.allclose(
+                degrees,
+                torch.ones_like(degrees),
+                atol=1e-4))
 
-    def test_rho_calculation_matches_below_previous_overflow_threshold(self) -> None:
+    def test_rho_calculation_matches_below_previous_overflow_threshold(
+            self) -> None:
         """
         127 dimensions is the largest value that fit in the previous (buggy) int8
         dtype; confirm the fix does not change behavior for values that already
@@ -61,7 +69,11 @@ class TestDimensionDependent(unittest.TestCase):
         expected_rho = 1.0 - (
             torch.tensor([745.0]).log() / torch.tensor([float(n_inputs)]).log()
         )
-        self.assertTrue(torch.allclose(fuzzy_set.rho.cpu(), expected_rho, atol=1e-6))
+        self.assertTrue(
+            torch.allclose(
+                fuzzy_set.rho.cpu(),
+                expected_rho,
+                atol=1e-6))
 
     def test_gradient_flows_to_centers_and_widths(self) -> None:
         """
@@ -86,7 +98,8 @@ class TestDimensionDependent(unittest.TestCase):
             # clamps to -10 (zero gradient) even for a small 0.2 offset from
             # center - observations must stay very close to their centers to
             # exercise the real, unclamped gradient
-            observations = torch.tensor([[[0.001], [0.999]]], device=AVAILABLE_DEVICE)
+            observations = torch.tensor(
+                [[[0.001], [0.999]]], device=AVAILABLE_DEVICE)
             fuzzy_set.calculate_membership(observations).sum().backward()
             centers_grad = fuzzy_set.get_centers().grad
             widths_grad = fuzzy_set.get_widths().grad

@@ -16,7 +16,10 @@ from tests import AVAILABLE_DEVICE
 from .common import assert_jit_script_matches_eager, get_test_elements
 
 
-def lorentzian_numpy(element: np.ndarray, center: np.ndarray, sigma: np.ndarray):
+def lorentzian_numpy(
+        element: np.ndarray,
+        center: np.ndarray,
+        sigma: np.ndarray):
     """
         Lorentzian (Cauchy) membership function that receives an 'element' value, and
         uses the 'center' and 'sigma' to determine a degree of membership for
@@ -61,7 +64,8 @@ class TestLorentzian(unittest.TestCase):
         center = lorentzian_mf.get_centers().cpu().detach().numpy()
         sigma = lorentzian_mf.get_widths().cpu().detach().numpy()
         mu_pytorch = lorentzian_mf(self.elements).degrees.to_dense()
-        mu_numpy = lorentzian_numpy(self.elements.cpu().detach().numpy(), center, sigma)
+        mu_numpy = lorentzian_numpy(
+            self.elements.cpu().detach().numpy(), center, sigma)
 
         # a single center/width against multiple elements carries an extra
         # dimension on the PyTorch side (4, 1, 1) that plain NumPy broadcasting
@@ -69,11 +73,13 @@ class TestLorentzian(unittest.TestCase):
         # own test_multi_input (assert_membership_matches_numpy's squeeze_dim
         # only handles the multi-center case)
         assert np.allclose(
-            mu_pytorch.cpu().detach().numpy().flatten(), mu_numpy.flatten(), atol=1e-6
-        )
+            mu_pytorch.cpu().detach().numpy().flatten(),
+            mu_numpy.flatten(),
+            atol=1e-6)
 
         # test that this is compatible with torch.jit.script
-        assert_jit_script_matches_eager(lorentzian_mf, self.elements, mu_pytorch)
+        assert_jit_script_matches_eager(
+            lorentzian_mf, self.elements, mu_pytorch)
 
     def test_gradient_flows_to_centers_and_widths(self) -> None:
         """
@@ -113,7 +119,10 @@ class TestLorentzian(unittest.TestCase):
             widths=np.array([0.5, 0.5]),
             device=AVAILABLE_DEVICE,
         )
-        self.assertTrue(torch.equal(lorentzian.sigmas, lorentzian.get_widths()))
+        self.assertTrue(
+            torch.equal(
+                lorentzian.sigmas,
+                lorentzian.get_widths()))
 
         new_sigmas = torch.tensor([[1.5, 2.5]], device=AVAILABLE_DEVICE)
         lorentzian.sigmas = new_sigmas
