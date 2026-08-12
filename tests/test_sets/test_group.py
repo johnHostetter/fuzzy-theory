@@ -68,6 +68,7 @@ class _GenericCentersWidthsMaskModule(torch.nn.Module):
         return Membership(
             degrees=self._centers.expand(observations.shape[0], -1, -1),
             mask=self._mask,
+            formula="test",
         )
 
 
@@ -91,7 +92,7 @@ class _ModuleMissingGetters(torch.nn.Module):
         assert isinstance(
             observations, torch.Tensor
         ), "The observations should be a torch.Tensor."
-        return Membership(degrees=self._degrees, mask=self._mask)
+        return Membership(degrees=self._degrees, mask=self._mask, formula="test")
 
 
 class TestFuzzySetGroup(unittest.TestCase):

@@ -19,7 +19,7 @@ to make it compatible with this fuzzy-theory library.
 """
 
 import abc
-from typing import Union
+from typing import ClassVar, Union
 
 import numpy as np
 import sympy
@@ -27,6 +27,7 @@ import torch
 
 from fuzzy.sets.abstract import FuzzySet
 from fuzzy.sets.impl.gauss_variants.cmf import Gaussian, LogGaussian
+from fuzzy.utils.options.impl.impl_options import Range
 
 
 class DimensionDependent(FuzzySet, abc.ABC):
@@ -75,6 +76,14 @@ class GaussianNoExpDMF(DimensionDependent):
     This class represents the Gaussian w/ No-Exp Dimension-Dependent fuzzy set. This is a special
     case of the Dimension-Dependent fuzzy set where the Gaussian membership function is assumed.
     """
+
+    # delegates to LogGaussian.internal_calculate_membership (see below), which
+    # returns the raw log-space value (no exp()), clamped to [-10, 0] - not the
+    # conventional [0, 1] fuzzy membership degree range FuzzySet.degree_range
+    # defaults to. Not inherited from LogGaussian (this class is a sibling under
+    # DimensionDependent, not a subclass of LogGaussian), so it needs its own
+    # explicit override.
+    degree_range: ClassVar[Range] = Range(low=-10.0, high=0.0)
 
     @staticmethod
     def internal_calculate_membership(

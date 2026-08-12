@@ -29,24 +29,26 @@ class TestMembership(unittest.TestCase):
         """
         degrees = torch.rand(2, 3, device=AVAILABLE_DEVICE)
         mask = torch.ones(2, 3, device=AVAILABLE_DEVICE)
-        membership = Membership(degrees=degrees, mask=mask)
+        membership = Membership(degrees=degrees, mask=mask, formula="test")
         self.assertIs(membership.degrees, degrees)
         self.assertIs(membership.mask, mask)
+        self.assertEqual(membership.formula, "test")
 
     def test_tuple_unpacking(self) -> None:
         """
-        Membership must still behave as an ordinary 2-tuple (degrees, mask) - existing
-        callers that unpack it positionally must keep working.
+        Membership must still behave as an ordinary 3-tuple (degrees, mask, formula) -
+        existing callers that unpack it positionally must keep working.
 
         Returns:
             None
         """
         degrees = torch.rand(2, 3, device=AVAILABLE_DEVICE)
         mask = torch.ones(2, 3, device=AVAILABLE_DEVICE)
-        membership = Membership(degrees=degrees, mask=mask)
-        unpacked_degrees, unpacked_mask = membership
+        membership = Membership(degrees=degrees, mask=mask, formula="test")
+        unpacked_degrees, unpacked_mask, unpacked_formula = membership
         self.assertIs(unpacked_degrees, degrees)
         self.assertIs(unpacked_mask, mask)
+        self.assertEqual(unpacked_formula, "test")
 
     def test_is_a_plain_namedtuple_not_a_custom_subclass(self) -> None:
         """
@@ -75,7 +77,7 @@ class TestMembership(unittest.TestCase):
             Membership.__new__.__code__.co_varnames[
                 : Membership.__new__.__code__.co_argcount
             ],
-            ("_cls", "degrees", "mask"),
+            ("_cls", "degrees", "mask", "formula"),
         )
 
     def test_docstring_preserved(self) -> None:
@@ -107,7 +109,7 @@ class TestMembership(unittest.TestCase):
         """
 
         def make_membership(x: torch.Tensor) -> Membership:
-            return Membership(degrees=x * 2, mask=torch.ones_like(x))
+            return Membership(degrees=x * 2, mask=torch.ones_like(x), formula="test")
 
         def consume(m: Membership) -> torch.Tensor:
             return m.degrees.sum() + m.mask.sum()

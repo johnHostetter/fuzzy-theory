@@ -9,13 +9,14 @@ and fuzzy logic rule matrices. These components may then be used to create a fuz
 
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, List, MutableMapping, Optional, Type
+from typing import Any, List, MutableMapping, Optional, Tuple, Type
 
 import torch
 import torch.utils.checkpoint
 
 from fuzzy.logic.variables import LinguisticVariables
 from fuzzy.sets.abstract import FuzzySet
+from fuzzy.sets.membership import Membership
 
 from ...relations.n_ary import NAryRelation
 from ...relations.t_norm import TNorm
@@ -301,8 +302,36 @@ class FuzzyLogicController(torch.nn.Sequential):
         granulated_input = self.input_granulation(observations)
 
         if self.gradient_checkpointing and self.training:
-            rule_strengths = torch.utils.checkpoint.checkpoint(
-                self.engine, granulated_input, use_reentrant=False
+            # torch.utils.checkpoint.checkpoint's pytree-based arg flatten/unflatten
+            # and its traced HigherOrderOperator body both require tensors only
+            # under torch.compile(fullgraph=True) - a Membership namedtuple's
+            # formula field (a str, since FuzzySet.degree_range/Membership.formula
+            # were added) violates that on *both* sides: as an input argument
+            # (pytree cannot reconstruct a Membership from only its tensor leaves,
+            # since "formula" has no field default to fall back on) and as the
+            # checkpointed function's return value ("HigherOrderOperator body's
+            # output must consist of tensors only"). Passing/returning only the
+            # plain tensor fields across the checkpoint boundary, and
+            # constructing/reading the full Membership just inside/outside of it
+            # (ordinary, non-HigherOrderOperator Dynamo-traced code, unaffected by
+            # either restriction), avoids both.
+            def _checkpointed_engine(
+                degrees: torch.Tensor, mask: torch.Tensor
+            ) -> Tuple[torch.Tensor, torch.Tensor]:
+                membership = Membership(
+                    degrees=degrees, mask=mask, formula=granulated_input.formula
+                )
+                result = self.engine(membership)
+                return result.degrees, result.mask
+
+            degrees, mask = torch.utils.checkpoint.checkpoint(
+                _checkpointed_engine,
+                granulated_input.degrees,
+                granulated_input.mask,
+                use_reentrant=False,
+            )
+            rule_strengths = Membership(
+                degrees=degrees, mask=mask, formula=type(self.engine).__name__
             )
         else:
             rule_strengths = self.engine(granulated_input)

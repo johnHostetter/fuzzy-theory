@@ -4,11 +4,13 @@ primarily variations of the Gaussian formula.
 """
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 import numpy as np
 import sympy
 import torch
 
+from ....utils.options.impl.impl_options import Range
 from ...abstract import FuzzySet
 
 
@@ -143,6 +145,11 @@ class LogGaussian(FuzzySet):
     This is a modified version that helps when the dimensionality is high,
     and TSK product inference engine will be used.
     """
+
+    # internal_calculate_membership() returns the raw log-space value (no exp()
+    # applied), clamped to [-10, 0] - not the conventional [0, 1] fuzzy membership
+    # degree range FuzzySet.degree_range defaults to.
+    degree_range: ClassVar[Range] = Range(low=-10.0, high=0.0)
 
     def __init__(
         self,
@@ -286,6 +293,12 @@ class Gaussian(LogGaussian):
     """
     Implementation of the Gaussian membership function, written in PyTorch.
     """
+
+    # unlike LogGaussian (its parent class), internal_calculate_membership() below
+    # applies exp() to the raw log-space value, back in the conventional [0, 1]
+    # range - must be re-overridden here, since it would otherwise inherit
+    # LogGaussian.degree_range's [-10, 0]
+    degree_range: ClassVar[Range] = Range(low=0.0, high=1.0)
 
     @staticmethod
     def internal_calculate_membership(

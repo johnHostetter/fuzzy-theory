@@ -109,7 +109,11 @@ class TestMembershipCacheEntry(unittest.TestCase):
         entry = MembershipCacheEntry(
             observations,
             signature_of([]),
-            Membership(degrees=degrees, mask=torch.ones(2, device=AVAILABLE_DEVICE)),
+            Membership(
+                degrees=degrees,
+                mask=torch.ones(2, device=AVAILABLE_DEVICE),
+                formula="test",
+            ),
         )
         self.assertTrue(entry.valid)
         # as if it were a hook
@@ -142,6 +146,7 @@ class TestMembershipCache(unittest.TestCase):
         membership = Membership(
             degrees=torch.zeros(2, device=AVAILABLE_DEVICE),
             mask=torch.ones(2, device=AVAILABLE_DEVICE),
+            formula="test",
         )
 
         cache.store(first_observations, signature_of([]), membership)

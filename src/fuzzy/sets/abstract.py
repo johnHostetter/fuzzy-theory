@@ -10,7 +10,17 @@ import inspect
 # import logging
 from abc import abstractmethod
 from pathlib import Path
-from typing import Any, List, MutableMapping, NoReturn, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    ClassVar,
+    List,
+    MutableMapping,
+    NoReturn,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 import sympy
@@ -26,6 +36,7 @@ from ..utils import TorchJitModule, check_path_to_save_torch_module
 # defined in this module)
 from ..utils.classes import DynamicParameterList, Loggable  # noqa: F401
 from ..utils.functions import ParameterSignature, signature_of
+from ..utils.options.impl.impl_options import Range
 
 # from ..utils.functions import log_classmethod, log_func, log_method
 from .cache import MembershipCache
@@ -80,6 +91,7 @@ class _FuzzySetParameters(torch.nn.Module):
         return self
 
 
+# pylint: disable-next=too-many-instance-attributes
 class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     """
     A generic and abstract torch.nn.Module class that implements continuous fuzzy sets.
@@ -96,6 +108,16 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
     the KnowledgeBase is recognized as a fuzzy set, it is very likely one might be interested in
     inheriting or extending from FuzzySet.
     """
+
+    # The range of membership degree values this fuzzy set's calculate_membership()
+    # can produce. Defaults to the conventional [0, 1] fuzzy membership degree
+    # range; subclasses whose formula does not produce values in that range (e.g.
+    # a log-space variant that returns raw, un-exponentiated values) must override
+    # this to describe their own actual range instead - see LogGaussian/
+    # GaussianNoExpDMF for an example. A ClassVar (not an instance attribute/
+    # Parameter): this describes the formula itself, which is the same for every
+    # instance of a given subclass, not a per-instance learned value.
+    degree_range: ClassVar[Range] = Range(low=0.0, high=1.0)
 
     # Subclasses may set this to True to check the calculated membership degrees for NaN and
     # infinite values; this costs a synchronization per call, so it is off by
@@ -147,6 +169,14 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         # under scripting
         self._validate_degrees: bool = self._validate_degrees
         self._nan_safe_sync_threshold_numel: int = self._nan_safe_sync_threshold_numel
+
+        # forward() (a scripted method) cannot evaluate type(self).__name__ inline -
+        # TorchScript's type() has its own, incompatible meaning (it tried to treat
+        # the expression as if it should evaluate to a Tensor) rather than Python's
+        # built-in returning a class object. Precomputing the plain str once here
+        # avoids that entirely - see Membership.formula's docstring for why this is
+        # a str (not e.g. the class object itself) in the first place.
+        self._formula_name: str = type(self).__name__
 
         # forward() (a scripted method) cannot reference self.membership_config.enable_sparse
         # directly: TorchScript's attribute-type checker cannot represent an arbitrary
@@ -938,6 +968,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         membership = Membership(
             degrees=degrees.to_sparse() if self.enable_sparse else degrees,
             mask=self.get_mask(),
+            formula=self._formula_name,
         )
         if not torch.compiler.is_compiling():
             self._store_membership(original_observations, membership)

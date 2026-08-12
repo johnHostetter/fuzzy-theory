@@ -155,7 +155,7 @@ class TestProduct(TestNAryRelation):
             device=AVAILABLE_DEVICE,
         )
         mask = torch.ones(2, 2, device=AVAILABLE_DEVICE)
-        membership = Membership(degrees=degrees, mask=mask)
+        membership = Membership(degrees=degrees, mask=mask, formula="test")
 
         with mock.patch(
             "fuzzy.relations.t_norm.gather_prod", wraps=t_norm_gather_prod
@@ -196,7 +196,7 @@ class TestProduct(TestNAryRelation):
         # any-term-NaN-poisons-the-variable contract
         degrees[0, 0, 0] = float("nan")
         mask = torch.ones(2, 2, device=AVAILABLE_DEVICE)
-        membership_with_nan = Membership(degrees=degrees, mask=mask)
+        membership_with_nan = Membership(degrees=degrees, mask=mask, formula="test")
 
         with mock.patch("fuzzy.relations.t_norm.gather_prod") as mocked_gather_prod:
             result = n_ary(membership_with_nan)
@@ -221,7 +221,8 @@ class TestProduct(TestNAryRelation):
         self.assertFalse(n_ary._all_active)  # pylint: disable=protected-access
         degrees = torch.rand(4, 2, 1, device=AVAILABLE_DEVICE)
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE),
+            formula="test",
         )
 
         with mock.patch("fuzzy.relations.t_norm.gather_prod") as mocked_gather_prod:
@@ -254,14 +255,14 @@ class TestProduct(TestNAryRelation):
 
         n_ary_fused = Product(*indices, device=AVAILABLE_DEVICE)
         degrees_fused = degrees.clone().requires_grad_(True)
-        result_fused = n_ary_fused(Membership(degrees=degrees_fused, mask=mask))
+        result_fused = n_ary_fused(Membership(degrees=degrees_fused, mask=mask, formula="test"))
         result_fused.degrees.sum().backward()
 
         n_ary_fallback = Product(*indices, device=AVAILABLE_DEVICE)
         degrees_fallback = degrees.clone().requires_grad_(True)
         with mock.patch("fuzzy.relations.t_norm.TRITON_AVAILABLE", False):
             result_fallback = n_ary_fallback(
-                Membership(degrees=degrees_fallback, mask=mask)
+                Membership(degrees=degrees_fallback, mask=mask, formula="test")
             )
             result_fallback.degrees.sum().backward()
 

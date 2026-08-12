@@ -219,6 +219,7 @@ class NAryRelation(TorchJitModule, Loggable):
                 # elements=torch.empty(membership_shape, device=self.device),
                 degrees=torch.ones(batched_membership_shape, device=self.device),
                 mask=torch.ones(membership_shape, device=self.device),
+                formula=type(self).__name__,
             )
             mask = self.grouped_links(dummy_membership)
             if mask.is_sparse and not mask.is_coalesced():

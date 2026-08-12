@@ -81,6 +81,10 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         # instance-level generic annotations on an empty container assigned in
         # __init__
         self._attribute_cache = {}
+        # forward() (a scripted method) cannot evaluate type(self).__name__ inline -
+        # see FuzzySet.__init__'s _formula_name for the same fix and why this is a
+        # str rather than the class object itself.
+        self._formula_name: str = type(self).__name__
 
     @torch.jit.ignore
     def clear_membership_cache(self) -> None:
@@ -348,6 +352,7 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         result = Membership(
             degrees=torch.cat(module_memberships, dim=-1),
             mask=torch.cat(module_masks, dim=-1),
+            formula=self._formula_name,
         )
         self._store_group_membership(observations, result)
         return result

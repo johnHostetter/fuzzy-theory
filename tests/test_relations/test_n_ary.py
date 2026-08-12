@@ -460,7 +460,8 @@ class TestNAryRelation(unittest.TestCase):
             requires_grad=True,
         )
         membership = Membership(
-            degrees=degrees, mask=torch.ones(1, 2, device=AVAILABLE_DEVICE)
+            degrees=degrees, mask=torch.ones(1, 2, device=AVAILABLE_DEVICE),
+            formula="test",
         )
         result = relation.apply_mask(membership)
         result.sum().nan_to_num(0.0).backward()

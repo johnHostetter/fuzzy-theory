@@ -80,6 +80,7 @@ class Minimum(TNorm):
         return Membership(
             degrees=after_mask.min(dim=-2, keepdim=False).values,
             mask=applied_mask,
+            formula=type(self).__name__,
         )
 
 
@@ -137,6 +138,7 @@ class Product(TNorm):
                     self._gather_indices,  # pylint: disable=protected-access
                 ),
                 mask=applied_mask,
+                formula=type(self).__name__,
             )
 
         after_mask, applied_mask = (
@@ -147,6 +149,7 @@ class Product(TNorm):
         return Membership(
             degrees=after_mask.prod(dim=-2, keepdim=False),
             mask=applied_mask,
+            formula=type(self).__name__,
         )
 
 
@@ -182,6 +185,7 @@ class SoftmaxSum(TNorm):
         return Membership(
             degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
             mask=applied_mask,
+            formula=type(self).__name__,
         )
 
 
@@ -211,6 +215,7 @@ class GeneralizedLukasiewicz(TNorm):
                 - (membership.degrees.shape[1] - 1)
             ),
             mask=applied_mask,
+            formula=type(self).__name__,
         )
 
 
@@ -262,4 +267,5 @@ class SoftmaxMean(TNorm):
         return Membership(
             degrees=torch.nn.functional.softmax(firing_strengths - max_values, dim=-1),
             mask=applied_mask,
+            formula=type(self).__name__,
         )

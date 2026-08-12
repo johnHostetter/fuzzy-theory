@@ -202,6 +202,7 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         membership = Membership(
             degrees=torch.rand(3, 2, 2, device=AVAILABLE_DEVICE),
             mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+            formula="test",
         )
         # pylint: disable=protected-access
         n_ary._ensure_links_cache(membership)
@@ -238,7 +239,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         # var1-term2: not selected by any rule here
         degrees[2, 1, 2] = float("nan")
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 3, device=AVAILABLE_DEVICE)
+            degrees=degrees, mask=torch.ones(2, 3, device=AVAILABLE_DEVICE),
+            formula="test",
         )
 
         # pylint: disable=protected-access
@@ -268,7 +270,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
 
         degrees = torch.rand(5, 2, 2, device=AVAILABLE_DEVICE)
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
+            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+            formula="test",
         )
 
         # pylint: disable=protected-access
@@ -307,7 +310,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
             [[[0.2], [0.9]], [[0.4], [0.1]]], device=AVAILABLE_DEVICE
         )  # (batch=2, vars=2, terms=1)
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE),
+            formula="test",
         )
 
         # pylint: disable=protected-access
@@ -344,7 +348,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         if with_nan:
             degrees[0, 1, 0] = float("nan")
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE),
+            formula="test",
         )
         return relation, degrees, membership
 
@@ -397,7 +402,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
             4, 2, 1, device=AVAILABLE_DEVICE
         )  # no NaN anywhere; tiny tensor
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE),
+            formula="test",
         )
 
         with mock.patch.object(
@@ -421,7 +427,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         degrees = torch.rand(4, 2, 1, device=AVAILABLE_DEVICE)
         degrees[0, 1, 0] = float("nan")
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE),
+            formula="test",
         )
 
         with mock.patch.object(
@@ -490,7 +497,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
 
         degrees = torch.rand(4, 2, 1, device=AVAILABLE_DEVICE, requires_grad=True)
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE)
+            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE),
+            formula="test",
         )
         result, _ = relation._gather_apply_mask(  # pylint: disable=protected-access
             membership
@@ -521,7 +529,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         )
         degrees = torch.rand(4, 2, 2, device=AVAILABLE_DEVICE)
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
+            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+            formula="test",
         )
         # call the method bodies directly to guarantee coverage regardless of whether
         # this particular link structure happens to be gather-eligible
@@ -552,7 +561,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
         )
         degrees = torch.rand(4, 2, 2, device=AVAILABLE_DEVICE)
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
+            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+            formula="test",
         )
         mask = relation.grouped_links(membership=membership)
         result, mask_component = (
@@ -588,7 +598,8 @@ class TestNAryRelationEfficiency(TestNAryRelation):
             )
             degrees = torch.rand(4, 2, 2, device=AVAILABLE_DEVICE, requires_grad=True)
             membership = Membership(
-                degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE)
+                degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+                formula="test",
             )
             relation.apply_mask(membership).sum().backward()
             self.assertFalse(bool(degrees.grad.isnan().any()), method)
