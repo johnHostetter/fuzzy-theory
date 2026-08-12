@@ -49,10 +49,7 @@ class FuzzySystem(abc.ABC):
             The inference engine for the Fuzzy System.
         """
 
-    def defuzzification(
-            self,
-            cls_type,
-            device: torch.device) -> Defuzzification:
+    def defuzzification(self, cls_type, device: torch.device) -> Defuzzification:
         """
         Create the defuzzification engine for the Fuzzy System.
 

@@ -221,7 +221,8 @@ class TestProduct(TestNAryRelation):
         self.assertFalse(n_ary._all_active)  # pylint: disable=protected-access
         degrees = torch.rand(4, 2, 1, device=AVAILABLE_DEVICE)
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 1, device=AVAILABLE_DEVICE),
+            degrees=degrees,
+            mask=torch.ones(2, 1, device=AVAILABLE_DEVICE),
             formula="test",
         )
 
@@ -255,7 +256,9 @@ class TestProduct(TestNAryRelation):
 
         n_ary_fused = Product(*indices, device=AVAILABLE_DEVICE)
         degrees_fused = degrees.clone().requires_grad_(True)
-        result_fused = n_ary_fused(Membership(degrees=degrees_fused, mask=mask, formula="test"))
+        result_fused = n_ary_fused(
+            Membership(degrees=degrees_fused, mask=mask, formula="test")
+        )
         result_fused.degrees.sum().backward()
 
         n_ary_fallback = Product(*indices, device=AVAILABLE_DEVICE)

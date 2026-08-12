@@ -88,8 +88,7 @@ class TestMembershipCache(unittest.TestCase):
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
-            centers_snapshots.append(
-                gaussian_mf.get_centers().detach().clone())
+            centers_snapshots.append(gaussian_mf.get_centers().detach().clone())
 
         self.assertFalse(
             losses[0] == losses[1] == losses[2],
@@ -199,8 +198,9 @@ class TestMembershipCache(unittest.TestCase):
         self.assertIsNot(first.degrees, second.degrees)
         self.assertFalse(
             torch.allclose(
-                first.degrees.to_dense().detach(),
-                second.degrees.to_dense().detach()))
+                first.degrees.to_dense().detach(), second.degrees.to_dense().detach()
+            )
+        )
 
     def test_no_grad_entry_not_served_to_grad_enabled_caller(self) -> None:
         """
@@ -331,8 +331,7 @@ class TestMembershipCache(unittest.TestCase):
             gaussian_mf(observations)
         mocked_signature.assert_not_called()
 
-    def test_cache_membership_true_still_calls_parameter_signature(
-            self) -> None:
+    def test_cache_membership_true_still_calls_parameter_signature(self) -> None:
         """
         The skip introduced above must not become an overzealous skip that also
         applies when the cache is actually enabled - parameter_signature() must still
@@ -537,8 +536,8 @@ class TestFuzzySetGroupMembershipCache(unittest.TestCase):
         )
         self.assertFalse(
             torch.allclose(
-                first.degrees.to_dense().detach(),
-                third.degrees.to_dense().detach()),
+                first.degrees.to_dense().detach(), third.degrees.to_dense().detach()
+            ),
             "the group output did not reflect the updated plateaus",
         )
 

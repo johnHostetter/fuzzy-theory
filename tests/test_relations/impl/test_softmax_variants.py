@@ -40,7 +40,8 @@ class TestSoftmaxSum(TestNAryRelation):
         n_ary = SoftmaxSum([(0, 0), (1, 0)], [(0, 1), (1, 1)], device=AVAILABLE_DEVICE)
         degrees = torch.tensor([[[0.6, 0.4], [0.3, 0.7]]], device=AVAILABLE_DEVICE)
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+            degrees=degrees,
+            mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
             formula="test",
         )
         result: Membership = n_ary.forward(membership)
@@ -66,7 +67,8 @@ class TestSoftmaxSum(TestNAryRelation):
             [[[0.6, 0.4], [0.3, 0.7]]], device=AVAILABLE_DEVICE, requires_grad=True
         )
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+            degrees=degrees,
+            mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
             formula="test",
         )
         result = n_ary.forward(membership)
@@ -125,7 +127,8 @@ class TestSoftmaxMean(TestNAryRelation):
         n_ary = SoftmaxMean([(0, 0), (1, 0)], [(0, 1), (1, 1)], device=AVAILABLE_DEVICE)
         degrees = torch.tensor([[[0.6, 0.4], [0.3, 0.7]]], device=AVAILABLE_DEVICE)
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+            degrees=degrees,
+            mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
             formula="test",
         )
         result: Membership = n_ary.forward(membership)
@@ -149,7 +152,8 @@ class TestSoftmaxMean(TestNAryRelation):
             [[[0.6, 0.4], [0.3, 0.7]]], device=AVAILABLE_DEVICE, requires_grad=True
         )
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+            degrees=degrees,
+            mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
             formula="test",
         )
         result = n_ary.forward(membership)
@@ -200,7 +204,8 @@ class TestSoftmaxMean(TestNAryRelation):
         n_ary = SoftmaxMean((0, 0), (1, 0), device=AVAILABLE_DEVICE)
         degrees = torch.rand(4, 2, 2, device=AVAILABLE_DEVICE)
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+            degrees=degrees,
+            mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
             formula="test",
         )
         intermediate_values = n_ary.apply_mask(membership=membership)
@@ -213,7 +218,8 @@ class TestSoftmaxMean(TestNAryRelation):
         )
         doubled_degrees = torch.cat([degrees, degrees], dim=1)
         doubled_membership = Membership(
-            degrees=doubled_degrees, mask=torch.ones(4, 2, device=AVAILABLE_DEVICE),
+            degrees=doubled_degrees,
+            mask=torch.ones(4, 2, device=AVAILABLE_DEVICE),
             formula="test",
         )
         doubled_intermediate_values = doubled_n_ary.apply_mask(

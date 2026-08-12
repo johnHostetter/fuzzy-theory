@@ -182,7 +182,8 @@ class TestMinimum(TestNAryRelation):
             [[[0.4, 0.4], [1.0, 1.0]]], device=AVAILABLE_DEVICE, requires_grad=True
         )
         membership = Membership(
-            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+            degrees=degrees,
+            mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
             formula="test",
         )
 
