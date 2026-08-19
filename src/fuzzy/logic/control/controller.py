@@ -21,6 +21,7 @@ from fuzzy.sets.membership import Membership
 from ...relations.n_ary import NAryRelation
 from ...relations.t_norm import TNorm
 from ...sets import FuzzySetGroup
+from ...utils import load_module_class, module_class
 from .configurations.abstract import FuzzySystem
 from .configurations.data import ExecutionOptions, GranulationLayers, Shape
 from .configurations.impl import Defined
@@ -129,10 +130,39 @@ class FuzzyLogicController(torch.nn.Sequential):
         self.input_granulation.save(
             path / "input"
         )  # save the input granulation layer (drop the extension)
-        self.engine.save(path / "engine")  # save the inference engine
+        # save the inference engine under a subdirectory named after its full
+        # module path (e.g. "fuzzy.relations.t_norm.Product"), not just its bare
+        # class name - external tooling (and load(), below) can then discover the
+        # engine's concrete type - including a custom TNorm subclass that isn't
+        # bundled with fuzzy-theory at all - straight from the directory listing,
+        # without needing to unpickle state_dict.pt first
+        engine_type: str = module_class(self.engine)
+        self.engine.save(path / "engine" / engine_type)
         self.defuzzification.save(
             path / "defuzzification"
         )  # save the defuzzification method
+
+    @staticmethod
+    def _locate_engine_save_dir(engine_dir: Path) -> Path:
+        """
+        Find the single module-path-named subdirectory save() wrote the engine to
+        (see save() above), so load() can read from it without needing to already
+        know the engine's concrete type.
+
+        Args:
+            engine_dir: The "engine" directory directly under an FLC's save path.
+
+        Returns:
+            The engine's own save directory, e.g.
+            engine_dir / "fuzzy.relations.t_norm.Product".
+        """
+        subdirs = [entry for entry in engine_dir.iterdir() if entry.is_dir()]
+        if len(subdirs) != 1:
+            raise ValueError(
+                f"Expected exactly one engine-type subdirectory under {engine_dir}, "
+                f"but found {[entry.name for entry in subdirs]}."
+            )
+        return subdirs[0]
 
     @staticmethod
     def load(path: Path, device: torch.device) -> "FuzzyLogicController":
@@ -147,13 +177,24 @@ class FuzzyLogicController(torch.nn.Sequential):
         Returns:
             The FLC object.
         """
-        # load the components from their respective directories. NAryRelation.load()
-        # dispatches to the correct concrete engine subclass itself (it reads the
-        # class name back out of the saved state dict via get_subclass() - see
-        # NAryRelation.save()/._state_dict()), so the caller does not need to know
-        # the engine's concrete type ahead of time.
+        # load the components from their respective directories. the engine is
+        # loaded via its own concrete type (engine_type.load(...), not
+        # NAryRelation.load(...)) rather than relying on NAryRelation.load()'s
+        # internal get_subclass() dispatch, so that a custom TNorm subclass that
+        # overrides load() with extra behavior actually gets invoked - calling the
+        # base class's load() explicitly would silently skip any such override.
+        # get_subclass()/TorchJitModule can only find a class Python has already
+        # imported, though, so the module is dynamically imported (via
+        # load_module_class) first - see _locate_engine_save_dir for where that
+        # module path comes from (the engine's own save() directory name, see
+        # save() above).
         input_granules = FuzzySetGroup.load(path / "input", device=device)
-        engine: NAryRelation = NAryRelation.load(path / "engine", device=device)
+        engine_dir = FuzzyLogicController._locate_engine_save_dir(path / "engine")
+        engine_type: Type[object] = load_module_class(engine_dir.name)
+        assert issubclass(
+            engine_type, NAryRelation
+        ), "The loaded module type must be a subclass of NAryRelation."
+        engine: NAryRelation = engine_type.load(engine_dir, device=device)
         assert isinstance(
             engine, TNorm
         ), "The loaded engine must be an instance of TNorm."
