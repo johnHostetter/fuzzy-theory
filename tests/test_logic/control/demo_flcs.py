@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 from fuzzy.logic.control.controller import FuzzyLogicController as FLC
-from fuzzy.logic.control.defuzzification import Mamdani, ZeroOrder
+from fuzzy.logic.control.defuzzification import TSK, Mamdani, ZeroOrder
 from fuzzy.logic.knowledge_base import KnowledgeBase
 from fuzzy.logic.rule import Rule
 from fuzzy.logic.variables import LinguisticVariables
@@ -130,6 +130,42 @@ def toy_mamdani(
     return get_premises(device=device), consequences, rules
 
 
+def build_tsk_flc(device: torch.device = AVAILABLE_DEVICE) -> FLC:
+    """
+    Build a small toy TSK FuzzyLogicController, per toy_tsk.
+
+    Args:
+        device: The device to build the FLC on.
+
+    Returns:
+        The built FLC.
+    """
+    premises, _, flc_rules = toy_tsk(t_norm=Product, device=device)
+    flc_knowledge_base = KnowledgeBase.create(
+        linguistic_variables=LinguisticVariables(inputs=premises, targets=[]),
+        rules=flc_rules,
+    )
+    return FLC(source=flc_knowledge_base, inference=TSK, device=device)
+
+
+def build_mamdani_flc(device: torch.device = AVAILABLE_DEVICE) -> FLC:
+    """
+    Build a small toy Mamdani FuzzyLogicController, per toy_mamdani.
+
+    Args:
+        device: The device to build the FLC on.
+
+    Returns:
+        The built FLC.
+    """
+    premises, targets, flc_rules = toy_mamdani(t_norm=Product, device=device)
+    flc_knowledge_base = KnowledgeBase.create(
+        linguistic_variables=LinguisticVariables(inputs=premises, targets=targets),
+        rules=flc_rules,
+    )
+    return FLC(source=flc_knowledge_base, inference=Mamdani, device=device)
+
+
 def print_parameters(fuzzy_logic_controller) -> None:
     """
     Print the parameters of the given fuzzy logic controller to the terminal.
@@ -173,8 +209,7 @@ def train_model(model, input_x, target_y):
 
     losses = []
     num_of_epochs = 0
-    while (len(losses) > 1 and losses[-2] >
-           losses[-1]) or num_of_epochs < epochs:
+    while (len(losses) > 1 and losses[-2] > losses[-1]) or num_of_epochs < epochs:
         # print(num_of_epochs)
         params_before = deepcopy(list(model.parameters()))
         prediction = model(input_x)
@@ -183,14 +218,9 @@ def train_model(model, input_x, target_y):
         loss.backward(retain_graph=True)
         params_after = deepcopy(list(model.parameters()))
         try:
-            if not all(
-                (b == a).all() for b,
-                a in zip(
-                    params_before,
-                    params_after)):
+            if not all((b == a).all() for b, a in zip(params_before, params_after)):
                 print("updating optimizer")
-                optimizer = torch.optim.Adam(
-                    model.parameters(), lr=learning_rate)
+                optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
         except RuntimeError:
             print("updating optimizer")
             optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)

@@ -5,6 +5,8 @@ Utility functions for fuzzy-theory.
 import inspect
 import logging
 import time
+from collections import OrderedDict
+from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path
 from typing import Any, Dict, List, Set, Tuple, Type
@@ -65,8 +67,9 @@ def signature_of(tensors: List[torch.Tensor]) -> ParameterSignature:
     Returns:
         A hashable and comparable signature of those tensors.
     """
-    return [(id(tensor), version_of(tensor), tensor.requires_grad)
-            for tensor in tensors]
+    return [
+        (id(tensor), version_of(tensor), tensor.requires_grad) for tensor in tensors
+    ]
 
 
 def module_class(instance: object) -> str:
@@ -157,9 +160,7 @@ def log_method(method):
         start_time = time.perf_counter()
         result = method(self, *args, **kwargs)
         end_time = time.perf_counter()
-        self.logger.debug(
-            "<perf_counter>%s</perf_counter>",
-            end_time - start_time)
+        self.logger.debug("<perf_counter>%s</perf_counter>", end_time - start_time)
         self.logger.debug("</%s>", called_method)
         return result
 
@@ -230,13 +231,15 @@ def check_path_to_save_torch_module(path: Path) -> None:
     if path.suffix not in (".pt", ".pth"):
         raise ValueError(
             f"The path to save the fuzzy set must have a file extension of '.pt', "
-            f"but got {path.name}")
+            f"but got {path.name}"
+        )
     if path.suffix == ".pth":
         raise ValueError(
             f"The path to save the fuzzy set must have a file extension of '.pt', "
             f"but got {path.name}. Please change the file extension to '.pt' as it is not "
             f"recommended to use '.pth' for PyTorch models, since it conflicts with Python path"
-            f"configuration files.")
+            f"configuration files."
+        )
 
 
 def all_subclasses(cls) -> Set[Any]:
@@ -246,8 +249,7 @@ def all_subclasses(cls) -> Set[Any]:
     Returns:
         A set of all subclasses of the given class.
     """
-    return {cls}.union(s for c in cls.__subclasses__()
-                       for s in all_subclasses(c))
+    return {cls}.union(s for c in cls.__subclasses__() for s in all_subclasses(c))
 
 
 def _is_read_only_property(cls: type, name: str) -> bool:
@@ -278,9 +280,9 @@ def get_object_attributes(obj_instance) -> Dict[str, Any]:
     # get the attributes that are local to the class, but may be inherited
     # from the super class
     local_attributes = inspect.getmembers(
-        obj_instance, lambda attr: not (
-            inspect.ismethod(attr)) and not (
-            inspect.isfunction(attr)), )
+        obj_instance,
+        lambda attr: not (inspect.ismethod(attr)) and not (inspect.isfunction(attr)),
+    )
     # get the attributes that are inherited from (or found within) any of the
     # super classes; using only __bases__[0] would miss attributes purely
     # inherited from other bases in multiple-inheritance scenarios, so the
@@ -303,3 +305,64 @@ def get_object_attributes(obj_instance) -> Dict[str, Any]:
         and not attr.startswith("_")
         and not _is_read_only_property(obj_instance.__class__, attr)
     }
+
+
+@contextmanager
+def capture(model, layers=None, include_inputs=False):
+    """
+    Capture intermediate activations from a PyTorch model without modifying it.
+
+    Args:
+        model: Any instance of an object that inherits from torch.nn.Module.
+        layers: Optional set/list of layer names to capture (None = all).
+        include_inputs: If True, store (input, output) tuples instead of only the output.
+
+    Yields:
+        OrderedDict mapping layer names to captured tensors (or tuples).
+    """
+    activations = OrderedDict()
+    hooks = []
+
+    def _detach(x):
+        if isinstance(x, torch.Tensor):
+            return x.detach()
+        if isinstance(x, tuple) and hasattr(x, "_fields"):
+            # a namedtuple (e.g. Membership): __new__ takes one positional arg per
+            # field, not a single iterable, so each detached value must be
+            # unpacked
+            return type(x)(*(_detach(v) for v in x))
+        if isinstance(x, (tuple, list)):
+            return type(x)(_detach(v) for v in x)
+        if isinstance(x, dict):
+            return {k: _detach(v) for k, v in x.items()}
+        return x  # non-tensor leaf (None, int, etc.)
+
+    def make_hook(name):
+        def hook(module, inp, out):
+            try:
+                if include_inputs:
+                    activations[name] = (_detach(inp), _detach(out))
+                else:
+                    activations[name] = _detach(out)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Hook failed on layer '{name}' "
+                    f"(type={type(module).__name__}, "
+                    f"output type={type(out).__name__})"
+                ) from e
+
+        return hook
+
+    for name, layer in model.named_modules():
+        if name == "":  # skip the top-level module itself
+            continue
+        if layers is not None and name not in layers:
+            continue
+        hooks.append(layer.register_forward_hook(make_hook(name)))
+
+    try:
+        yield activations
+    finally:
+        for h in hooks:
+            h.remove()
+        hooks.clear()
