@@ -21,12 +21,9 @@ class RuleBase(torch.nn.Module):
     used to perform fuzzy logic inference more efficiently than using a list of rules.
     """
 
-    def __init__(self,
-                 rules: List[Rule],
-                 device: Union[None,
-                               torch.device],
-                 *args,
-                 **kwargs):
+    def __init__(
+        self, rules: List[Rule], device: Union[None, torch.device], *args, **kwargs
+    ):
         """
         Initialize the RuleBase object.
 
@@ -41,8 +38,7 @@ class RuleBase(torch.nn.Module):
         self.rules: List[Rule] = rules
         self.device: Union[None, torch.device] = device
         self.premises: TNorm = self._combine_t_norms(attribute="premise")
-        self.consequences: TNorm = self._combine_t_norms(
-            attribute="consequence")
+        self.consequences: TNorm = self._combine_t_norms(attribute="consequence")
 
     def __len__(self) -> int:
         return len(self.rules)
@@ -51,17 +47,12 @@ class RuleBase(torch.nn.Module):
         return hash(tuple(self.rules))
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(
-            other, RuleBase) or len(
-            self.rules) != len(
-                other.rules):
+        if not isinstance(other, RuleBase) or len(self.rules) != len(other.rules):
             return False
         # order matters here
         return all(
-            rule == other_rule for rule,
-            other_rule in zip(
-                self.rules,
-                other.rules))
+            rule == other_rule for rule, other_rule in zip(self.rules, other.rules)
+        )
 
     def __getitem__(self, idx: int) -> Rule:
         return self.rules[idx]
@@ -114,7 +105,8 @@ class RuleBase(torch.nn.Module):
         if len(nan_replacements) > 1:
             raise NotImplementedError(
                 f"The rules have different nan_replacement values for {attribute}. "
-                f"This is not supported yet.")
+                f"This is not supported yet."
+            )
         nan_replacement: float = nan_replacements.pop()
 
         methods = {getattr(rule, attribute).method for rule in self.rules}

@@ -93,8 +93,7 @@ class Options(ABC):
         Returns:
             None
         """
-        assert path.name.endswith(
-            ".pickle"), 'File path should end with ".pickle"'
+        assert path.name.endswith(".pickle"), 'File path should end with ".pickle"'
         with open(path, "wb") as file:
             pickle.dump(vars(self), file)
 

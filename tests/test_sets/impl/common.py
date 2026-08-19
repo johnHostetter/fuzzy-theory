@@ -77,6 +77,4 @@ def assert_jit_script_matches_eager(
         None
     """
     scripted = torch.jit.script(fuzzy_set)
-    assert torch.allclose(
-        scripted(observations).degrees.to_dense(),
-        eager_degrees)
+    assert torch.allclose(scripted(observations).degrees.to_dense(), eager_degrees)

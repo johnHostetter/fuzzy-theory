@@ -46,8 +46,9 @@ def make_test_scenario(t_norm: Type[TNorm]) -> Tuple[
     ]
 
     knowledge_base = KnowledgeBase.create(
-        linguistic_variables=LinguisticVariables(
-            inputs=antecedents, targets=[]), rules=rules, )
+        linguistic_variables=LinguisticVariables(inputs=antecedents, targets=[]),
+        rules=rules,
+    )
 
     # get the links and offsets from the knowledge base for fuzzy inference
     input_granulation = knowledge_base.select_by_tags(tags={"premise", "group"})[0][
@@ -81,16 +82,14 @@ class TestFuzzyInference(unittest.TestCase):
         Returns:
             None
         """
-        antecedents_memberships, knowledge_base = make_test_scenario(
-            t_norm=Product)
+        antecedents_memberships, knowledge_base = make_test_scenario(t_norm=Product)
         self.assertIsNotNone(antecedents_memberships.degrees.grad_fn)
         product_inference = FuzzyLogicController(
             source=knowledge_base,
             inference=ZeroOrder,
             device=AVAILABLE_DEVICE,
         )
-        actual_output: Membership = product_inference.engine(
-            antecedents_memberships)
+        actual_output: Membership = product_inference.engine(antecedents_memberships)
         self.assertIsNotNone(actual_output.degrees.grad_fn)
         expected_output = torch.tensor(
             [
@@ -134,16 +133,14 @@ class TestFuzzyInference(unittest.TestCase):
         Returns:
             None
         """
-        antecedents_memberships, knowledge_base = make_test_scenario(
-            t_norm=Minimum)
+        antecedents_memberships, knowledge_base = make_test_scenario(t_norm=Minimum)
         self.assertIsNotNone(antecedents_memberships.degrees.grad_fn)
         minimum_inference = FuzzyLogicController(
             source=knowledge_base,
             inference=ZeroOrder,
             device=AVAILABLE_DEVICE,
         )
-        actual_output: Membership = minimum_inference.engine(
-            antecedents_memberships)
+        actual_output: Membership = minimum_inference.engine(antecedents_memberships)
         self.assertIsNotNone(actual_output.degrees.grad_fn)
         expected_output = torch.tensor(
             [

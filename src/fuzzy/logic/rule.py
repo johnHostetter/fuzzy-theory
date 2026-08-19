@@ -28,8 +28,7 @@ class Rule:
         premise: Union[NAryRelation, Type[NAryRelation]],
         consequence: Union[NAryRelation, Type[NAryRelation]],
     ):
-        for name, relation in (
-                ("premise", premise), ("consequence", consequence)):
+        for name, relation in (("premise", premise), ("consequence", consequence)):
             if len(relation.indices) == 0:
                 # e.g. an NAryRelation built from grouped_links= rather than indices;
                 # allowing this through would crash later, in KnowledgeBase.create(),
@@ -39,8 +38,7 @@ class Rule:
                     f"grouped_links), but it has none."
                 )
             if len(relation.indices) > 1:
-                raise ValueError(
-                    "Only unary relations are supported to create a Rule.")
+                raise ValueError("Only unary relations are supported to create a Rule.")
         self.premise = premise
         self.consequence = consequence
         self.id = Rule.next_id
@@ -81,7 +79,8 @@ class Rule:
         if "." in path.name:
             raise ValueError(
                 f"The path to save the {self.__class__} must not have a file extension, "
-                f"but got {path.name}")
+                f"but got {path.name}"
+            )
 
         path.mkdir(parents=True, exist_ok=True)
         self.premise.save(
@@ -116,8 +115,7 @@ class Rule:
             )
 
         premise = NAryRelation.load(path / premise_location, device=device)
-        consequence = NAryRelation.load(
-            path / consequence_location, device=device)
+        consequence = NAryRelation.load(path / consequence_location, device=device)
         with open(path / "id.txt", "r", encoding="utf-8") as f:
             rule_id = int(f.read())
         obj = cls(premise, consequence)

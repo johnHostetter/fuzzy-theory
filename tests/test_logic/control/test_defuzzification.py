@@ -162,7 +162,8 @@ class TestNormalizedZeroOrder(unittest.TestCase):
             [[0.2, 0.5, 0.3], [0.1, 0.1, 0.8]], device=AVAILABLE_DEVICE
         )
         rule_activations = Membership(
-            degrees=degrees, mask=torch.ones(3, device=AVAILABLE_DEVICE),
+            degrees=degrees,
+            mask=torch.ones(3, device=AVAILABLE_DEVICE),
             formula="test",
         )
 
@@ -327,7 +328,8 @@ class TestMamdani(unittest.TestCase):
 
         degrees = torch.tensor([[0.6, 0.9]], device=AVAILABLE_DEVICE)
         rule_activations = Membership(
-            degrees=degrees, mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
+            degrees=degrees,
+            mask=torch.ones(2, 2, device=AVAILABLE_DEVICE),
             formula="test",
         )
         result = mamdani(rule_activations)
