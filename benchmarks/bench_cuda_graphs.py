@@ -177,18 +177,25 @@ def _build_cuda_graph_step(config: FLCShapeConfig, device: torch.device):
     model = build_flc(graph_config, device=device)
     optimizer = torch.optim.Adam(model.parameters(), lr=3e-2, capturable=True)
     criterion = torch.nn.MSELoss()
+
+    static_x = torch.zeros(config.batch_size, config.n_inputs, device=device)
+    static_y = torch.zeros(config.batch_size, config.n_outputs, device=device)
+
+    def _train_step() -> torch.Tensor:
+        optimizer.zero_grad(set_to_none=False)
+        output = model(static_x)
+        loss = criterion(output, static_y)
+        loss.backward()
+        optimizer.step()
+        return loss
+
     with force_cuda_graph_safe_branches(model):
-        graphed = GraphedTrainingStep(
-            model,
-            optimizer,
-            criterion,
-            (config.batch_size, config.n_inputs),
-            (config.batch_size, config.n_outputs),
-            device,
-        )
+        graphed = GraphedTrainingStep(_train_step, optimizer, device)
 
     def _step(x: torch.Tensor, y: torch.Tensor, sync: bool) -> float:
-        return graphed.step(x, y, sync=sync)
+        static_x.copy_(x, non_blocking=True)
+        static_y.copy_(y, non_blocking=True)
+        return graphed.replay(sync=sync)
 
     return _step, graphed.close
 

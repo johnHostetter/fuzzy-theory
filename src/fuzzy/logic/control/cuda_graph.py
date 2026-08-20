@@ -12,22 +12,49 @@ exact same op sequence and tensor shapes on every replay, and an FLC can grow ne
 fuzzy-set/rule/variable parameters mid-training (see
 tests/test_logic/control/demo_flcs.py's train_model for the established growth idiom).
 There is no in-place "grow the captured graph" operation - growth always means
-discarding the stale GraphedTrainingStep and building a fresh one:
+discarding the stale GraphedTrainingStep and building a fresh one.
+
+GraphedTrainingStep captures whatever a caller-supplied, zero-argument step_fn does -
+not just a fixed model(x)/criterion(pred, y) shape - so it accommodates an arbitrary
+training step: multiple forward passes (e.g. a target network), gradient clipping
+between backward() and optimizer.step(), custom loss shapes, and so on. step_fn reads
+its input from "static" buffers the caller allocates once and owns; the caller copies
+fresh data into them before every replay() call:
 
     from fuzzy.logic.control.cuda_graph import (
         GraphedTrainingStep,
         force_cuda_graph_safe_branches,
     )
 
-    def build_graphed(flc, batch_size, device):
-        optimizer = torch.optim.Adam(flc.parameters(), lr=3e-2, capturable=True)
-        with force_cuda_graph_safe_branches(flc):
-            return GraphedTrainingStep(
-                flc, optimizer, torch.nn.MSELoss(),
-                static_input_shape=(batch_size, flc.shape.n_inputs),
-                static_target_shape=(batch_size, flc.shape.n_outputs),
-                device=device,
-            )
+    static_obs = torch.zeros(batch_size, flc.shape.n_inputs, device=device)
+    static_actions = torch.zeros(batch_size, dtype=torch.long, device=device)
+    static_targets = torch.zeros(batch_size, device=device)
+
+    # step_fn closes over `flc` and `optimizer` by reference, read fresh from this
+    # mutable holder on every call - so rebinding holder["optimizer"] on growth
+    # (below) is enough to make the NEXT captured graph use the new one, without
+    # having to redefine step_fn itself.
+    holder = {"flc": flc, "optimizer": optimizer}
+
+    def step_fn():
+        # zero_grad(set_to_none=False) is required - set_to_none=True would
+        # allocate a fresh grad tensor on the next backward(), an address a
+        # replayed graph cannot see.
+        holder["optimizer"].zero_grad(set_to_none=False)
+        action_values = (
+            holder["flc"](static_obs)
+            .gather(1, static_actions.unsqueeze(1))
+            .squeeze(1)
+        )
+        td_error = criterion(static_targets, action_values)
+        td_error.backward()
+        torch.nn.utils.clip_grad_norm_(holder["flc"].parameters(), max_norm=1.0)
+        holder["optimizer"].step()
+        return td_error
+
+    def build_graphed():
+        with force_cuda_graph_safe_branches(holder["flc"]):
+            return GraphedTrainingStep(step_fn, holder["optimizer"], device=device)
 
     def flc_signature(flc):
         # changes on ANY growth: a new input variable (changes n_inputs), a new
@@ -37,16 +64,28 @@ discarding the stale GraphedTrainingStep and building a fresh one:
             p.numel() for p in flc.parameters()
         )
 
-    graphed = build_graphed(flc, batch_size, device)
-    last_signature = flc_signature(flc)
+    graphed = build_graphed()
+    last_signature = flc_signature(holder["flc"])
 
-    for x, y in training_data:
-        current_signature = flc_signature(flc)
+    for obs, actions, targets in training_data:
+        current_signature = flc_signature(holder["flc"])
         if current_signature != last_signature:
             graphed.close()
-            graphed = build_graphed(flc, batch_size, device)
+            # growth means new parameters, so the optimizer must be rebuilt too -
+            # step_fn will pick up the new one via `holder` on its next call. If
+            # growth replaced `flc` with an entirely new object (rather than
+            # mutating the existing one in place - see this module's top-level
+            # docstring section on the two ways growth can happen in this
+            # codebase), also set holder["flc"] = new_flc here before rebuilding.
+            holder["optimizer"] = torch.optim.Adam(
+                holder["flc"].parameters(), lr=3e-2, capturable=True
+            )
+            graphed = build_graphed()
             last_signature = current_signature
-        loss = graphed.step(x, y)
+        static_obs.copy_(obs, non_blocking=True)
+        static_actions.copy_(actions, non_blocking=True)
+        static_targets.copy_(targets, non_blocking=True)
+        loss = graphed.replay()
 
 Requires Triton (see force_cuda_graph_safe_branches's docstring for why: PyTorch's
 own built-in torch.prod CUDA backward kernel - the fallback used when Triton is
@@ -56,7 +95,7 @@ graph capture cannot tolerate).
 """
 
 import contextlib
-from typing import Callable, Iterator, List, Tuple
+from typing import Callable, Iterator, List
 
 import torch
 
@@ -69,6 +108,10 @@ from fuzzy.sets.abstract import FuzzySet
 from fuzzy.sets.membership import Membership
 
 
+# duplicate-code: this deliberately mirrors Product.forward's own structure (see
+# t_norm.py) - the whole point is to replay the same operations minus one check, so
+# some near-identical lines are expected and not a sign of accidental copy-paste.
+# pylint: disable-next=duplicate-code
 def _forced_gather_product_forward(self: Product, membership: Membership) -> Membership:
     """
     Replacement for Product.forward used only while force_cuda_graph_safe_branches is
@@ -152,7 +195,7 @@ def force_cuda_graph_safe_branches(flc: FuzzyLogicController) -> Iterator[None]:
          no other sync-free way to backward through a Product engine's rule combination
          on CUDA.
 
-    Also temporarily sets self.training = False on the FLC (via flc.eval()) for the
+    Also, temporarily sets self.training = False on the FLC (via flc.eval()) for the
     same reason: Defuzzification.forward's "if self.training: assert not
     defuzzification.isnan().any()" is unconditional (not gated by any threshold or
     is_compiling() check) whenever self.training is True. eval() only affects this one
@@ -211,57 +254,64 @@ def force_cuda_graph_safe_branches(flc: FuzzyLogicController) -> Iterator[None]:
             flc.train()
 
 
-# pylint: disable-next=too-many-instance-attributes
 class GraphedTrainingStep:
     """
-    Captures one training step (zero_grad -> forward -> loss -> backward ->
-    optimizer.step()) as a CUDA graph, then replays it against fresh data on every
-    .step() call - eliminating the per-call Python/kernel-launch dispatch overhead a
-    plain eager training step pays every time, at the cost of requiring the exact same
-    op sequence and tensor shapes on every replay. See force_cuda_graph_safe_branches
-    for why capturing an FLC's full train step also requires Triton and forcing a
-    couple of data-dependent branches closed.
+    Captures one training step, as performed by a caller-supplied step_fn, as a CUDA
+    graph, then replays it on every replay() call - eliminating the per-call Python/
+    kernel-launch dispatch overhead a plain eager training step pays every time, at
+    the cost of requiring the exact same op sequence and tensor shapes on every
+    replay. See force_cuda_graph_safe_branches for why capturing an FLC's full train
+    step also requires Triton and forcing a couple of data-dependent branches closed.
+
+    step_fn is a zero-argument callable performing one complete training step -
+    zero_grad, any forward pass(es), loss computation, backward(), any gradient
+    transformation (e.g. torch.nn.utils.clip_grad_norm_), and optimizer.step() -
+    returning the loss tensor. It is responsible for its own zero_grad(set_to_none=
+    False) call (set_to_none=True would allocate a fresh grad tensor on the next
+    backward(), an address a replayed graph cannot see). Unlike a fixed model(x)/
+    criterion(pred, y) shape, step_fn can do anything a real training step needs:
+    multiple forward passes (e.g. a target network), gradient clipping between
+    backward() and optimizer.step(), or a loss computed from more than one model's
+    output. It must read its input from "static" buffers the caller allocates once,
+    outside step_fn, and owns - the caller copies fresh data into those buffers
+    before every replay() call (see this module's docstring for a full example).
 
     Not reusable across a model architecture change (e.g. FLC rule/term/variable
-    growth mid-training): construct a fresh GraphedTrainingStep around the new (or
-    in-place-mutated) model instead - there is no in-place "grow the captured graph"
-    operation. See this module's docstring for a growth-detection pattern.
+    growth mid-training): construct a fresh GraphedTrainingStep (with a fresh
+    optimizer, since growth means new parameters, and typically a fresh step_fn
+    closing over that new optimizer) instead - there is no in-place "grow the
+    captured graph" operation. See this module's docstring for a growth-detection
+    pattern.
 
     Model-agnostic - nothing about the capture/replay mechanics below is FLC-specific
     (only force_cuda_graph_safe_branches is) - so this also works for a plain
     torch.nn.Module with no fuzzy-theory-specific sync branches to worry about.
     """
 
-    # pylint: disable-next=too-many-arguments,too-many-positional-arguments
     def __init__(
         self,
-        model: torch.nn.Module,
+        step_fn: Callable[[], torch.Tensor],
         optimizer: torch.optim.Optimizer,
-        criterion: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-        static_input_shape: Tuple[int, ...],
-        static_target_shape: Tuple[int, ...],
         device: torch.device,
         n_warmup: int = 11,
     ) -> None:
         """
         Args:
-            model: The model to train. Must already be on `device`.
-            optimizer: A capturable=True optimizer already constructed over
-                model.parameters() (e.g. torch.optim.Adam(model.parameters(),
-                lr=..., capturable=True)) - a non-capturable optimizer keeps its step
-                counter as a plain Python int with float bias-correction math, both
-                illegal to record into a CUDA graph.
-            criterion: A loss function taking (prediction, target) -> scalar loss.
-            static_input_shape: Shape of the model's input batch; fixed for the
-                lifetime of this object.
-            static_target_shape: Shape of the target batch; fixed for the lifetime of
-                this object.
+            step_fn: A zero-argument callable performing one complete training step
+                and returning the loss tensor - see the class docstring for the full
+                contract.
+            optimizer: The capturable=True optimizer step_fn calls .step() on (passed
+                separately only so this constructor can validate it up front, before
+                paying for warmup - e.g. torch.optim.Adam(params, lr=..., capturable=
+                True)) - a non-capturable optimizer keeps its step counter as a plain
+                Python int with float bias-correction math, both illegal to record
+                into a CUDA graph.
             device: Must be a CUDA device.
-            n_warmup: Untimed full training-step iterations run on a side stream
-                before capture, letting cuDNN/cuBLAS algorithm selection and the CUDA
-                caching allocator's memory pool both reach steady state - per
-                torch.cuda.graph's documented capture protocol - before the actual
-                capture records the final, stable kernel sequence. Also, incidentally,
+            n_warmup: Untimed step_fn() calls run on a side stream before capture,
+                letting cuDNN/cuBLAS algorithm selection and the CUDA caching
+                allocator's memory pool both reach steady state - per torch.cuda.
+                graph's documented capture protocol - before the actual capture
+                records the final, stable kernel sequence. Also, incidentally,
                 exceeds this library's membership cache's default maxsize (2) several
                 times over, so any cache staleness from warmup has long since resolved
                 through real optimizer steps before the captured call.
@@ -276,46 +326,26 @@ class GraphedTrainingStep:
         if device.type != "cuda":
             raise ValueError("GraphedTrainingStep requires a CUDA device.")
 
-        self.model = model
-        self.optimizer = optimizer
-        self.criterion = criterion
         self.device = device
-
-        self.static_x = torch.zeros(static_input_shape, device=device)
-        self.static_y = torch.zeros(static_target_shape, device=device)
 
         warmup_stream = torch.cuda.Stream()
         warmup_stream.wait_stream(torch.cuda.current_stream())
         with torch.cuda.stream(warmup_stream):
             for _ in range(n_warmup):
-                # set_to_none=False (not the modern default) so backward() reuses the
-                # same grad tensor addresses on every iteration - set_to_none=True
-                # would allocate a fresh grad tensor on the next backward(), an
-                # address a replayed graph cannot see.
-                self.optimizer.zero_grad(set_to_none=False)
-                out = self.model(self.static_x)
-                loss = self.criterion(out, self.static_y)
-                loss.backward()
-                self.optimizer.step()
+                step_fn()
         torch.cuda.current_stream().wait_stream(warmup_stream)
 
         self.graph = torch.cuda.CUDAGraph()
         with torch.cuda.graph(self.graph):
-            self.optimizer.zero_grad(set_to_none=False)
-            static_out = self.model(self.static_x)
-            self.static_loss = self.criterion(static_out, self.static_y)
-            self.static_loss.backward()
-            self.optimizer.step()
+            self.static_loss = step_fn()
 
-    def step(
-        self, new_x: torch.Tensor, new_y: torch.Tensor, sync: bool = False
-    ) -> torch.Tensor:
+    def replay(self, sync: bool = False) -> torch.Tensor:
         """
-        Copy fresh data into the captured graph's static buffers and replay it.
+        Replay the captured step against whatever data is currently in step_fn's
+        static buffers - the caller must copy fresh data into them before calling
+        this.
 
         Args:
-            new_x: A fresh input batch, same shape as static_input_shape.
-            new_y: A fresh target batch, same shape as static_target_shape.
             sync: If True, return loss.item() (forces a device sync - use only for
                 occasional sanity-check logging, not on the timed hot path). If False
                 (default), return the live static_loss tensor with no forced sync.
@@ -324,23 +354,21 @@ class GraphedTrainingStep:
             The loss (a live tensor referencing the graph's fixed output buffer, or a
             plain float if sync=True).
         """
-        self.static_x.copy_(new_x, non_blocking=True)
-        self.static_y.copy_(new_y, non_blocking=True)
         self.graph.replay()
         return self.static_loss.item() if sync else self.static_loss
 
     def close(self) -> None:
         """
-        Explicitly drop the captured graph and static buffers, so the graph's private
-        memory pool is freed deterministically rather than waiting on GC.
+        Explicitly drop the captured graph and its output buffer, so the graph's
+        private memory pool is freed deterministically rather than waiting on GC.
+        The caller's own static input buffers (allocated outside step_fn) are not
+        this object's to manage, and are left untouched.
 
         Returns:
             None
         """
         self.graph.reset()
         del self.graph
-        del self.static_x
-        del self.static_y
         del self.static_loss
 
     def __enter__(self) -> "GraphedTrainingStep":
