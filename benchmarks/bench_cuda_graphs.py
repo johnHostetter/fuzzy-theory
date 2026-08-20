@@ -87,10 +87,22 @@ GrowthSchedule = List[Tuple[int, FLCShapeConfig]]
 
 DEFAULT_SCHEDULE: GrowthSchedule = [
     (0, FLCShapeConfig(batch_size=256, n_inputs=8, n_terms=3, n_rules=8, n_outputs=4)),
-    (20, FLCShapeConfig(batch_size=256, n_inputs=8, n_terms=3, n_rules=12, n_outputs=4)),
-    (40, FLCShapeConfig(batch_size=256, n_inputs=8, n_terms=4, n_rules=16, n_outputs=4)),
-    (60, FLCShapeConfig(batch_size=256, n_inputs=8, n_terms=4, n_rules=24, n_outputs=4)),
-    (80, FLCShapeConfig(batch_size=256, n_inputs=8, n_terms=5, n_rules=32, n_outputs=4)),
+    (
+        20,
+        FLCShapeConfig(batch_size=256, n_inputs=8, n_terms=3, n_rules=12, n_outputs=4),
+    ),
+    (
+        40,
+        FLCShapeConfig(batch_size=256, n_inputs=8, n_terms=4, n_rules=16, n_outputs=4),
+    ),
+    (
+        60,
+        FLCShapeConfig(batch_size=256, n_inputs=8, n_terms=4, n_rules=24, n_outputs=4),
+    ),
+    (
+        80,
+        FLCShapeConfig(batch_size=256, n_inputs=8, n_terms=5, n_rules=32, n_outputs=4),
+    ),
 ]
 DEFAULT_TOTAL_STEPS = 2000
 
@@ -104,7 +116,9 @@ QUICK_TOTAL_STEPS = 40
 CONDITIONS = ("eager", "torch_compile", "cuda_graph")
 
 
-def _segment_bounds(schedule: GrowthSchedule, total_steps: int) -> List[Tuple[int, int, FLCShapeConfig]]:
+def _segment_bounds(
+    schedule: GrowthSchedule, total_steps: int
+) -> List[Tuple[int, int, FLCShapeConfig]]:
     """
     Returns:
         (segment_start_step, segment_end_step, config) triples, one per schedule
@@ -276,7 +290,9 @@ def compute_crossover_table(
     """
     eager_df = results.get("eager")
     if eager_df is None:
-        raise ValueError("compute_crossover_table requires the eager condition's results.")
+        raise ValueError(
+            "compute_crossover_table requires the eager condition's results."
+        )
 
     rows: List[Dict[str, object]] = []
     boundaries = [start for start, _ in schedule][1:]  # skip the first, all pay cold
@@ -358,7 +374,9 @@ def main() -> None:
 
     device = torch.device(args.device)
     schedule = QUICK_SCHEDULE if args.quick else DEFAULT_SCHEDULE
-    total_steps = args.total_steps or (QUICK_TOTAL_STEPS if args.quick else DEFAULT_TOTAL_STEPS)
+    total_steps = args.total_steps or (
+        QUICK_TOTAL_STEPS if args.quick else DEFAULT_TOTAL_STEPS
+    )
 
     print(f"Device: {device}")
     print(f"Schedule: {schedule}")
