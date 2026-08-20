@@ -423,7 +423,9 @@ class DefuzzificationConfig(YAMLConfig):
         metadata={
             "help": "The dimensionality of the latent space to utilize, if applicable.",
             "range": Range(low=1, high=float("inf")),
-            "search": Range(low=64, high=96, step=16),  # TODO: revert to 32 & 128 w/ step=32
+            "search": Range(
+                low=64, high=96, step=16
+            ),  # TODO: revert to 32 & 128 w/ step=32
         },
     )
 
