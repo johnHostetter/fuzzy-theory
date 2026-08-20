@@ -423,7 +423,7 @@ class DefuzzificationConfig(YAMLConfig):
         metadata={
             "help": "The dimensionality of the latent space to utilize, if applicable.",
             "range": Range(low=1, high=float("inf")),
-            "search": Range(low=32, high=128, step=32),
+            "search": Range(low=64, high=96, step=16),  # TODO: revert to 32 & 128 w/ step=32
         },
     )
 
@@ -468,7 +468,7 @@ class GumbelConfig(YAMLConfig):
         metadata={
             "help": "How much temperature should be used for the Gumbel distribution.",
             "range": Range(low=1, high=float("inf")),
-            "search": Range(low=0.25, high=1.25),
+            "search": Range(low=0.4, high=1.0),  # TODO: revert to 0.25 & 1.25
         },
     )
     epsilon_filter: float = field(
@@ -512,7 +512,7 @@ class NeurogenesisConfig(YAMLConfig):
             "help": "The desired membership degree that should be satisfied by all elements to "
             "achieve epsilon-completeness.",
             "range": Range(low=0, high=1.0),
-            "search": Range(low=0.1, high=0.5),
+            "search": Range(low=0.2, high=0.4),  # TODO: revert to 0.1 & 0.4
         },
     )
     add_premise_delay: int = field(
