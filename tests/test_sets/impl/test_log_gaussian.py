@@ -13,10 +13,8 @@ from tests import AVAILABLE_DEVICE
 
 
 def gaussian_numpy_with_width_multiplier(
-        element: np.ndarray,
-        center: np.ndarray,
-        sigma: np.ndarray,
-        width_multiplier: float):
+    element: np.ndarray, center: np.ndarray, sigma: np.ndarray, width_multiplier: float
+):
     """
         Gaussian membership function parameterized by an explicit width_multiplier
         (LogGaussian's "width_multiplier * sigma^2" convention, as opposed to
@@ -36,8 +34,9 @@ def gaussian_numpy_with_width_multiplier(
     Returns:
         The membership degree of 'element'.
     """
-    return np.exp(-1.0 * np.power(element - center, 2) /
-                  (width_multiplier * np.power(sigma, 2)))
+    return np.exp(
+        -1.0 * np.power(element - center, 2) / (width_multiplier * np.power(sigma, 2))
+    )
 
 
 class TestLogGaussian(unittest.TestCase):
@@ -86,8 +85,7 @@ class TestLogGaussian(unittest.TestCase):
             ),
         )
 
-    def test_calculate_membership_matches_independent_numpy_reference(
-            self) -> None:
+    def test_calculate_membership_matches_independent_numpy_reference(self) -> None:
         """
         Golden-value/drift-detection test: LogGaussian.internal_calculate_membership()
         returns the raw log-space value (no exp()), so exp() of its output is
@@ -122,17 +120,14 @@ class TestLogGaussian(unittest.TestCase):
             width_multiplier,
         )
         self.assertTrue(
-            np.allclose(
-                torch.exp(degrees).cpu().detach().numpy(),
-                expected,
-                atol=1e-5))
+            np.allclose(torch.exp(degrees).cpu().detach().numpy(), expected, atol=1e-5)
+        )
         # every degree here is at or below the diagonal's exact-center-match case
         # (degree 0, i.e. log(1)), so none should have needed clamping to see this
         # test actually exercise the intended (unclamped) formula
         self.assertFalse(bool((degrees == -10).any()))
 
-    def test_gradient_flows_when_unclamped_and_vanishes_when_clamped(
-            self) -> None:
+    def test_gradient_flows_when_unclamped_and_vanishes_when_clamped(self) -> None:
         """
         Golden-value/drift-detection test: only grad_fn-is-not-None was ever
         checked for LogGaussian (generically, across every FuzzySet subclass in

@@ -58,9 +58,8 @@ class TestGeneralizedGuassian(unittest.TestCase):
             None
         """
         generalized_gaussian = GeneralizedGuassian(
-            centers=np.array(
-                [0.0]), widths=np.array(
-                [1.0]), device=AVAILABLE_DEVICE)
+            centers=np.array([0.0]), widths=np.array([1.0]), device=AVAILABLE_DEVICE
+        )
         x = torch.tensor([[0.5]], device=AVAILABLE_DEVICE)
 
         generalized_gaussian(x).degrees.sum().backward()
@@ -68,12 +67,8 @@ class TestGeneralizedGuassian(unittest.TestCase):
         # get_width_multiplier()/get_slope_multiplier() return a freshly
         # concatenated (non-leaf) view each call, so .grad is never populated on
         # their result directly - check the underlying leaf Parameters instead
-        self.assertFalse(
-            bool(
-                generalized_gaussian.get_centers().grad.isnan().any()))
-        self.assertFalse(
-            bool(
-                (generalized_gaussian.get_centers().grad == 0).all()))
+        self.assertFalse(bool(generalized_gaussian.get_centers().grad.isnan().any()))
+        self.assertFalse(bool((generalized_gaussian.get_centers().grad == 0).all()))
         for name, param in generalized_gaussian.named_parameters():
             if "_width_multiplier" in name or "_slope_multiplier" in name:
                 self.assertIsNotNone(param.grad)
