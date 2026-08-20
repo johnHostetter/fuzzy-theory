@@ -88,8 +88,7 @@ class TestMembershipCache(unittest.TestCase):
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
-            centers_snapshots.append(
-                gaussian_mf.get_centers().detach().clone())
+            centers_snapshots.append(gaussian_mf.get_centers().detach().clone())
 
         self.assertFalse(
             losses[0] == losses[1] == losses[2],
@@ -199,8 +198,9 @@ class TestMembershipCache(unittest.TestCase):
         self.assertIsNot(first.degrees, second.degrees)
         self.assertFalse(
             torch.allclose(
-                first.degrees.to_dense().detach(),
-                second.degrees.to_dense().detach()))
+                first.degrees.to_dense().detach(), second.degrees.to_dense().detach()
+            )
+        )
 
     def test_no_grad_entry_not_served_to_grad_enabled_caller(self) -> None:
         """
@@ -331,13 +331,20 @@ class TestMembershipCache(unittest.TestCase):
             gaussian_mf(observations)
         mocked_signature.assert_not_called()
 
-    def test_cache_membership_true_still_calls_parameter_signature(
-            self) -> None:
+    def test_cache_membership_true_still_calls_parameter_signature(self) -> None:
         """
         The skip introduced above must not become an overzealous skip that also
         applies when the cache is actually enabled - parameter_signature() must still
-        be computed (both to look up and to store) whenever there is a cache that
-        could use it.
+        be computed whenever there is a cache that could use it.
+
+        Regression/performance test: _lookup_membership used to compute
+        self.parameter_signature() for the (missed) lookup, and _store_membership
+        computed it again from scratch to store - two full
+        get_centers()/get_widths()/get_mask() + id()/version() sweeps per forward call
+        on every cache miss, even though the signature could not have changed between
+        the two calls a few lines apart. forward() now computes it once in
+        _lookup_membership and threads the same value through to _store_membership, so
+        a cache miss calls parameter_signature() exactly once, not twice.
 
         Returns:
             None
@@ -351,9 +358,8 @@ class TestMembershipCache(unittest.TestCase):
             autospec=True,
             side_effect=type(gaussian_mf).parameter_signature,
         ) as mocked_signature:
-            gaussian_mf(observations)
-        # once for the (miss) lookup, once for the store
-        self.assertEqual(mocked_signature.call_count, 2)
+            gaussian_mf(observations)  # a miss: nothing cached yet
+        mocked_signature.assert_called_once()
 
     def test_clear_membership_cache(self) -> None:
         """
@@ -537,8 +543,8 @@ class TestFuzzySetGroupMembershipCache(unittest.TestCase):
         )
         self.assertFalse(
             torch.allclose(
-                first.degrees.to_dense().detach(),
-                third.degrees.to_dense().detach()),
+                first.degrees.to_dense().detach(), third.degrees.to_dense().detach()
+            ),
             "the group output did not reflect the updated plateaus",
         )
 

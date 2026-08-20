@@ -137,7 +137,7 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
     @torch.jit.ignore
     def _lookup_group_membership(
         self, observations: torch.Tensor
-    ) -> Optional[Membership]:
+    ) -> Tuple[Optional[Membership], Optional[ParameterSignature]]:
         """
         Retrieve a memoized group-level membership for the given observations, if valid.
 
@@ -148,19 +148,26 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
             observations: The observations that membership degrees are wanted for.
 
         Returns:
-            The memoized Membership, or None if it has to be (re)calculated.
+            A tuple of (the memoized Membership, or None if it has to be (re)calculated)
+            and (the group signature computed to serve this lookup, or None if there was
+            no cache/signature to serve it). The caller passes the signature on to
+            _store_group_membership on a miss, so _group_parameter_signature() - which
+            walks every module in the group - is not run a second time.
         """
         cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
         if cache is None:
-            return None
+            return None, None
         signature: Optional[ParameterSignature] = self._group_parameter_signature()
         if signature is None:
-            return None
-        return cache.lookup(observations, signature)
+            return None, None
+        return cache.lookup(observations, signature), signature
 
     @torch.jit.ignore
     def _store_group_membership(
-        self, observations: torch.Tensor, membership: Membership
+        self,
+        observations: torch.Tensor,
+        membership: Membership,
+        signature: Optional[ParameterSignature],
     ) -> None:
         """
         Memoize the group-level membership calculated for the given observations.
@@ -168,15 +175,17 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         Args:
             observations: The observations the membership degrees were calculated for.
             membership: The calculated (concatenated) membership degrees and mask.
+            signature: The group signature _lookup_group_membership computed during
+                this same forward() call, or None if there was no cache/signature to
+                store into.
 
         Returns:
             None
         """
+        if signature is None:
+            return
         cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
         if cache is None:
-            return
-        signature: Optional[ParameterSignature] = self._group_parameter_signature()
-        if signature is None:
             return
         cache.store(observations, signature, membership)
 
@@ -315,7 +324,7 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
         # membership is: a hit requires the same observations object and every module's
         # parameters to be unchanged, so it is safe across an optimizer step (see
         # fuzzy.sets.cache). A miss still lets each module serve its own cache.
-        cached: Optional[Membership] = self._lookup_group_membership(observations)
+        cached, group_signature = self._lookup_group_membership(observations)
         if cached is not None:
             return cached
 
@@ -354,5 +363,5 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
             mask=torch.cat(module_masks, dim=-1),
             formula=self._formula_name,
         )
-        self._store_group_membership(observations, result)
+        self._store_group_membership(observations, result, group_signature)
         return result
