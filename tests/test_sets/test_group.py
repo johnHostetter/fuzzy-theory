@@ -463,14 +463,16 @@ class TestFuzzySetGroup(unittest.TestCase):
         del (
             self.grouped_fuzzy_sets._membership_cache
         )  # pylint: disable=protected-access
-        self.assertIsNone(
+        cached, signature = (
             self.grouped_fuzzy_sets._lookup_group_membership(  # pylint: disable=protected-access
                 observations
             )
         )
+        self.assertIsNone(cached)
+        self.assertIsNone(signature)
         # must not raise, either
         self.grouped_fuzzy_sets._store_group_membership(  # pylint: disable=protected-access
-            observations, membership
+            observations, membership, signature
         )
 
     def test_save_and_load_preserves_cache_settings(self) -> None:

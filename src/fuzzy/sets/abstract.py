@@ -821,7 +821,9 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
 
     @torch.jit.ignore
     @torch.compiler.disable
-    def _lookup_membership(self, observations: torch.Tensor) -> Optional[Membership]:
+    def _lookup_membership(
+        self, observations: torch.Tensor
+    ) -> Tuple[Optional[Membership], Optional[ParameterSignature]]:
         """
         Retrieve memoized membership degrees for the given observations, if they are still valid.
 
@@ -842,7 +844,11 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             observations: The observations that membership degrees are wanted for.
 
         Returns:
-            The memoized Membership, or None if it has to be calculated.
+            A tuple of (the memoized Membership, or None if it has to be calculated) and
+            (the parameter signature computed to serve this lookup, or None if there was
+            no cache to serve it - matching the earlier skip-when-disabled behavior). The
+            caller passes the signature on to _store_membership on a miss, so it is not
+            computed a second time.
         """
         cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
         if cache is None or not cache.enabled:
@@ -851,31 +857,41 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             # disabled - cache.lookup() would discard the signature unused, but as a
             # function-call argument it would already have been computed by the time
             # cache.lookup() runs to discard it
-            return None
-        return cache.lookup(observations, self.parameter_signature())
+            return None, None
+        parameter_signature = self.parameter_signature()
+        return cache.lookup(observations, parameter_signature), parameter_signature
 
     @torch.jit.ignore
     @torch.compiler.disable
     def _store_membership(
-        self, observations: torch.Tensor, membership: Membership
+        self,
+        observations: torch.Tensor,
+        membership: Membership,
+        parameter_signature: Optional[ParameterSignature],
     ) -> None:
         """
         Memoize the membership degrees calculated for the given observations.
 
         See _lookup_membership's docstring for why this is also marked
-        @torch.compiler.disable and skips parameter_signature() when there is nothing
-        to store it into.
+        @torch.compiler.disable, and for where parameter_signature (already computed
+        once by the preceding _lookup_membership call on this same forward()) comes
+        from - a None here means that call found no cache to serve, so there is
+        nothing to store into either.
 
         Args:
             observations: The observations the membership degrees were calculated for.
             membership: The calculated membership degrees and mask.
+            parameter_signature: The signature _lookup_membership computed during this
+                same forward() call, or None if there was no cache to store into.
 
         Returns:
             None
         """
+        if parameter_signature is None:
+            return
         cache: Union[None, MembershipCache] = getattr(self, "_membership_cache", None)
         if cache is not None and cache.enabled:
-            cache.store(observations, self.parameter_signature(), membership)
+            cache.store(observations, parameter_signature, membership)
 
     def _calculate_membership_nan_safe(
         self, observations: torch.Tensor
@@ -941,13 +957,18 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         Returns:
             The membership degrees of the observations for this fuzzy set.
         """
+        # populated by _lookup_membership below (when there is a cache to consult),
+        # and reused by _store_membership at the end of this call instead of being
+        # recomputed - parameter_signature() is not free, it reads id()/version()
+        # off every parameter tensor this fuzzy set depends on
+        parameter_signature: Optional[ParameterSignature] = None
         if not torch.compiler.is_compiling():
             # guarded so torch.compile(fullgraph=True) never traces into the
             # @torch.compiler.disable'd cache methods below - Dynamo specializes
             # is_compiling() to a compile-time constant, so this branch is pruned
             # entirely (not merely skipped) while tracing, avoiding the graph break
             # that calling a disabled function would otherwise force
-            cached: Optional[Membership] = self._lookup_membership(observations)
+            cached, parameter_signature = self._lookup_membership(observations)
             if cached is not None:
                 return cached
 
@@ -971,5 +992,7 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
             formula=self._formula_name,
         )
         if not torch.compiler.is_compiling():
-            self._store_membership(original_observations, membership)
+            self._store_membership(
+                original_observations, membership, parameter_signature
+            )
         return membership

@@ -335,8 +335,16 @@ class TestMembershipCache(unittest.TestCase):
         """
         The skip introduced above must not become an overzealous skip that also
         applies when the cache is actually enabled - parameter_signature() must still
-        be computed (both to look up and to store) whenever there is a cache that
-        could use it.
+        be computed whenever there is a cache that could use it.
+
+        Regression/performance test: _lookup_membership used to compute
+        self.parameter_signature() for the (missed) lookup, and _store_membership
+        computed it again from scratch to store - two full
+        get_centers()/get_widths()/get_mask() + id()/version() sweeps per forward call
+        on every cache miss, even though the signature could not have changed between
+        the two calls a few lines apart. forward() now computes it once in
+        _lookup_membership and threads the same value through to _store_membership, so
+        a cache miss calls parameter_signature() exactly once, not twice.
 
         Returns:
             None
@@ -350,9 +358,8 @@ class TestMembershipCache(unittest.TestCase):
             autospec=True,
             side_effect=type(gaussian_mf).parameter_signature,
         ) as mocked_signature:
-            gaussian_mf(observations)
-        # once for the (miss) lookup, once for the store
-        self.assertEqual(mocked_signature.call_count, 2)
+            gaussian_mf(observations)  # a miss: nothing cached yet
+        mocked_signature.assert_called_once()
 
     def test_clear_membership_cache(self) -> None:
         """
