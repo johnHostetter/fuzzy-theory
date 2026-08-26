@@ -383,5 +383,127 @@ class TestMamdani(unittest.TestCase):
         self.assertFalse(Path("should_not_be_created").exists())
 
 
+class _ThirdPartyTSKStyle(Defuzzification):
+    """
+    Stands in for a TSK-style Defuzzification subclass defined outside
+    fuzzy-theory entirely (e.g. a downstream project's own CP-decomposed TSK
+    variant) - forward() requires observations (no default), matching TSK's
+    own contract, without fuzzy-theory needing to import or know about this
+    class at all.
+    """
+
+    def forward(
+        self, rule_activations: Membership, observations: torch.Tensor
+    ) -> torch.Tensor:
+        return observations.sum(dim=-1, keepdim=True) * rule_activations.degrees.sum(
+            dim=-1, keepdim=True
+        )
+
+    def save(self, path: Path) -> None:
+        raise NotImplementedError("Not needed for this test stand-in.")
+
+
+class _ThirdPartyMamdaniStyle(Defuzzification):
+    """
+    Stands in for a Mamdani-style (i.e. non-TSK) Defuzzification subclass
+    defined outside fuzzy-theory - forward() gives observations a default of
+    None (unused, present only for a uniform call signature).
+    """
+
+    def forward(
+        self, rule_activations: Membership, observations: torch.Tensor = None
+    ) -> torch.Tensor:
+        return rule_activations.degrees.sum(dim=-1, keepdim=True)
+
+    def save(self, path: Path) -> None:
+        raise NotImplementedError("Not needed for this test stand-in.")
+
+
+class _MissingObservationsParam(Defuzzification):
+    """
+    Violates the Defuzzification contract: forward() doesn't declare an
+    "observations" parameter at all, so the FLC has no way to determine which
+    call convention to use.
+    """
+
+    def forward(  # pylint: disable=arguments-differ
+        self, rule_activations: Membership
+    ) -> torch.Tensor:
+        return rule_activations.degrees
+
+    def save(self, path: Path) -> None:
+        raise NotImplementedError("Not needed for this test stand-in.")
+
+
+class TestFLCDefuzzifyDispatch(unittest.TestCase):
+    """
+    Regression tests for FuzzyLogicController's TSK-vs-Mamdani dispatch: it
+    must be decided by inspecting the concrete defuzzification class's own
+    forward() signature (whether "observations" is required or defaulted),
+    not by an isinstance() check against a fixed, closed list of known
+    subclasses - the latter would require fuzzy-theory to import every
+    downstream subclass that ever wants TSK-style dispatch, creating a
+    backwards dependency (this was a real bug: controller.py used to import
+    a PySoft-only class for exactly this purpose).
+    """
+
+    def test_dispatches_a_third_party_tsk_style_subclass_correctly(self) -> None:
+        """
+        A subclass fuzzy-theory has never heard of, whose forward() requires
+        observations, must still be routed through _defuzzify_tsk (so
+        observations actually get passed through) purely because of its
+        signature.
+        """
+        knowledge_base, _ = build_mamdani_knowledge_base(AVAILABLE_DEVICE)
+        flc = FLC(
+            source=knowledge_base,
+            inference=_ThirdPartyTSKStyle,
+            device=AVAILABLE_DEVICE,
+        )
+        self.assertEqual(flc._defuzzify, flc._defuzzify_tsk)
+
+        input_data = torch.tensor(
+            [[1.2, 0.2], [1.1, 0.3], [2.1, 0.1]], device=AVAILABLE_DEVICE
+        )
+        output = flc(input_data)  # must not raise (observations reach forward())
+        self.assertEqual(output.shape[0], input_data.shape[0])
+
+    def test_dispatches_a_third_party_mamdani_style_subclass_correctly(self) -> None:
+        """
+        A subclass whose forward() gives observations a default must be
+        routed through _defuzzify_standard.
+        """
+        knowledge_base, _ = build_mamdani_knowledge_base(AVAILABLE_DEVICE)
+        flc = FLC(
+            source=knowledge_base,
+            inference=_ThirdPartyMamdaniStyle,
+            device=AVAILABLE_DEVICE,
+        )
+        self.assertEqual(flc._defuzzify, flc._defuzzify_standard)
+
+        input_data = torch.tensor(
+            [[1.2, 0.2], [1.1, 0.3], [2.1, 0.1]], device=AVAILABLE_DEVICE
+        )
+        output = flc(input_data)
+        self.assertEqual(output.shape[0], input_data.shape[0])
+
+    def test_raises_a_clear_error_when_forward_has_no_observations_parameter(
+        self,
+    ) -> None:
+        """
+        A Defuzzification subclass that omits "observations" from forward()
+        entirely violates the contract the FLC's dispatch relies on - this
+        must fail loudly and informatively at FLC construction time, not with
+        a bare KeyError or a silent misdispatch.
+        """
+        knowledge_base, _ = build_mamdani_knowledge_base(AVAILABLE_DEVICE)
+        with self.assertRaisesRegex(TypeError, "observations"):
+            FLC(
+                source=knowledge_base,
+                inference=_MissingObservationsParam,
+                device=AVAILABLE_DEVICE,
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

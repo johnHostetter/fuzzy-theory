@@ -7,6 +7,7 @@ This Python module also contains functions for extracting information from a kno
 and fuzzy logic rule matrices. These components may then be used to create a fuzzy inference system.
 """
 
+import inspect
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any, List, MutableMapping, Optional, Tuple, Type
@@ -25,7 +26,7 @@ from ...utils import load_module_class, module_class
 from .configurations.abstract import FuzzySystem
 from .configurations.data import ExecutionOptions, GranulationLayers, Shape
 from .configurations.impl import Defined
-from .defuzzification import TSK, Defuzzification
+from .defuzzification import Defuzzification
 
 
 class FuzzyLogicController(torch.nn.Sequential):
@@ -92,11 +93,33 @@ class FuzzyLogicController(torch.nn.Sequential):
         )
 
         # bind the correct defuzzification call to avoid try/except on every
-        # forward
-        if isinstance(defuzzification, TSK):
-            self._defuzzify = self._defuzzify_tsk
-        else:
-            self._defuzzify = self._defuzzify_standard
+        # forward. Rather than isinstance-checking against every known TSK-style
+        # subclass - which would require importing each one here, including
+        # downstream subclasses defined outside fuzzy-theory entirely (e.g. a
+        # project's own CP-decomposed TSK variant), creating a backwards
+        # dependency - inspect the concrete class's own forward() signature.
+        # Defuzzification's contract (see TSK.forward vs.
+        # Mamdani/ZeroOrder.forward's docstrings) is that a TSK-style variant
+        # declares "observations" with no default, since it's required to
+        # compute the consequence, while a Mamdani-style variant gives it a
+        # default of None (unused, present only so both call shapes are
+        # interchangeable).
+        try:
+            observations_param = inspect.signature(
+                type(defuzzification).forward
+            ).parameters["observations"]
+        except KeyError as error:
+            raise TypeError(
+                f"{type(defuzzification).__name__}.forward must declare an "
+                "'observations' parameter (required, with no default, for a "
+                "TSK-style variant that needs it to compute the consequence; "
+                "given a default of None otherwise) so the FLC can determine "
+                "how to call it."
+            ) from error
+        requires_observations = observations_param.default is inspect.Parameter.empty
+        self._defuzzify = (
+            self._defuzzify_tsk if requires_observations else self._defuzzify_standard
+        )
 
     @property
     def shape(self) -> Shape:
