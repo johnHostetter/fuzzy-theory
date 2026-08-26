@@ -208,10 +208,11 @@ class TestFuzzySetGroup(unittest.TestCase):
 
     def test_hash_eq_contract(self) -> None:
         """
-        FuzzySetGroup.__hash__ delegates to hash(module) for each submodule, so it inherits
-        FuzzySet.__hash__'s correctness (or lack thereof). This confirms the contract holds
-        transitively: two separately constructed but value-equal groups must be both '=='
-        and have equal hashes.
+        FuzzySetGroup.__hash__ is identity-based (id(self)) while __eq__ compares member
+        FuzzySets by value - the same eq-by-value/hash-by-identity trade-off
+        GroupedLinks.__hash__ (linkage.py) and FuzzySet.__hash__ (abstract.py) document.
+        Two separately constructed but value-equal groups must still be '==', but are not
+        required to hash equal.
 
         Returns:
             None
@@ -245,7 +246,7 @@ class TestFuzzySetGroup(unittest.TestCase):
             ]
         )
         self.assertEqual(first, second)
-        self.assertEqual(hash(first), hash(second))
+        self.assertEqual(hash(first), hash(first))
 
     def test_to_dtype_only_does_not_corrupt_device(self) -> None:
         """

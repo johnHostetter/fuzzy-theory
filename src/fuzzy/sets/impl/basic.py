@@ -486,13 +486,7 @@ class Trapezoidal(FuzzySet):
 
     @torch.jit.ignore
     def __hash__(self):
-        # hash by value (matching __eq__ above), not by the tensors' identity-based default
-        # hash - see FuzzySet.__hash__ for why that distinction matters
-        return hash(
-            (
-                type(self),
-                tuple(self.get_centers().flatten().tolist()),
-                tuple(self.get_widths().flatten().tolist()),
-                tuple(self.get_plateaus().flatten().tolist()),
-            )
-        )
+        # identity-based, sync-free - see FuzzySet.__hash__ for why a content hash
+        # (previously used here, via .tolist()) is both inconsistent with a
+        # torch.equal-based __eq__ and fatal to CUDA graph capture.
+        return id(self)

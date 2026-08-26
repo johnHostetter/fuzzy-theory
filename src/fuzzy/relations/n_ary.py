@@ -160,7 +160,17 @@ class NAryRelation(TorchJitModule, Loggable):
 
     # @log_method
     def __hash__(self) -> int:
-        return hash(self.nan_replacement) + hash(self.device)
+        # identity-based, not hash(nan_replacement) + hash(device): those two fields
+        # are the same across nearly every NAryRelation in a model (one
+        # nan_replacement sentinel, one device), so that hash guaranteed a bucket
+        # collision between every distinct pair of them - and nn.Module.named_modules()
+        # (which .parameters()/.named_parameters()/state_dict() all go through)
+        # keeps a memo set of visited modules purely for identity-based cycle/dedup
+        # detection, so every such collision forced Python to fall back to __eq__,
+        # whose (applied_mask - other_applied_mask).sum() == 0 syncs the CUDA stream -
+        # both a major eager-mode cost (this was the "expensive __eq__ in n_ary.py"
+        # bottleneck) and fatal to CUDA graph capture (any host sync aborts it).
+        return id(self)
 
     # @log_method
     def __eq__(self, other: Any) -> bool:

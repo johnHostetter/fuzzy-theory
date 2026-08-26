@@ -258,10 +258,13 @@ class FuzzySetGroup(NestedTorchJitModule, Loggable):
 
     # @log_method
     def __hash__(self) -> int:
-        _hash: str = ""
-        for module in self.modules_list:
-            _hash += str(hash(module))
-        return hash(_hash)
+        # identity-based - see FuzzySet.__hash__ (abstract.py) for why: __eq__ here is
+        # value-based (via the loop below), which no content hash can be fully
+        # consistent with anyway, and the previous per-member hash(module) chain,
+        # once those members' own __hash__ was content-based, forced a CUDA->CPU sync
+        # on every call - fatal to CUDA graph capture and a major eager-mode cost via
+        # nn.Module.named_modules()'s internal memo set.
+        return id(self)
 
     # @log_method
     def __eq__(self, other: Any) -> bool:

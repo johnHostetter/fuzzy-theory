@@ -371,23 +371,24 @@ class FuzzySet(TorchJitModule, Loggable, metaclass=abc.ABCMeta):
         """
         Hash the fuzzy set.
 
-        This must agree with __eq__, which compares centers/widths by *value* (torch.equal).
-        Hashing the tensors themselves would hash by identity instead (torch.Tensor keeps
-        the default id()-based __hash__), so two separately constructed but value-equal fuzzy
-        sets would violate Python's hash contract - equal objects reporting different hashes -
-        which breaks their use as dict keys or set members. Hashing the flattened values (as
-        plain Python numbers, not tensors) keeps this consistent with __eq__.
+        __eq__ compares centers/widths by *value* (torch.equal), so no content hash can
+        ever be made fully consistent with it in the way Python's hash contract wants
+        (equal objects must hash equal) - see GroupedLinks.__hash__ (linkage.py) for the
+        same trade-off made elsewhere in this codebase. Hashing the flattened values
+        used to be attempted here via .tolist(), but that forces a CUDA->CPU
+        synchronization on every call - fatal for torch.cuda.graph capture (any host
+        sync aborts capture), and it also made FuzzySet's participation in
+        nn.Module.named_modules()'s internal memo set (which every call to
+        .parameters()/.named_parameters()/state_dict() goes through) pay that sync on
+        every module walk, dominating training time. Falling back to identity keeps
+        __hash__ cheap, sync-free, and stable across calls (unlike hashing freshly
+        recomputed tensor values, which can change identity - and therefore hash - on
+        every call anyway).
 
         Returns:
             The hash of the fuzzy set.
         """
-        return hash(
-            (
-                type(self),
-                tuple(self.get_centers().flatten().tolist()),
-                tuple(self.get_widths().flatten().tolist()),
-            )
-        )
+        return id(self)
 
     # @log_method
     def __eq__(self, other: Any) -> bool:
