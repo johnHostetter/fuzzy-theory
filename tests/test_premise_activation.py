@@ -81,6 +81,24 @@ class TestPremiseActivationFunctions(unittest.TestCase):
         with self.assertRaises(ValueError):
             module.bound_alpha()
 
+    def test_forward_rejects_float64_input(self) -> None:
+        """
+        Regression test: forward()'s n_iter=30 shortcut for entmax_bisect_triton
+        is only verified bit-identical to the reference n_iter=50 for float16/
+        float32 inputs - float64 has enough mantissa precision (~53 bits) that
+        the same iteration count would not have converged, so forward() must
+        raise a clear ValueError rather than silently returning an under-
+        converged result.
+
+        Returns:
+            None
+        """
+        module = BoundAlphaEntmax(
+            bounding_strategy=BoundAlphaEntmaxEnum.SIGMOID, alpha=torch.zeros(1)
+        )
+        with self.assertRaisesRegex(ValueError, "float64"):
+            module(torch.rand(3, 4, dtype=torch.float64))
+
     @unittest.skipUnless(
         torch.cuda.is_available(), "requires a second device (CUDA) to move to"
     )
