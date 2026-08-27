@@ -93,6 +93,21 @@ class TestGraphedTrainingStepValidation(unittest.TestCase):
         with self.assertRaises(ValueError):
             GraphedTrainingStep(_never_called_step_fn, optimizer, torch.device("cpu"))
 
+    def test_accepts_a_plain_sgd_optimizer_without_capturable(self) -> None:
+        """
+        Plain torch.optim.SGD has no capturable concept at all (no step-counter/
+        bias-correction state that would need it - confirmed empirically to capture
+        and replay cleanly) and must NOT be rejected the way a non-capturable
+        Adam/AdamW is. Run on CPU (no CUDA device required for this test) - the
+        optimizer-validation branch must pass BEFORE the separate device check, so
+        asserting the raised error is the device complaint (not a capturable
+        complaint) proves SGD cleared the optimizer check specifically.
+        """
+        model = torch.nn.Linear(2, 2)
+        optimizer = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
+        with self.assertRaisesRegex(ValueError, "CUDA device"):
+            GraphedTrainingStep(_never_called_step_fn, optimizer, torch.device("cpu"))
+
 
 class TestForceCudaGraphSafeBranchesWithoutTriton(unittest.TestCase):
     """
@@ -308,6 +323,34 @@ class TestGraphedTrainingStep(unittest.TestCase):
         """
         model = torch.nn.Linear(4, 2).to(AVAILABLE_DEVICE)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-2, capturable=True)
+        criterion = torch.nn.MSELoss()
+        static_x = torch.zeros(8, 4, device=AVAILABLE_DEVICE)
+        static_y = torch.zeros(8, 2, device=AVAILABLE_DEVICE)
+
+        def step_fn() -> torch.Tensor:
+            optimizer.zero_grad(set_to_none=False)
+            loss = criterion(model(static_x), static_y)
+            loss.backward()
+            optimizer.step()
+            return loss
+
+        graphed = GraphedTrainingStep(step_fn, optimizer, AVAILABLE_DEVICE, n_warmup=3)
+        try:
+            static_x.copy_(torch.rand(8, 4, device=AVAILABLE_DEVICE))
+            static_y.copy_(torch.rand(8, 2, device=AVAILABLE_DEVICE))
+            loss = graphed.replay(sync=True)
+            self.assertFalse(math.isnan(loss))
+        finally:
+            graphed.close()
+
+    def test_works_with_a_plain_sgd_optimizer(self) -> None:
+        """
+        SGD (momentum, no capturable flag) is the other accepted optimizer besides
+        capturable Adam/AdamW - see GraphedTrainingStep.__init__'s own docstring for
+        why it needs no such flag.
+        """
+        model = torch.nn.Linear(4, 2).to(AVAILABLE_DEVICE)
+        optimizer = torch.optim.SGD(model.parameters(), lr=1e-1, momentum=0.9)
         criterion = torch.nn.MSELoss()
         static_x = torch.zeros(8, 4, device=AVAILABLE_DEVICE)
         static_y = torch.zeros(8, 2, device=AVAILABLE_DEVICE)

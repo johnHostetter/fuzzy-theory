@@ -300,12 +300,23 @@ class GraphedTrainingStep:
             step_fn: A zero-argument callable performing one complete training step
                 and returning the loss tensor - see the class docstring for the full
                 contract.
-            optimizer: The capturable=True optimizer step_fn calls .step() on (passed
-                separately only so this constructor can validate it up front, before
-                paying for warmup - e.g. torch.optim.Adam(params, lr=..., capturable=
-                True)) - a non-capturable optimizer keeps its step counter as a plain
-                Python int with float bias-correction math, both illegal to record
-                into a CUDA graph.
+            optimizer: The optimizer step_fn calls .step() on (passed separately only
+                so this constructor can validate it up front, before paying for
+                warmup). Either a capturable=True Adam-family optimizer (e.g.
+                torch.optim.Adam(params, lr=..., capturable=True) - a non-capturable
+                Adam/AdamW keeps its step counter as a plain Python int with float
+                bias-correction math, both illegal to record into a CUDA graph) OR a
+                plain torch.optim.SGD, which has no such step-counter/bias-correction
+                state at all and was confirmed (empirically, capturing and replaying
+                directly against torch.cuda.graph) to capture and replay cleanly with
+                no capturable-style flag needed. SGD's lr, unlike Adam's, cannot be a
+                mutable Tensor under capture either (confirmed empirically: its
+                _foreach_add_(..., alpha=-lr) call forces a host-side scalar
+                conversion, raising "operation not permitted when stream is
+                capturing") - a caller changing SGD's learning rate (e.g. a per-epoch
+                schedule) must construct a fresh GraphedTrainingStep to pick up the
+                new value, exactly like any other structural change (see this
+                class's own docstring on growth).
             device: Must be a CUDA device.
             n_warmup: Untimed step_fn() calls run on a side stream before capture,
                 letting cuDNN/cuBLAS algorithm selection and the CUDA caching
@@ -316,12 +327,14 @@ class GraphedTrainingStep:
                 times over, so any cache staleness from warmup has long since resolved
                 through real optimizer steps before the captured call.
         """
-        if not optimizer.param_groups[0].get("capturable", False):
+        is_sgd = isinstance(optimizer, torch.optim.SGD)
+        if not is_sgd and not optimizer.param_groups[0].get("capturable", False):
             raise ValueError(
-                "GraphedTrainingStep requires an optimizer constructed with "
-                "capturable=True (e.g. torch.optim.Adam(..., capturable=True)) - a "
-                "non-capturable optimizer's step counter is a plain Python int with "
-                "float bias-correction math, both illegal to record into a CUDA graph."
+                "GraphedTrainingStep requires either a plain torch.optim.SGD or an "
+                "optimizer constructed with capturable=True (e.g. torch.optim.Adam"
+                "(..., capturable=True)) - a non-capturable Adam/AdamW's step "
+                "counter is a plain Python int with float bias-correction math, "
+                "both illegal to record into a CUDA graph."
             )
         if device.type != "cuda":
             raise ValueError("GraphedTrainingStep requires a CUDA device.")
