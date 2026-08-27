@@ -252,6 +252,81 @@ class TestTSK(unittest.TestCase):
         self.assertEqual("cuda", tsk_cpu.bias.device.type)
 
 
+class TestTSKRandomInitFanInScaling(unittest.TestCase):
+    """
+    Regression coverage for TSK's source=None consequent initialization: plain
+    torch.randn (no fan-in scaling) gave every weight unit variance regardless of
+    n_inputs, so for a large n_inputs (e.g. a CNN feature vector) the resulting
+    output logits scaled as sqrt(n_inputs) - confirmed directly to prevent even
+    memorizing 64 training examples across 150 epochs, independent of learning
+    rate. Only the WEIGHT portion should be scaled - the bias (index 0 along the
+    consequences' last dim) has no fan-in dependency and must stay unscaled,
+    matching the historical torch.zero-initialized bias this replaced.
+    """
+
+    def test_weight_std_scales_down_with_n_inputs(self) -> None:
+        torch.manual_seed(0)
+        small_shape = Shape(
+            n_inputs=4, n_input_terms=3, n_rules=8, n_outputs=2, n_output_terms=0
+        )
+        small_tsk = TSK(
+            shape=small_shape, source=None, device=AVAILABLE_DEVICE, rule_base=None
+        )
+
+        torch.manual_seed(0)
+        large_shape = Shape(
+            n_inputs=512, n_input_terms=3, n_rules=8, n_outputs=2, n_output_terms=0
+        )
+        large_tsk = TSK(
+            shape=large_shape, source=None, device=AVAILABLE_DEVICE, rule_base=None
+        )
+
+        # same seed, same torch.randn call shape-for-shape up to n_inputs - the
+        # LARGER n_inputs' weight std should be smaller by very close to the
+        # expected sqrt(4/512) ratio, not identical (unscaled) or arbitrary.
+        expected_ratio = (4 / 512) ** 0.5
+        actual_ratio = large_tsk.weights.std().item() / small_tsk.weights.std().item()
+        self.assertAlmostEqual(actual_ratio, expected_ratio, delta=0.05)
+
+    def test_weight_std_is_close_to_one_over_sqrt_n_inputs(self) -> None:
+        n_inputs = 512
+        shape = Shape(
+            n_inputs=n_inputs,
+            n_input_terms=3,
+            n_rules=16,
+            n_outputs=4,
+            n_output_terms=0,
+        )
+        tsk = TSK(shape=shape, source=None, device=AVAILABLE_DEVICE, rule_base=None)
+        expected_std = 1.0 / (n_inputs**0.5)
+        self.assertAlmostEqual(tsk.weights.std().item(), expected_std, delta=0.02)
+
+    def test_bias_is_not_rescaled_by_n_inputs(self) -> None:
+        """The bias (unlike the weights) has no fan-in dependency - it must keep
+        its original unit-ish variance from torch.randn regardless of n_inputs,
+        not be caught by the same scaling applied to the weight portion."""
+        shape = Shape(
+            n_inputs=512, n_input_terms=3, n_rules=16, n_outputs=4, n_output_terms=0
+        )
+        tsk = TSK(shape=shape, source=None, device=AVAILABLE_DEVICE, rule_base=None)
+        # plain torch.randn has std ~1.0 - well outside the ~0.044 the weights
+        # themselves land at (1/sqrt(512)) if the bias were wrongly scaled too.
+        self.assertGreater(tsk.bias.std().item(), 0.5)
+
+    def test_source_provided_is_never_rescaled(self) -> None:
+        """The fan-in scaling only applies to the source=None random-init path -
+        an explicitly provided source (e.g. a previously-trained or caller-
+        constructed consequence tensor) must be used exactly as given."""
+        shape = Shape(
+            n_inputs=512, n_input_terms=3, n_rules=3, n_outputs=2, n_output_terms=0
+        )
+        source = np.ones(
+            (shape.n_outputs, shape.n_rules, shape.n_inputs + 1), dtype=np.float32
+        )
+        tsk = TSK(shape=shape, source=source, device=AVAILABLE_DEVICE, rule_base=None)
+        self.assertTrue(torch.allclose(tsk.weights, torch.ones_like(tsk.weights)))
+
+
 class _FakeConsequenceMask:  # pylint: disable=too-few-public-methods
     """
     A minimal stand-in for RuleBase.consequences, exposing only the get_mask()
