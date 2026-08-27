@@ -95,6 +95,18 @@ class SamplingEnum(str, Enum):
     # ST = "straight_through"  # no noise
 
 
+class GumbelAnnealingEnum(str, Enum):
+    """
+    How to gradually reduce the Gumbel-Softmax's stochasticity as training progresses, as an
+    alternative to noise_delay's abrupt periodic resampling. Both non-NONE modes reach their
+    floor after GumbelConfig.anneal_steps training-mode forward calls and hold there.
+    """
+
+    NONE = "none"  # no annealing - temperature and noise magnitude stay fixed (default)
+    TEMPERATURE = "temperature"  # anneal the softmax temperature toward min_temperature
+    NOISE_MAGNITUDE = "noise_magnitude"  # anneal the sampled Gumbel noise's magnitude toward zero
+
+
 class RuleWeightsEnum(str, Enum):
     """
     This allows for the disabling/enabling of rule weights (e.g., certainty factors).

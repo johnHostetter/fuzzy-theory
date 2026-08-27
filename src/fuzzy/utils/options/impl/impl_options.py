@@ -27,6 +27,7 @@ from fuzzy.utils.options.abstract.primitive import CategoricalOptions
 from fuzzy.utils.options.impl.impl_enums import (
     BoundAlphaEntmaxEnum,
     DefuzzificationMethodEnum,
+    GumbelAnnealingEnum,
     NeurogenesisEnum,
     PremiseActivationEnum,
     PremiseAggregationEnum,
@@ -514,6 +515,35 @@ class GumbelConfig(YAMLConfig):
                 128,
                 256,
             ],
+        },
+    )
+    annealing: GumbelAnnealingEnum = field(
+        default=GumbelAnnealingEnum.NONE,
+        metadata={
+            "help": "How to anneal Gumbel-Softmax stochasticity over training, as an "
+            "alternative to noise_delay's abrupt periodic resampling. NONE (default) leaves "
+            "temperature and noise magnitude fixed - the historical behavior. TEMPERATURE "
+            "linearly decays the softmax temperature from its configured value toward "
+            "min_temperature. NOISE_MAGNITUDE linearly decays the sampled Gumbel noise's "
+            "amplitude from full strength toward zero (i.e., toward a deterministic argmax). "
+            "Both reach their floor after anneal_steps training-mode forward calls and hold "
+            "there.",
+        },
+    )
+    min_temperature: float = field(
+        default=0.3,
+        metadata={
+            "help": "The floor that TEMPERATURE annealing decays configuration.temperature "
+            "toward; unused when annealing is not TEMPERATURE.",
+            "range": Range(low=0.05, high=float("inf")),
+        },
+    )
+    anneal_steps: int = field(
+        default=10_000,
+        metadata={
+            "help": "The number of training-mode forward calls over which TEMPERATURE or "
+            "NOISE_MAGNITUDE annealing reaches its floor; unused when annealing is NONE.",
+            "range": Range(low=1, high=_64_BIT_INT, step=1),
         },
     )
 
