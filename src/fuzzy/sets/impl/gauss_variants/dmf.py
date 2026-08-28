@@ -26,7 +26,6 @@ import sympy
 import torch
 
 from fuzzy.sets.abstract import FuzzySet
-from fuzzy.sets.impl.gauss_variants.cmf import Gaussian, LogGaussian
 from fuzzy.utils.options.impl.impl_options import Range
 
 
@@ -77,12 +76,11 @@ class GaussianNoExpDMF(DimensionDependent):
     case of the Dimension-Dependent fuzzy set where the Gaussian membership function is assumed.
     """
 
-    # delegates to LogGaussian.internal_calculate_membership (see below), which
-    # returns the raw log-space value (no exp()), clamped to [-10, 0] - not the
-    # conventional [0, 1] fuzzy membership degree range FuzzySet.degree_range
-    # defaults to. Not inherited from LogGaussian (this class is a sibling under
-    # DimensionDependent, not a subclass of LogGaussian), so it needs its own
-    # explicit override.
+    # internal_calculate_membership() (see below) returns the raw log-space value (no
+    # exp()), clamped to [-10, 0] - not the conventional [0, 1] fuzzy membership
+    # degree range FuzzySet.degree_range defaults to. Not inherited from LogGaussian
+    # (this class is a sibling under DimensionDependent, not a subclass of
+    # LogGaussian), so it needs its own explicit override.
     degree_range: ClassVar[Range] = Range(low=-10.0, high=0.0)
 
     @staticmethod
@@ -110,14 +108,28 @@ class GaussianNoExpDMF(DimensionDependent):
 
         Returns:
             The membership degrees of the observations for the Gaussian DMF fuzzy set.
-        """
 
-        return LogGaussian.internal_calculate_membership(
-            observations=observations,
-            centers=centers,
-            widths=widths,
-            width_multiplier=torch.pow(n_inputs, rho).item(),
-        )
+        Note:
+            This computes the ADDITIVE formula from the cited paper and its authors'
+            own reference implementation (Eandon/HDFIS's gauss_dmf_sig - see this
+            module's own docstring) directly, rather than delegating to
+            LogGaussian.internal_calculate_membership's width_multiplier parameter (as
+            an earlier version of this method did) - that parameter is MULTIPLICATIVE
+            (denom = width_multiplier * widths**2), which is the right shape of
+            plumbing for a genuinely different method (HTSK: denom = 2 * n_inputs *
+            widths**2) but the wrong operation for DMF, whose own formula is
+            n_inputs**rho + widths**2 (added, not multiplied) - confirmed against both
+            the paper's own formula (this class's own sympy_formula() already encoded
+            it correctly, even though the old delegation-based implementation didn't
+            match it) and the authors' reference code. Also avoids the earlier
+            .item() call - a real GPU->CPU sync on every forward call, unnecessary
+            since n_inputs**rho can be added directly as a tensor.
+        """
+        return (
+            -1.0
+            * torch.pow(observations - centers, 2)
+            / (torch.pow(n_inputs, rho) + torch.pow(widths, 2) + 1e-32)
+        ).clamp(min=-10.0, max=0.0)
 
     @classmethod
     @torch.jit.ignore
@@ -187,25 +199,24 @@ class GaussianDMF(DimensionDependent):
 
         Returns:
             The membership degrees of the observations for the Gaussian DMF fuzzy set.
-        """
 
-        return Gaussian.internal_calculate_membership(
-            observations=observations,
-            centers=centers,
-            widths=widths,
-            width_multiplier=torch.pow(n_inputs, rho).item(),
+        Note:
+            Delegates to GaussianNoExpDMF.internal_calculate_membership (the additive
+            formula - see its own docstring for why an earlier version of this method
+            instead delegated to Gaussian.internal_calculate_membership's MULTIPLICATIVE
+            width_multiplier, which computed the wrong formula) and applies exp() -
+            mirrors sympy_formula()'s own exp(GaussianNoExpDMF.sympy_formula())
+            relationship between these two classes.
+        """
+        return torch.exp(
+            GaussianNoExpDMF.internal_calculate_membership(
+                observations=observations,
+                centers=centers,
+                widths=widths,
+                n_inputs=n_inputs,
+                rho=rho,
+            )
         )
-        # ORIGINAL:
-        # return torch.exp(
-        #     -1.0
-        #     * (
-        #         torch.pow(
-        #             observations - centers,
-        #             2,
-        #         )
-        #         / (torch.pow(n_inputs, rho) + torch.pow(widths, 2) + 1e-32)
-        #     )
-        # )
 
     @classmethod
     @torch.jit.ignore

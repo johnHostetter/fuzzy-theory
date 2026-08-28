@@ -80,12 +80,6 @@ class TestDimensionDependent(unittest.TestCase):
                 widths=np.array([[1.0], [1.0]]),
                 device=AVAILABLE_DEVICE,
             )
-            # GaussianNoExpDMF's effective width (n_inputs ** rho) is tiny at
-            # this class' low n_inputs=2 here (by design - see the class'
-            # docstring, it exists for *high*-dimensional problems), so it
-            # clamps to -10 (zero gradient) even for a small 0.2 offset from
-            # center - observations must stay very close to their centers to
-            # exercise the real, unclamped gradient
             observations = torch.tensor([[[0.001], [0.999]]], device=AVAILABLE_DEVICE)
             fuzzy_set.calculate_membership(observations).sum().backward()
             centers_grad = fuzzy_set.get_centers().grad
@@ -94,6 +88,58 @@ class TestDimensionDependent(unittest.TestCase):
             self.assertFalse(bool(widths_grad.isnan().any()), cls.__name__)
             self.assertFalse(bool((centers_grad == 0).all()), cls.__name__)
             self.assertFalse(bool((widths_grad == 0).all()), cls.__name__)
+
+    def test_matches_the_additive_formula_away_from_the_center(self) -> None:
+        """
+        Regression test for a real bug: GaussianDMF/GaussianNoExpDMF used to delegate
+        to Gaussian/LogGaussian's internal_calculate_membership via a width_multiplier
+        parameter that MULTIPLIES width**2 into the denominator - but the cited
+        paper's own formula (already correctly encoded in this class' own
+        sympy_formula(), just never checked against what calculate_membership()
+        actually computed) and its authors' reference implementation
+        (Eandon/HDFIS/lib/membership_functions.py's gauss_dmf_sig) ADD n_inputs**rho
+        to width**2 instead.
+
+        Every other test in this file only checks membership AT the exact center,
+        where (x-c)**2=0 makes the denominator's value irrelevant to the result -
+        this is the only test that would have caught the bug (confirmed via
+        revert-and-confirm-failure: temporarily restoring the old delegation-based
+        implementation makes this fail, producing 0.024 instead of ~0.782).
+
+        Golden value hand-computed from the authors' own formula: 50 input
+        dimensions, width=2.0, an observation exactly 1.0 away from the center.
+        """
+        n_inputs = 50
+        centers = np.zeros((n_inputs, 1))
+        widths = np.full((n_inputs, 1), 2.0)
+        observations = torch.ones(1, n_inputs, 1, device=AVAILABLE_DEVICE)
+
+        no_exp_fuzzy_set = GaussianNoExpDMF(
+            centers=centers, widths=widths, device=AVAILABLE_DEVICE
+        )
+        exp_fuzzy_set = GaussianDMF(
+            centers=centers, widths=widths, device=AVAILABLE_DEVICE
+        )
+
+        # hand-computed from gauss_dmf_sig's own formula: (x-c)**2 / (n**rho + w**2)
+        rho = 1.0 - torch.tensor([745.0]).log() / torch.tensor([50.0]).log()
+        width_multiplier_term = torch.pow(torch.tensor([50.0]), rho)
+        expected_no_exp = -1.0 / (width_multiplier_term + 2.0**2)
+        expected_exp = torch.exp(expected_no_exp)
+
+        no_exp_degrees = no_exp_fuzzy_set.calculate_membership(observations)
+        exp_degrees = exp_fuzzy_set.calculate_membership(observations)
+
+        self.assertTrue(
+            torch.allclose(no_exp_degrees.cpu(), expected_no_exp.expand_as(no_exp_degrees.cpu()), atol=1e-4)
+        )
+        self.assertTrue(
+            torch.allclose(exp_degrees.cpu(), expected_exp.expand_as(exp_degrees.cpu()), atol=1e-4)
+        )
+        # sanity-check the golden value itself against what the buggy (multiplicative)
+        # implementation would have produced, so a future reader doesn't need to
+        # re-derive why this specific scenario is a meaningful regression guard
+        self.assertAlmostEqual(expected_exp.item(), 0.7820, places=3)
 
     def test_sympy_formulas(self) -> None:
         """
