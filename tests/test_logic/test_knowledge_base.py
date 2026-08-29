@@ -335,7 +335,7 @@ class TestKnowledgeBase(unittest.TestCase):
         """
         Known, pre-existing limitation (not fixed here - see the conversation that added
         this test): KnowledgeBase.attributes() looks up self.attribute_table, but nothing
-        currently populates that table - RoughDecisions.add_parent_relation() (from the
+        currently populates that table - RoughGranulation.add_parent_relation() (from the
         external rough-theory package) no longer stores into it. The real assertions for
         this in test_attributes() above have been commented out since before this test was
         added, with a 'TODO: Fix this; attributes are no longer stored' note. This test
@@ -359,3 +359,90 @@ class TestKnowledgeBase(unittest.TestCase):
         untouched_knowledge_base = KnowledgeBase()
         untouched_knowledge_base.set_granules(["y1"], tags="element")
         self.assertEqual({}, untouched_knowledge_base.attributes("y1"))
+
+
+class TestKnowledgeBaseRoughTheoryComposition(unittest.TestCase):
+    """
+    KnowledgeBase inherits only RoughGranulation now (the graph/tagging plumbing it
+    actually uses), not the full RoughApproximation/RoughOperations/RoughDecisions
+    chain - see rough-theory's own RoughGranulation.__init__ docstring for the intended
+    replacement: wrap RoughDecisions(graph=..., attribute_table=...) around a
+    KnowledgeBase's own graph on demand for rough-set analysis, instead of inheriting
+    it permanently.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.linguistic_variables = LinguisticVariables(
+            inputs=[
+                Lorentzian(
+                    centers=np.array([0.0, 0.5, 1.0]),
+                    widths=np.array([0.5, 0.75, 1.0]),
+                    device=AVAILABLE_DEVICE,
+                ),
+                Lorentzian(
+                    centers=np.array([1.0, 1.5, 2.0, 2.5]),
+                    widths=np.array([0.1, 0.15, 0.2, 0.25]),
+                    device=AVAILABLE_DEVICE,
+                ),
+            ],
+            targets=[
+                Lorentzian(
+                    centers=np.array([0.0, 0.5, 1.0, 2.0, 2.5]),
+                    widths=np.array([0.5, 0.75, 1.0, 0.2, 0.25]),
+                    device=AVAILABLE_DEVICE,
+                ),
+                Lorentzian(
+                    centers=np.array([1.0, 1.5]),
+                    widths=np.array([0.1, 0.15]),
+                    device=AVAILABLE_DEVICE,
+                ),
+            ],
+        )
+        self.rules: List[Rule] = [
+            Rule(
+                premise=TNorm((0, 0), (1, 0), device=AVAILABLE_DEVICE),
+                consequence=TNorm((0, 0), device=AVAILABLE_DEVICE),
+            ),
+            Rule(
+                premise=TNorm((0, 1), (1, 0), device=AVAILABLE_DEVICE),
+                consequence=TNorm((0, 1), device=AVAILABLE_DEVICE),
+            ),
+            Rule(
+                premise=TNorm((0, 2), (1, 0), device=AVAILABLE_DEVICE),
+                consequence=TNorm((0, 2), device=AVAILABLE_DEVICE),
+            ),
+            Rule(
+                premise=TNorm((1, 0), (1, 2), device=AVAILABLE_DEVICE),
+                consequence=TNorm((1, 0), device=AVAILABLE_DEVICE),
+            ),
+        ]
+
+    def test_knowledge_base_is_a_rough_granulation_not_a_rough_decisions(self) -> None:
+        from rough.decisions import RoughDecisions
+        from rough.granulation import RoughGranulation
+
+        knowledge_base = KnowledgeBase()
+        self.assertIsInstance(knowledge_base, RoughGranulation)
+        self.assertNotIsInstance(knowledge_base, RoughDecisions)
+
+    def test_wrapping_a_real_knowledge_base_enables_rough_set_analysis(self) -> None:
+        """End-to-end: build a real KnowledgeBase via .create(), wrap its own
+        graph/attribute_table in a fresh RoughDecisions, and confirm a real
+        analysis call succeeds against the KB's actual premise structure - the
+        actual point of decoupling KnowledgeBase from the analysis chain."""
+        from rough.decisions import RoughDecisions
+
+        knowledge_base = KnowledgeBase.create(
+            linguistic_variables=LinguisticVariables(
+                inputs=self.linguistic_variables.inputs,
+                targets=self.linguistic_variables.targets,
+            ),
+            rules=self.rules,
+        )
+
+        analysis = RoughDecisions(
+            graph=knowledge_base.graph, attribute_table=knowledge_base.attribute_table
+        )
+        premise_vertices = analysis.select_by_tags(tags={"premise", "anchor"})
+        self.assertGreater(len(premise_vertices), 0)

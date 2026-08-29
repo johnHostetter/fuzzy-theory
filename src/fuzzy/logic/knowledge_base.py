@@ -13,7 +13,7 @@ import igraph as ig
 import numpy as np
 import pandas as pd
 import torch
-from rough.decisions import RoughDecisions
+from rough.granulation import RoughGranulation
 
 from fuzzy.logic.control.configurations.abstract import FuzzySystem
 from fuzzy.logic.control.configurations.data import GranulationLayers, Shape
@@ -26,7 +26,7 @@ from fuzzy.sets.abstract import FuzzySet
 from fuzzy.sets.group import FuzzySetGroup
 
 
-class KnowledgeBase(RoughDecisions, FuzzySystem):
+class KnowledgeBase(RoughGranulation, FuzzySystem):
     """
     The KnowledgeBase class is a significant component to this Soft Computing library.
 
