@@ -59,6 +59,30 @@ class KnowledgeBase(RoughGranulation, FuzzySystem):
     or fuzzy rules to be dynamically added or removed. Allowing for the process of
     self-organizing with various methods (e.g., genetic algorithms, unsupervised learning,
     rough set theory) to be somewhat easily incorporated.
+
+    Rough-theory base class (2026-08-29): this only inherits RoughGranulation now (the
+    graph/attribute_table/tagging plumbing described above), not the fuller
+    RoughApproximation -> RoughOperations -> RoughDecisions analysis chain
+    (reducts, decision tables, approximation) it used to inherit via `RoughDecisions`.
+    An audit found KnowledgeBase itself, and every real caller of a KnowledgeBase
+    instance across this codebase, only ever touches RoughGranulation-level members
+    (self.graph, self.attribute_table, self.select_by_tags(), self.set_granules(),
+    __getitem__) - the ~40 reduct/decision-table/approximation methods the old base
+    class dragged in were never actually called anywhere outside rough-theory's own
+    tests. See external/pypi/rough-theory's rough/granulation.py module docstring for
+    the full rationale.
+
+    Rough-set analysis is still fully available - just attached on demand instead of
+    inherited permanently, so it's always run against whatever self.graph looks like
+    right now rather than risking a stale, separately-maintained copy:
+
+        from rough.decisions import RoughDecisions
+        analysis = RoughDecisions(graph=knowledge_base.graph, attribute_table=knowledge_base.attribute_table)
+        reducts = analysis.find_reducts(...)
+
+    This is a deliberate, tested behavior change: `isinstance(knowledge_base,
+    RoughDecisions)` is now False (it was True before) - see
+    tests/test_logic/test_knowledge_base.py's TestKnowledgeBaseRoughTheoryComposition.
     """
 
     @property
