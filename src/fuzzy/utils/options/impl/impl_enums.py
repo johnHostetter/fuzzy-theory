@@ -163,3 +163,4 @@ class DefuzzificationMethodEnum(str, Enum):
     ZERO_ORDER_TSK = "zero_order_tsk"
     MAMDANI = "mamdani"
     CP_DECOMPOSED_TSK = "cp_decomposed_tsk"
+    LEARNABLE_MAMDANI = "learnable_mamdani"
