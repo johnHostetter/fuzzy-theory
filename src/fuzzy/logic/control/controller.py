@@ -64,6 +64,42 @@ class FuzzyLogicController(torch.nn.Sequential):
         #     torch.nn.Linear(512, self.shape.n_outputs),
         # )
 
+        # TODO(device-split bug, found 2026-08-29 while wiring FuzzyDQNPolicy/
+        # FuzzyActorCriticPolicy into d3rlpy+imitation - see PySoft's
+        # neuro_fuzzy/sb3/dqn.py and actor_critic.py's GrowableFuzzyActorCriticPolicy
+        # for the callers that currently work around this by forcing everything onto
+        # torch.device("cpu")):
+        #
+        # granulation_layers/engine below are built from source.granulation_layers/
+        # source.engine (Specifications' own @property methods, gumbel/
+        # specifications.py) - these lazily construct their tensors using
+        # SOURCE'S OWN self.device attribute (whatever device= was passed to
+        # Specifications(...) at ITS construction time). defuzzification, two lines
+        # down, is instead built with THIS method's own `device` parameter
+        # (`self.device`, set at line 51 above). If a caller ever constructs
+        # `source` with one device and then calls FLC(source=source, device=other)
+        # with a DIFFERENT device (easy to do by accident: e.g.
+        # neuro_fuzzy/sb3/actor_critic.py's FuzzyActorCritic.__init__ always passes
+        # device=self.device, i.e. the surrounding SB3 policy's OWN resolved device
+        # - which stable-baselines3's BaseModel.__init__ sets via
+        # get_device("auto"), defaulting to CUDA if available, REGARDLESS of
+        # whatever device the caller separately used to build policy_system/
+        # value_system's Specifications object), this constructor silently builds a
+        # module with tensors split across two devices: granulation_layers/engine on
+        # `source.device`, defuzzification on `device`. Confirmed symptoms: "Expected
+        # all tensors to be on the same device" errors surfacing much later, either
+        # inside triton_gumbel_softmax.py's backward() (PySoft) or inside
+        # torch.distributions.Categorical.log_prob (via stable-baselines3's
+        # evaluate_actions(), when training through imitation's BC) - NOT at
+        # construction time, which makes this hard to trace back to here.
+        #
+        # No fix attempted yet - options worth considering: (a) validate here that
+        # source.device == device and raise immediately with a clear message if not,
+        # turning this into a fast, obvious failure instead of a deferred, confusing
+        # one; or (b) make FuzzyLogicController.__init__ itself move
+        # granulation_layers/engine onto `device` (e.g. .to(device)) before use,
+        # so a single `device=` argument is authoritative regardless of what the
+        # source object was originally built with.
         # build or extract the necessary components for the FLC from the source
         granulation_layers: GranulationLayers = source.granulation_layers
         engine: TNorm = source.engine
