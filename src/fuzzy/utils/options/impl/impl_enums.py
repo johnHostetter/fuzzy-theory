@@ -104,7 +104,9 @@ class GumbelAnnealingEnum(str, Enum):
 
     NONE = "none"  # no annealing - temperature and noise magnitude stay fixed (default)
     TEMPERATURE = "temperature"  # anneal the softmax temperature toward min_temperature
-    NOISE_MAGNITUDE = "noise_magnitude"  # anneal the sampled Gumbel noise's magnitude toward zero
+    NOISE_MAGNITUDE = (
+        "noise_magnitude"  # anneal the sampled Gumbel noise's magnitude toward zero
+    )
 
 
 class RuleWeightsEnum(str, Enum):

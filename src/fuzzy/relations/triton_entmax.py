@@ -120,9 +120,7 @@ if TRITON_AVAILABLE:
             # inv_alpha_m1>0 range this codebase's bounding strategies produce, but is
             # written explicitly rather than relying on log(0)==-inf/exp(-inf)==0
             # IEEE-754 semantics holding under Triton's compiler).
-            p_m = tl.where(
-                clamped > 0, tl.exp(tl.log(clamped) * inv_alpha_m1), 0.0
-            )
+            p_m = tl.where(clamped > 0, tl.exp(tl.log(clamped) * inv_alpha_m1), 0.0)
             p_m = tl.where(mask, p_m, 0.0)
             f_m = tl.sum(p_m, axis=0) - 1.0
             take = f_m >= 0
@@ -202,9 +200,7 @@ if TRITON_AVAILABLE:
 
             # identical formula to EntmaxBisectFunction.backward (root_finding.py):
             # gppr = Y ** (2 - alpha) where Y > 0, else 0
-            gppr = torch.where(
-                y > 0, y ** (2 - alpha), y.new_zeros(())
-            )
+            gppr = torch.where(y > 0, y ** (2 - alpha), y.new_zeros(()))
             d_x = d_y * gppr
             q = d_x.sum(dim) / gppr.sum(dim)
             q = q.unsqueeze(dim)
@@ -212,9 +208,7 @@ if TRITON_AVAILABLE:
 
             d_alpha = None
             if ctx.alpha_needs_grad:
-                shannon = torch.where(
-                    y > 0, y * torch.log(y), y.new_zeros(())
-                )
+                shannon = torch.where(y > 0, y * torch.log(y), y.new_zeros(()))
                 entropy = shannon.sum(dim).unsqueeze(dim)
                 y_skewed = gppr / gppr.sum(dim).unsqueeze(dim)
 
@@ -225,9 +219,7 @@ if TRITON_AVAILABLE:
             return d_x, d_alpha, None, None, None
 
 
-def _is_fast_path_eligible(
-    x: torch.Tensor, alpha: torch.Tensor, dim: int
-) -> bool:
+def _is_fast_path_eligible(x: torch.Tensor, alpha: torch.Tensor, dim: int) -> bool:
     if not TRITON_AVAILABLE or not x.is_cuda:
         return False
     if dim not in (-1, x.ndim - 1):

@@ -44,7 +44,7 @@ class TestEntmaxBisectTritonForward(unittest.TestCase):
         seed=0,
     ):
         torch.manual_seed(seed)
-        x = (torch.randn(*shape, device=AVAILABLE_DEVICE, dtype=dtype) * scale)
+        x = torch.randn(*shape, device=AVAILABLE_DEVICE, dtype=dtype) * scale
         alpha_t = torch.tensor(alpha, dtype=dtype, device=AVAILABLE_DEVICE)
 
         triton_out = entmax_bisect_triton(
@@ -55,9 +55,7 @@ class TestEntmaxBisectTritonForward(unittest.TestCase):
         )
         self.assertEqual(triton_out.shape, reference_out.shape)
         self.assertEqual(triton_out.dtype, x.dtype)
-        torch.testing.assert_close(
-            triton_out, reference_out, atol=atol, rtol=rtol
-        )
+        torch.testing.assert_close(triton_out, reference_out, atol=atol, rtol=rtol)
         # entmax_bisect's defining constraint: every row sums to (very nearly) 1
         if ensure_sum_one:
             row_sums = triton_out.sum(dim=-1)
@@ -324,9 +322,7 @@ class TestEntmaxBisectTritonBackward(unittest.TestCase):
         Returns:
             None
         """
-        self._compare_grads(
-            shape=(4, 6, 32), alpha_value=1.5, alpha_requires_grad=True
-        )
+        self._compare_grads(shape=(4, 6, 32), alpha_value=1.5, alpha_requires_grad=True)
 
     def test_grads_match_at_sparsemax_alpha(self) -> None:
         """
