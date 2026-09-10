@@ -131,10 +131,16 @@ class TestDimensionDependent(unittest.TestCase):
         exp_degrees = exp_fuzzy_set.calculate_membership(observations)
 
         self.assertTrue(
-            torch.allclose(no_exp_degrees.cpu(), expected_no_exp.expand_as(no_exp_degrees.cpu()), atol=1e-4)
+            torch.allclose(
+                no_exp_degrees.cpu(),
+                expected_no_exp.expand_as(no_exp_degrees.cpu()),
+                atol=1e-4,
+            )
         )
         self.assertTrue(
-            torch.allclose(exp_degrees.cpu(), expected_exp.expand_as(exp_degrees.cpu()), atol=1e-4)
+            torch.allclose(
+                exp_degrees.cpu(), expected_exp.expand_as(exp_degrees.cpu()), atol=1e-4
+            )
         )
         # sanity-check the golden value itself against what the buggy (multiplicative)
         # implementation would have produced, so a future reader doesn't need to
